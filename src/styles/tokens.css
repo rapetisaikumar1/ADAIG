@@ -1,0 +1,18 @@
+/* ADAIG design tokens v0.1 */
+:root{
+ --navy-900:#071a33;--navy-800:#0B2545;--navy-700:#13315c;--navy-100:#e7edf6;
+ --teal-700:#0F766E;--teal-600:#0d9488;--teal-300:#5EEAD4;--teal-50:#ecfdf8;
+ --amber-700:#B45309;--amber-400:#F59E0B;--amber-50:#fff8eb;
+ --ink:#101828;--slate-600:#475467;--slate-500:#667085;--slate-300:#d0d5dd;--slate-200:#e4e7ec;--mist:#F4F6FA;--white:#fff;
+ --red-700:#B42318;--red-50:#fef3f2;--green-700:#067647;--green-50:#ecfdf3;--blue-50:#eff6ff;
+ --focus:#2563EB;
+ --c-bg:var(--white);--c-surface:var(--mist);--c-text:var(--ink);--c-muted:var(--slate-600);--c-border:var(--slate-200);--c-input-border:#667085;/* slate-500: 4.97:1 on white, 4.6:1 on mist (WCAG 1.4.11 ≥3:1). Do not use #98A2B3 (2.58:1). */
+ --c-primary:var(--navy-800);--c-accent:var(--teal-700);--c-highlight:var(--amber-400);
+ --font-display:"Source Serif 4",Georgia,serif;--font-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,monospace;
+ --fs-xs:.75rem;--fs-sm:.875rem;--fs-base:1rem;--fs-lg:1.125rem;--fs-xl:1.375rem;--fs-2xl:1.75rem;--fs-3xl:clamp(1.9rem,1.4rem + 2vw,2.5rem);--fs-4xl:clamp(2.3rem,1.6rem + 3vw,3.5rem);
+ --lh-tight:1.15;--lh-body:1.6;
+ --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;--sp-8:64px;--sp-9:96px;
+ --r-sm:6px;--r-md:10px;--r-lg:16px;--r-pill:999px;
+ --shadow-1:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.1);--shadow-2:0 12px 32px -8px rgba(11,37,69,.18);
+ --container:1200px;--target-min:44px;
+}

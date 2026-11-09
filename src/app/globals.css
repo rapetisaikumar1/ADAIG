@@ -1,0 +1,29 @@
+/* Tailwind utilities only (no preflight) so the prototype's site.css stays authoritative. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "../styles/tokens.css";
+@import "../styles/site.css";
+/* App additions: link-based segmented control matching .seg button */
+.seg a{padding:8px 16px;border-radius:var(--r-pill);font:600 var(--fs-sm) var(--font-body);min-height:36px;color:var(--slate-600);text-decoration:none;display:inline-flex;align-items:center}
+.seg a[aria-pressed=true]{background:#fff;color:var(--navy-800);box-shadow:var(--shadow-1)}
+/* Main + aside layout (event detail, join): stacks on tablet/mobile (BUG-002/003) */
+.layout-aside{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--sp-6)}
+@media(max-width:900px){.layout-aside{grid-template-columns:minmax(0,1fr)}.layout-aside .sticky-side{position:static}}
+/* Inputs without type / datetime-local get the design input style (BUG-004) */
+input:not([type]),input[type=datetime-local],input[type=url]{width:100%;min-height:var(--target-min);padding:10px 12px;border:1px solid var(--c-input-border);border-radius:var(--r-md);font:inherit;background:#fff;color:var(--ink)}
+/* Focus ring for keyboard-scrollable tables (BUG-011) */
+.table-wrap:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* Grid children must be allowed to shrink; mobile admin/member tab bar scrolls with a fade affordance (BUG-017) */
+.app>*{min-width:0}
+@media(max-width:900px){.sidenav{max-width:100vw;-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:32px}.sidenav form{margin-top:0!important;flex:none}}
+/* Target size ≥24px (BUG-018) */
+.util a{display:inline-flex;align-items:center;min-height:24px;padding:2px 4px}
+.card a:not(.btn):not(.card-link),.card-foot a:not(.btn){display:inline-flex;align-items:center;min-height:24px}
+/* Footer columns must shrink on narrow phones (sub-pixel overflow at 360px) */
+@media(max-width:860px){.footer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.footer-grid>*{min-width:0;overflow-wrap:anywhere}}
+/* Grid children must be allowed to shrink so wide tables scroll inside their card (QA BUG-017 reopen) */
+.grid>*,.card{min-width:0}
+.card .table-wrap{max-width:100%}
+/* BUG-030: absolutely positioned children (e.g. .sr-only captions) must be contained by the scroll box, not the page */
+.table-wrap{position:relative}

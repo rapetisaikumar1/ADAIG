@@ -1,0 +1,113 @@
+// Dev uses SQLite (Postgres was not available on the build box).
+// For Postgres: change provider to "postgresql" and set DATABASE_URL — the schema uses no SQLite-specific features.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  name           String
+  passwordHash   String
+  role           String         @default("member") // guest | member | admin
+  organisation   String?
+  jobTitle       String?
+  country        String         @default("Canada")
+  province       String?
+  locale         String         @default("en")
+  directoryOptIn Boolean        @default(false)
+  marketingOptIn Boolean        @default(false)
+  deletedAt      DateTime? // set when the member deletes their account (personal data anonymised)
+  createdAt      DateTime       @default(now())
+  memberships    Membership[]
+  registrations  Registration[]
+  cpe            CpeEntry[]
+}
+
+model Membership {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tierId      String // references src/config/site.ts tiers
+  status      String   @default("pending") // pending | pending_verification | active | lapsed | cancelled
+  eligibilityNote String? // e.g. student attestation details
+  verifiedAt  DateTime?
+  verifiedBy  String?
+  rejectionReason String? // shown to the member (BUG-023)
+  activeSlot  String?  @unique // = userId while status is pending|pending_verification|active (BUG-033: one open membership per user); null otherwise
+  refundStatus String? // null | refund_due | refunded  (manual refunds; see REJECTED_STUDENT_POLICY)
+  currency    String   @default("CAD")
+  amountCents Int
+  taxCents    Int      @default(0)
+  autoRenew   Boolean  @default(true)
+  startsAt    DateTime?
+  renewsAt    DateTime?
+  paymentRef  String? // Stripe checkout session id or mock id
+  createdAt   DateTime @default(now())
+}
+
+model Event {
+  id               String         @id @default(cuid())
+  slug             String         @unique
+  title            String
+  titleFr          String?
+  summary          String
+  type             String // Webinar | Chapter | Conference
+  format           String // Online | In person | Hybrid
+  location         String?
+  startsAt         DateTime
+  durationMin      Int
+  cpe              Float
+  memberPriceCents Int            @default(0)
+  publicPriceCents Int?
+  published        Boolean        @default(true)
+  registrations    Registration[]
+}
+
+model Registration {
+  id        String   @id @default(cuid())
+  userId    String
+  eventId   String
+  ticket    String // member | non-member
+  status    String   @default("confirmed") // pending_payment | confirmed | cancelled
+  amountCents Int    @default(0)
+  currency  String   @default("CAD")
+  paymentRef String?
+  attended  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+}
+
+model CpeEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  hours     Float
+  status    String   @default("approved") // submitted | approved | audit
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  target    String?
+  createdAt DateTime @default(now())
+}
+
+/// Login attempt counters (QA BUG-021/026). key = "e:<email>" (account backoff) or "i:<ip>" (throttle only, trusted proxy).
+model LoginThrottle {
+  key         String    @id
+  failures    Int       @default(0)
+  lastFailAt  DateTime  @default(now())
+  lockedUntil DateTime?
+}
