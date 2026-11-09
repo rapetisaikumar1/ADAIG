@@ -17,6 +17,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   poweredByHeader: false,
+  devIndicators: false,
   async headers() { return [{ source: "/:path*", headers: securityHeaders }, { source: "/api/:path*", headers: [{ key: "Content-Security-Policy", value: csp }] }]; },
 };
 export default withNextIntl(nextConfig);

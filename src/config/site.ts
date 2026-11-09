@@ -39,9 +39,8 @@ export const tiers: Tier[] = [
     price: { CAD: 4000, USD: 3000 },
     benefits: [
       { en: "Community & webinars", fr: "Communauté et webinaires" },
-      { en: "Learning discounts", fr: "Rabais sur la formation" },
-      { en: "Mentorship (Phase 3)", fr: "Mentorat (phase 3)" },
-      { en: "Eligibility verification", fr: "Vérification d’admissibilité" },
+      { en: "Governance toolkit, partial access (coming soon)", fr: "Boîte à outils de gouvernance, accès partiel (bientôt disponible)" },
+      { en: "Mentorship (planned)", fr: "Mentorat (prévu)" },
     ],
     requiresVerification: true,
   },
@@ -52,9 +51,8 @@ export const tiers: Tier[] = [
     price: { CAD: 19500, USD: 14500 },
     benefits: [
       { en: "Everything in Student", fr: "Tout ce qu’offre Étudiant" },
-      { en: "Full resource library", fr: "Bibliothèque complète" },
-      { en: "Member exam pricing", fr: "Tarif membre aux examens" },
-      { en: "CPE tracking & badges", fr: "Suivi des FPC et badges" },
+      { en: "Full governance toolkit access (coming soon)", fr: "Accès complet à la boîte à outils de gouvernance (bientôt disponible)" },
+      { en: "CPE tracking for events", fr: "Suivi des FPC pour les événements" },
       { en: "Member directory", fr: "Répertoire des membres" },
     ],
     featured: true,
@@ -65,8 +63,8 @@ export const tiers: Tier[] = [
     description: { en: "For government, non-profit and higher-ed staff.", fr: "Pour le personnel gouvernemental, des OBNL et de l’enseignement supérieur." },
     price: { CAD: 11000, USD: 8000 },
     benefits: [
-      { en: "Professional benefits", fr: "Avantages Professionnel" },
-      { en: "Sector working group", fr: "Groupe de travail sectoriel" },
+      { en: "All Professional benefits", fr: "Tous les avantages de la catégorie Professionnel" },
+      { en: "Sector working group (planned)", fr: "Groupe de travail sectoriel (prévu)" },
     ],
   },
   {
@@ -76,8 +74,8 @@ export const tiers: Tier[] = [
     price: { CAD: 7500, USD: 5500 },
     benefits: [
       { en: "Community & webinars", fr: "Communauté et webinaires" },
-      { en: "Library (read)", fr: "Bibliothèque (lecture)" },
-      { en: "Voting (Phase 3)", fr: "Vote (phase 3)" },
+      { en: "Governance toolkit, read access (coming soon)", fr: "Boîte à outils de gouvernance, lecture seule (bientôt disponible)" },
+      { en: "Voting in elections (planned)", fr: "Droit de vote aux élections (prévu)" },
     ],
   },
 ];

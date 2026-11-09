@@ -7,12 +7,14 @@ import { getStripe, mockAllowed } from "@/lib/stripe";
 import { isUniqueViolation, safeLocale } from "@/lib/validation";
 import { confirmRegistration } from "@/lib/membership";
 import { eventCurrency } from "@/config/site";
+import { eventView } from "@/components/EventCard";
 
 /** Register for an event. Free tickets confirm immediately; paid tickets go through Stripe (test) or the mock checkout. */
 export async function register(fd: FormData) {
   const slug = String(fd.get("slug")); const locale = String(fd.get("locale"));
   const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login`);
   const e = await db.event.findUnique({ where: { slug } }); if (!e || !e.published) redirect(`/${locale}/events`);
+  const v = eventView(e, "en"); if (v.planned || v.past) redirect(`/${locale}/events/${slug}`); // proposed (unconfirmed) or ended: no registrations
   const isMember = !!(await activeMembership(s.user.id)); // member price auto-applied (US-7)
   const ticket = isMember ? "member" : "non-member";
   const price = isMember ? e.memberPriceCents : e.publicPriceCents;

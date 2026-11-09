@@ -1,6 +1,6 @@
-# ADAIG Portal — MVP
+# ADAIG Portal
 
-Association for Data and AI Governance member & public portal. Next.js 15 (App Router) · TypeScript · Tailwind v4 (utilities only) + the prototype's `tokens.css`/`site.css` · Prisma · Auth.js v5 · next-intl (EN/FR) · Stripe (test mode, with mock fallback).
+Association for Data and AI Governance member & public portal. Next.js 15 (App Router) · TypeScript · Tailwind v4 (utilities only) + `src/styles/tokens.css`/`site.css` · Prisma · Auth.js v5 · next-intl (EN/FR) · Stripe (test mode, with mock fallback; used for paid event tickets only).
 
 ## Run locally
 ```bash
@@ -13,40 +13,44 @@ npm run build && npm start      # production build
 Seed logins (password `Password123!`): `admin@adaig.test` (staff admin), `member@adaig.test` (active Professional), `guest@adaig.test` (free guest).
 
 ## Configuration — founder decisions in ONE file
-`src/config/site.ts` holds **locales, currencies (USD only; CAD kept for display of historic payments and can be re-enabled by adding it to `currencies`), membership tiers (names EN/FR, descriptions, prices per currency, benefits), US state sales-tax table (empty = no tax), US states/DC/territories and Canadian provinces (address only), CPE target**. Membership page, join/checkout, dashboard and admin all read from it; the DB stores only the tier id. Re-run nothing — just edit and reload. (The "Compare benefits" table and the corporate block on /membership are still the prototype's static HTML.)
+`src/config/site.ts` holds **locales, currencies (USD only; CAD kept for display of historic payments and can be re-enabled by adding it to `currencies`), membership tiers (names EN/FR, descriptions, prices per currency, benefits), US state sales-tax table (empty = no tax), US states/DC/territories and Canadian provinces (address only), CPE target**. Membership page, join, dashboard and admin all read from it; the DB stores only the tier id. Re-run nothing — just edit and reload. Tier prices in the config are not shown publicly (dues are still being finalized; the point of contact confirms them after an application). The "Compare benefits" table, enterprise section and FAQ on /membership come from `src/content/<locale>/membership.html`.
 
 ## Database
 Dev uses SQLite (`prisma/dev.db`) because Postgres/Docker weren't available on the build machine. To use Postgres: set `provider = "postgresql"` in `prisma/schema.prisma`, point `DATABASE_URL` at it, then `npm run setup`. No SQLite-specific features are used.
 
 ## Payments
-- No `STRIPE_SECRET_KEY` → **mock checkout** (`/[locale]/join/checkout`) simulates payment and activates the membership.
-- `STRIPE_SECRET_KEY=sk_test_...` → Stripe Checkout (hosted, PCI SAQ-A). Live keys (`sk_live_`) are **refused** in code. Membership activates on return (session verified server-side) and via webhook `POST /api/stripe/webhook` (set `STRIPE_WEBHOOK_SECRET`; locally: `stripe listen --forward-to localhost:3000/api/stripe/webhook`).
-- No sales tax on dues by default. `salesTaxByState` (empty) can add per-state rates for US addresses; TODO: confirm with an accountant and use Stripe Tax before charging tax.
+- Membership applications take **no payment** (see "Membership applications" below). Stripe is used only for paid event tickets.
+- No `STRIPE_SECRET_KEY` → **mock checkout** (`/[locale]/events/[slug]/checkout`) simulates the ticket payment and confirms the registration.
+- `STRIPE_SECRET_KEY=sk_test_...` → Stripe Checkout (hosted, PCI SAQ-A). Live keys (`sk_live_`) are **refused** in code. Tickets are confirmed on return (session verified server-side) and via webhook `POST /api/stripe/webhook` (set `STRIPE_WEBHOOK_SECRET`; locally: `stripe listen --forward-to localhost:3000/api/stripe/webhook`). `/join/checkout` remains only to finish legacy membership sessions.
+- No sales tax by default. `salesTaxByState` (empty) can add per-state rates for US addresses; TODO: confirm with an accountant and use Stripe Tax before charging tax.
 
-## Design
-`scripts/extract-design.py` copies `<main>` content from `../design/*.html` into `src/content/en/*.html` with links rewritten to app routes (`npm run extract-design` to refresh). Content pages render that HTML in the React layout. French versions go in `src/content/fr/<page>.html`; until then FR shows English content with a notice (all UI chrome, nav, forms, membership, events, dashboard, admin are translated in `messages/fr.json`). Screenshots of the build: `docs/screenshots/`.
+## Content
+Public pages are HTML fragments in `src/content/en/*.html` (`__L__` is replaced with `/<locale>`), rendered inside the React layout by `src/lib/content.ts`. **Content is now edited directly in `src/content`.** (`scripts/extract-design.py` / `npm run extract-design` regenerated these files from the original `../design/*.html` prototype, which is not part of this repo; don't run it, as it would overwrite the edited content.) French versions go in `src/content/fr/<page>.html`; `home` and `membership` are translated, other pages show the English text with a notice. All UI chrome, nav, forms, membership, events, dashboard and admin strings are in `messages/en.json` / `messages/fr.json` (keep the key sets identical). Copy is US English. Screenshots of an earlier build: `docs/screenshots/`.
 
 ## Routes
 | Area | Route | Status |
 |---|---|---|
-| Public | `/`, about, governance, certifications, verify, learning, community, chapters, resources, news, advocacy, careers, vendors, contact, legal | Prototype content (static) |
-| Public | `/membership` | Live — tiers & currency from config |
-| Public | `/join` → `/join/checkout` | Live — account + membership + Stripe/mock |
-| Public | `/events`, `/events/[slug]` | Live — DB, filters, member-price auto-applied, registration |
-| Auth | `/login`, `/signup` | Live — email/password (Auth.js credentials, JWT) |
-| Auth | `/mfa` | Prototype only |
-| Member | `/my/dashboard`, `/my/profile` (+ `/api/me/export`) | Live |
-| Member | `/my/billing, credentials, learning, events, community, directory` | Login-gated prototype views (placeholder data) |
-| Admin | `/admin/dashboard`, `/admin/members` (+ CSV), `/admin/events` (create/publish) | Live, role `admin` only |
-| Admin | `/admin/content, credentialing, corporate, chapter` | Gated prototype views |
-| Design | `/design/brand`, `/design/components` | Prototype reference |
+| Public | `/` | Static content (`home.html`) + upcoming events read live from the DB |
+| Public | about, principles, governance, community, chapters, resources, news, advocacy, careers, vendors, legal | Static content (`src/content/<locale>/<page>.html`) |
+| Public | `/contact` | Working contact form (`?topic=` preselects a topic) beside the FAQ from `src/content/<locale>/contact.html`; messages are stored in `ContactMessage` and handled in Admin → Messages |
+| Public | `/membership` | Tiers & benefits from config, no prices shown; compare table/enterprise/FAQ from `membership.html` |
+| Public | `/join` | Membership application (account + details, no payment); the ADAIG point of contact (POC) follows up; staff approve in Admin → Members |
+| Public | `/events`, `/events/[slug]` | DB-backed, filters (type, format, search), times shown in ET (America/New_York), member price auto-applied, registration; paid tickets via `/events/[slug]/checkout` |
+| Auth | `/login`, `/signup` | Email/password (Auth.js credentials, JWT); signup creates a free guest account with a news opt-in |
+| Member | `/my/dashboard`, `/my/profile` (+ `/api/me/export`), `/my/billing` (membership status, event receipts), `/my/events`, `/my/directory` (opt-in, active members only) | Live data, login required |
+| Member | `/my/community` | Login required; explains what is planned and links to what exists |
+| Admin | `/admin/dashboard`, `/admin/members` (+ CSV, approve/reject), `/admin/events` (create/publish) | Live, role `admin` only |
+| Admin | `/admin/content`, `/admin/corporate`, `/admin/chapter` | Planned staff tools: static previews with sample data, controls disabled |
+| Admin | `/admin/messages` | Contact-form inbox: New / Handled / All, reply by email, mark handled or reopen |
+| Design | `/design/brand`, `/design/components` | Brand & component reference (admins only; others are redirected home) |
+
+Removed: `/certifications`, `/learning`, `/verify`, `/mfa`, `/my/credentials`, `/my/learning`, `/admin/credentialing` (certification and learning modules are not part of the offering).
 
 ## QA round 1 defaults (configurable in `src/config/site.ts`)
 - Public directory opt-in is **off** by default (`directoryOptInDefault`).
 - Student tier: institution + attestation required at join; membership stays `pending_verification` until staff Approve/Reject in Admin → Members.
 - Event tickets are charged in **USD** (`eventCurrency`); paid tickets are `pending_payment` until Stripe test/mock confirms.
 - Login throttling (`loginRateLimit`, stored in the DB table `LoginThrottle`, so it survives restarts and works across instances): after 5 failures an account is locked for 1 min, doubling with each further failure up to 15 min, and the count resets on success. A per-IP throttle (20 failures, then +0.5 s per attempt up to 5 s) only slows requests and never locks. It is used only when `TRUSTED_PROXY=true` (the IP is read `TRUSTED_PROXY_HOPS` entries from the right of X-Forwarded-For); otherwise X-Forwarded-For is ignored. To clear a lockout in dev, re-run `npm run db:seed` or delete the `LoginThrottle` rows.
-- Provincial tax rates are placeholders. Have them confirmed by finance.
 - CSP is set per request in `src/middleware.ts` with a nonce plus `'strict-dynamic'`, so script-src has no `'unsafe-inline'`. style-src keeps `'unsafe-inline'` because inline style attributes (React `style={}` and the prototype markup) can't carry nonces. API routes get `default-src 'none'`.
 - Dashboard "Recommended for you" is rule-based and says so on the page. No AI or profiling is used.
 - CSV exports escape formula-leading characters.
@@ -57,9 +61,9 @@ Dev uses SQLite (`prisma/dev.db`) because Postgres/Docker weren't available on t
 ## QA round 3
 - **Admins**: `admin@adaig.test` and `admin2@adaig.test` are seeded. Admin → Members has Make admin / Remove admin buttons. Roles are read from the DB on every request, and removing or deleting the last admin is blocked (checked inside a transaction).
 - **Unlock**: Admin → Members shows a "Locked" badge and an "Unlock account" button, which clears that account's `LoginThrottle` rows and writes `auth.account_unlocked` to the audit log. From the CLI: `npm run unlock -- user@example.com`.
-- **Account deletion** (Profile → Delete my account): needs the confirmation box ticked and the password. It removes or anonymises name, email, password, organisation, job title, province, preferences, the CPE log, eligibility notes, free or unpaid registrations, and the email in audit targets. Memberships and paid registrations (amount, tax, currency, payment ref, dates) and the audit log are kept for tax and financial record-keeping, linked only to an opaque id. Active memberships are cancelled without refund, and the member is signed out.
+- **Account deletion** (Profile → Delete my account): needs the confirmation box ticked and the password. It removes or anonymizes name, email, password, organization, job title, province, preferences, the CPE log, eligibility notes, free or unpaid registrations, and the email in audit targets. Memberships and paid registrations (amount, tax, currency, payment ref, dates) and the audit log are kept for tax and financial record-keeping, linked only to an opaque id. Active memberships are canceled without refund, and the member is signed out.
 - **Mock payments** are allowed only when `NODE_ENV` or `APP_ENV` is `development`/`local`, or when `ALLOW_MOCK_PAYMENTS=true` AND both `APP_URL` and the request Host are localhost/127.0.0.1. Otherwise the flag is ignored. Visitors see a generic "payment unavailable" message; the reason is logged on the server (`[payments] …`).
-- **Input border** token `--c-input-border:#667085` (4.97:1 on white). The brand page and `design/assets/contrast.json` are updated.
+- **Input border** token `--c-input-border:#667085` (4.97:1 on white). The brand page is updated.
 - `REJECTED_STUDENT_POLICY` is unchanged (`notice_manual_refund` | `notice_only`).
 
 ## QA round 5 notes
@@ -67,19 +71,27 @@ Dev uses SQLite (`prisma/dev.db`) because Postgres/Docker weren't available on t
 - One open (pending / pending_verification / active) membership per person, enforced by `activeSlot` (DB) and in `/join` (redirect to `/my/dashboard?already=1`).
 - Input rules live in `src/lib/validation.ts` (password 12–128 + blocklist, email format/254, field lengths, country/province whitelist).
 - Account deletion options (product decision pending): `DELETED_USER_PAID_TICKETS=keep|cancel` (default keep), `DELETED_MEMBERSHIP_REFUND=none|flag_manual_refund` (default none).
-- Verify: `qa/verify-r5/verify.mjs` (creates only `r5v+…@example.test` accounts).
 
 ## QA round 6 notes
-- Unpaid membership orders (status `pending`) can be cancelled or replaced (pick another tier/currency) from `/join`, the checkout page and the dashboard.
-- They expire after `UNPAID_ORDER_TTL_HOURS` (default 24): lazily on access (join, checkout, dashboard, admin members) and via `node scripts/expire-unpaid-orders.mjs [--dry-run]` (cron-able, idempotent). Paid/awaiting-verification orders are never touched. Stripe sessions are created with a matching `expires_at` (Stripe max 24 h); a payment that still lands on a cancelled/expired order is flagged "refund due", not activated.
+- Legacy unpaid membership orders (status `pending`, from the earlier payment flow) can be canceled from `/join` and the dashboard.
+- They expire after `UNPAID_ORDER_TTL_HOURS` (default 24): lazily on access (join, checkout, dashboard, admin members) and via `node scripts/expire-unpaid-orders.mjs [--dry-run]` (cron-able, idempotent). Paid/awaiting-verification orders are never touched. Stripe sessions are created with a matching `expires_at` (Stripe max 24 h); a payment that still lands on a canceled/expired order is flagged "refund due", not activated.
 - Payment replays against another user's ticket/order (or unknown ids, forged locale, bad Stripe `sid`) end on the dashboard with a friendly notice; nothing is charged, no 5xx.
 - One-off data fix: `scripts/cleanup-r6.mjs [--dry-run]` (idempotent, only qa+upgrade / qa+student-pending).
-- Verify: `qa/verify-r6/verify.mjs`.
 
 ## USD-only / US HQ (Nov 2026)
 - ADAIG HQ is in the USA; new orders are USD only. Currency switches are hidden whenever `currencies` has one entry. Historic CAD payments keep their currency, and the admin dues table shows a column for every currency with data.
 - Country defaults to United States; US addresses pick a state, DC or territory; Canada keeps provinces (no tax); other countries have no subdivision.
-- Open unpaid CAD orders were cancelled with `node scripts/retire-cad-open-orders.mjs [--dry-run]` (idempotent, audit action `*_currency_retired`).
-- Marketing consent is worded for CAN-SPAM; HQ address/phone are placeholders. Legal text needs lawyer review (see legal page).
+- Open unpaid CAD orders were canceled with `node scripts/retire-cad-open-orders.mjs [--dry-run]` (idempotent, audit action `*_currency_retired`).
+- Marketing consent is worded for CAN-SPAM. No HQ postal address or phone is published yet. Legal text needs lawyer review (see legal page).
 - `prisma/schema.prisma` still has `country @default("Canada")` (changing a default on SQLite needs a table rebuild); the app always sets the country explicitly.
-- Verify: `qa/verify-usd/verify.mjs`.
+
+## Membership applications (Nov 2026)
+- `/join` captures data only: no prices, tax or payment step. Submitting creates the account (if needed) and a membership in status `pending_verification` for any tier (amount/tax 0, no `paymentRef`, `autoRenew` false), audit `membership.application_submitted`, then redirects to `/my/dashboard?applied=1`, which says the ADAIG team point of contact (POC) will be in touch.
+- Staff approve or reject in Admin → Members ("Application review" column). Approve makes the membership active for one year and the user a member; reject shows the reason on the member's dashboard. No refund is flagged because nothing was paid.
+- `pending_verification` is never auto-expired. Legacy unpaid `pending` orders can still be canceled from `/join` or the dashboard; `/join/checkout` only completes a legacy Stripe session, then redirects to the dashboard.
+
+## Contact form & bilingual events (Nov 2026)
+- `/contact` stores messages in the `ContactMessage` table (name, email, optional organization, topic, message, locale). Validation, a honeypot field and a limit of 5 messages per email per hour; audit `contact.message_received`. Staff see them in Admin → Messages (sidebar shows the count of new messages). Deleting an account also deletes that person's contact messages.
+- Events have an optional `summaryFr`; French pages show it when present (Admin → Events has a "Summary (French)" field). Event times are entered and shown in US Eastern time (ET). Unconfirmed events are marked by ending the title with "(proposed)": they show a Proposed badge, no fixed day, and are excluded from member recommendations and registration.
+- Schema changes since the first release were applied with `npx prisma db push` (additive only).
+

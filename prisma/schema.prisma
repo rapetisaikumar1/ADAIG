@@ -57,6 +57,7 @@ model Event {
   title            String
   titleFr          String?
   summary          String
+  summaryFr        String?
   type             String // Webinar | Chapter | Conference
   format           String // Online | In person | Hybrid
   location         String?
@@ -110,4 +111,23 @@ model LoginThrottle {
   failures    Int       @default(0)
   lastFailAt  DateTime  @default(now())
   lockedUntil DateTime?
+}
+
+/// Messages sent through the public contact form; staff read and resolve them in Admin → Messages.
+model ContactMessage {
+  id           String    @id @default(cuid())
+  name         String
+  email        String
+  organization String?
+  topic        String
+  message      String
+  locale       String    @default("en")
+  userId       String?
+  status       String    @default("new") // new | handled
+  handledBy    String?
+  handledAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([email, createdAt])
 }

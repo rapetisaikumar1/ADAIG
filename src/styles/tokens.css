@@ -1,4 +1,4 @@
-/* ADAIG design tokens v0.1 */
+/* ADAIG design tokens v0.2 */
 :root{
  --navy-900:#071a33;--navy-800:#0B2545;--navy-700:#13315c;--navy-100:#e7edf6;
  --teal-700:#0F766E;--teal-600:#0d9488;--teal-300:#5EEAD4;--teal-50:#ecfdf8;
@@ -6,13 +6,25 @@
  --ink:#101828;--slate-600:#475467;--slate-500:#667085;--slate-300:#d0d5dd;--slate-200:#e4e7ec;--mist:#F4F6FA;--white:#fff;
  --red-700:#B42318;--red-50:#fef3f2;--green-700:#067647;--green-50:#ecfdf3;--blue-50:#eff6ff;
  --focus:#2563EB;
- --c-bg:var(--white);--c-surface:var(--mist);--c-text:var(--ink);--c-muted:var(--slate-600);--c-border:var(--slate-200);--c-input-border:#667085;/* slate-500: 4.97:1 on white, 4.6:1 on mist (WCAG 1.4.11 ≥3:1). Do not use #98A2B3 (2.58:1). */
+ --c-bg:var(--white);--c-surface:var(--mist);--c-text:var(--ink);--c-muted:var(--slate-600);--c-border:var(--slate-200);--c-border-card:#e6e9ef;--c-input-border:#667085;/* slate-500: 4.97:1 on white, 4.6:1 on mist (WCAG 1.4.11 ≥3:1). Do not use #98A2B3 (2.58:1). */
  --c-primary:var(--navy-800);--c-accent:var(--teal-700);--c-highlight:var(--amber-400);
+ /* semantic status tokens: planned/proposed/draft = amber "status"; success = live/positive; danger; info = brand callout */
+ --c-status:var(--amber-700);--c-status-bg:var(--amber-50);--c-status-border:#f7d79c;
+ --c-success:var(--green-700);--c-success-bg:var(--green-50);--c-warning:var(--amber-700);--c-warning-bg:var(--amber-50);
+ --c-danger:var(--red-700);--c-danger-bg:var(--red-50);--c-info:var(--navy-800);--c-info-bg:#f0f5fa;
  --font-display:"Source Serif 4",Georgia,serif;--font-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,monospace;
- --fs-xs:.75rem;--fs-sm:.875rem;--fs-base:1rem;--fs-lg:1.125rem;--fs-xl:1.375rem;--fs-2xl:1.75rem;--fs-3xl:clamp(1.9rem,1.4rem + 2vw,2.5rem);--fs-4xl:clamp(2.3rem,1.6rem + 3vw,3.5rem);
+ --fs-xs:.75rem;--fs-sm:.875rem;--fs-base:1rem;--fs-lg:1.125rem;--fs-xl:1.375rem;--fs-2xl:1.75rem;--fs-3xl:clamp(1.9rem,1.3rem + 2.2vw,2.75rem);--fs-4xl:clamp(2.5rem,1.6rem + 3.6vw,4rem);
+ --fs-lead:clamp(1.125rem,1rem + .4vw,1.3rem);--fs-card-h:1.2rem;
  --lh-tight:1.15;--lh-body:1.6;
- --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;--sp-8:64px;--sp-9:96px;
+ --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;--sp-8:64px;--sp-9:96px;--section-y:clamp(56px,7vw,96px);
  --r-sm:6px;--r-md:10px;--r-lg:16px;--r-pill:999px;
- --shadow-1:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.1);--shadow-2:0 12px 32px -8px rgba(11,37,69,.18);
- --container:1200px;--target-min:44px;
+ --shadow-0:0 1px 2px rgba(16,24,40,.04);--shadow-1:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.1);--shadow-2:0 12px 32px -8px rgba(11,37,69,.18);
+ --container:1200px;--target-min:44px;--header-h:80px;
+ /* brand graphics */
+ --grad-rule:linear-gradient(90deg,var(--teal-300),var(--teal-700) 55%,var(--amber-400));
+ --motif-hex:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 460' fill='none' stroke='%235EEAD4' stroke-width='1.2'%3E%3Cpath d='M200 10 390 120v220L200 450 10 340V120z' opacity='.45'/%3E%3Cpath d='M200 90 320 160v140l-120 70-120-70V160z'/%3E%3Cpath d='M200 230 320 160M200 230 80 160M200 230v140'/%3E%3Cg fill='%235EEAD4' stroke='none'%3E%3Ccircle cx='320' cy='160' r='5'/%3E%3Ccircle cx='80' cy='160' r='5'/%3E%3Ccircle cx='200' cy='370' r='5'/%3E%3Ccircle cx='200' cy='90' r='4'/%3E%3Ccircle cx='320' cy='300' r='4'/%3E%3Ccircle cx='80' cy='300' r='4'/%3E%3C/g%3E%3Ccircle cx='200' cy='230' r='9' fill='%235EEAD4' stroke='none'/%3E%3Ccircle cx='200' cy='230' r='20'/%3E%3C/svg%3E");
+ --motif-hex-hero:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 460' fill='none' stroke='%235EEAD4' stroke-width='1.2'%3E%3Cg opacity='.34'%3E%3Cpath d='M200 10 390 120v220L200 450 10 340V120z' opacity='.45'/%3E%3Cpath d='M200 90 320 160v140l-120 70-120-70V160z'/%3E%3Cpath d='M200 230 320 160M200 230 80 160M200 230v140'/%3E%3Cg fill='%235EEAD4' stroke='none'%3E%3Ccircle cx='320' cy='160' r='5'/%3E%3Ccircle cx='80' cy='160' r='5'/%3E%3Ccircle cx='200' cy='370' r='5'/%3E%3Ccircle cx='200' cy='90' r='4'/%3E%3Ccircle cx='320' cy='300' r='4'/%3E%3Ccircle cx='80' cy='300' r='4'/%3E%3C/g%3E%3C/g%3E%3Ccircle cx='200' cy='230' r='22' stroke='%23F59E0B' stroke-opacity='.3'/%3E%3Ccircle cx='200' cy='230' r='9' fill='%23F59E0B' fill-opacity='.9' stroke='none'/%3E%3C/svg%3E");
+ --hex-lattice:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97' viewBox='0 0 56 97' fill='none' stroke='%235EEAD4' stroke-opacity='.06' stroke-width='1'%3E%3Cpath d='M28 0 56 16.17V48.5L28 64.67 0 48.5V16.17ZM28 64.67V97'/%3E%3C/svg%3E");
+ --chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23475467' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
+@media(max-width:640px){:root{--header-h:66px}}

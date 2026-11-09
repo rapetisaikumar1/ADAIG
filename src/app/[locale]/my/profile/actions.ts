@@ -40,6 +40,7 @@ export async function deleteAccount(fd: FormData) {
     ...(deletionPolicy().paidTickets === "cancel" ? [db.registration.updateMany({ where: { userId: u.id, status: "confirmed", amountCents: { gt: 0 } }, data: { status: "cancelled" } })] : []),
     db.membership.updateMany({ where: { userId: u.id }, data: { eligibilityNote: null, rejectionReason: null } }),
     db.loginThrottle.deleteMany({ where: { key: `e:${u.email}` } }),
+    db.contactMessage.deleteMany({ where: { OR: [{ userId: u.id }, { email: u.email }] } }),
     db.auditLog.updateMany({ where: { target: u.email }, data: { target: `user:${u.id}` } }),
     db.user.update({ where: { id: u.id }, data: {
       email: anonEmail, name: "Deleted member", passwordHash: `!deleted:${randomBytes(16).toString("hex")}`, // not a bcrypt hash: can never match
