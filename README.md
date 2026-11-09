@@ -95,3 +95,18 @@ Removed: `/certifications`, `/learning`, `/verify`, `/mfa`, `/my/credentials`, `
 - Events have an optional `summaryFr`; French pages show it when present (Admin → Events has a "Summary (French)" field). Event times are entered and shown in US Eastern time (ET). Unconfirmed events are marked by ending the title with "(proposed)": they show a Proposed badge, no fixed day, and are excluded from member recommendations and registration.
 - Schema changes since the first release were applied with `npx prisma db push` (additive only).
 
+
+## Deploying to Vercel
+SQLite is for local development only: on Vercel the file system is read-only and temporary, so production uses a hosted **PostgreSQL** database (Supabase, or Neon, from the Vercel Marketplace). The same `prisma/schema.prisma` serves both — `scripts/prisma-provider.mjs` switches the datasource provider to `postgresql` when the connection URL starts with `postgres://`/`postgresql://` (it runs in `postinstall` and in `vercel-build`; locally nothing changes). It accepts `DATABASE_URL` (+ `DATABASE_URL_UNPOOLED`, Neon) or `POSTGRES_PRISMA_URL` (+ `POSTGRES_URL_NON_POOLING`, Supabase integration); the non-pooled URL is used as `directUrl` for schema pushes.
+
+1. **Database:** Vercel → Project → Storage → Create Database → **Supabase** (or Neon), connected to this project for Production and Preview. The integration adds the connection variables (`POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, … for Supabase; `DATABASE_URL`, `DATABASE_URL_UNPOOLED` for Neon) automatically.
+2. **Environment variables** (Project → Settings → Environment Variables, for Production and Preview):
+   - `AUTH_SECRET` — required by Auth.js; generate with `openssl rand -base64 32`.
+   - The database variables from step 1 (added by the integration; set `DATABASE_URL` yourself only if you use another Postgres host).
+   - Optional: `APP_URL` (the site URL), `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` (test keys only) for paid event tickets.
+3. **Deploy:** `npm run vercel-build` (used automatically by Vercel) checks the variables, generates the Prisma client for Postgres, applies the schema with `prisma db push`, then builds. A missing variable fails the build with a clear message instead of a runtime error.
+4. **Seed once (optional):** from your machine, against the hosted database:
+   `DATABASE_URL="<non-pooled postgres url>" SEED_PASSWORD="<strong password>" npm run db:seed` — run `node scripts/prisma-provider.mjs && npx prisma generate` with the same `DATABASE_URL` first so the local Prisma client targets Postgres, then `git checkout prisma/schema.prisma && npx prisma generate` to switch back to SQLite.
+   The seed refuses to run on a hosted database without `SEED_PASSWORD`, and refuses if users already exist (it wipes all tables) unless `SEED_FORCE=1`. Change or remove the demo accounts before a public launch.
+
+Page content in `src/content` is read at runtime, so `next.config.ts` includes it in the serverless bundle (`outputFileTracingIncludes`).

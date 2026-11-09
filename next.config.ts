@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
   eslint: { ignoreDuringBuilds: true },
   poweredByHeader: false,
   devIndicators: false,
+  // Page content is read from src/content at runtime (src/lib/content.ts), so bundle it with the serverless functions.
+  outputFileTracingIncludes: { "/**": ["./src/content/**/*"] },
   async headers() { return [{ source: "/:path*", headers: securityHeaders }, { source: "/api/:path*", headers: [{ key: "Content-Security-Policy", value: csp }] }]; },
 };
 export default withNextIntl(nextConfig);

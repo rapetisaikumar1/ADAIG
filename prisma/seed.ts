@@ -6,8 +6,14 @@ const db = new PrismaClient();
 const at = (iso: string) => new Date(iso);
 
 async function main() {
+  // Demo password for local SQLite only. On a hosted database, SEED_PASSWORD must be set (never deploy the public demo password).
+  const hosted = /^postgres(ql)?:\/\//.test(String(process.env.DATABASE_URL ?? ""));
+  // The seed wipes all tables first: never run it against a hosted database that already has data unless forced.
+  if (hosted && (await db.user.count()) > 0 && process.env.SEED_FORCE !== "1") throw new Error("This database already has users. The seed deletes all data; set SEED_FORCE=1 only if you really want that.");
+  if (hosted && !process.env.SEED_PASSWORD) throw new Error("Seeding a hosted database: set SEED_PASSWORD (12+ characters) for the seeded accounts.");
+  if (process.env.SEED_PASSWORD && process.env.SEED_PASSWORD.length < 12) throw new Error("SEED_PASSWORD must be at least 12 characters.");
   await db.registration.deleteMany(); await db.cpeEntry.deleteMany(); await db.membership.deleteMany(); await db.event.deleteMany(); await db.user.deleteMany(); await db.auditLog.deleteMany(); await db.loginThrottle.deleteMany();
-  const pw = await bcrypt.hash("Password123!", 10);
+  const pw = await bcrypt.hash(process.env.SEED_PASSWORD ?? "Password123!", 10);
   const admin = await db.user.create({ data: { email: "admin@adaig.test", name: "ADAIG Staff Admin", passwordHash: pw, role: "admin", organisation: "ADAIG", country: "United States", province: "NY" } });
   await db.user.create({ data: { email: "admin2@adaig.test", name: "ADAIG Second Admin", passwordHash: pw, role: "admin", organisation: "ADAIG", country: "United States", province: "DC", locale: "fr" } }); // backup admin (BUG-031)
   const member = await db.user.create({ data: { email: "member@adaig.test", name: "Jordan Member", passwordHash: pw, role: "member", organisation: "Sample Records Office", jobTitle: "Records Manager", country: "United States", province: "NY" } });
@@ -29,6 +35,6 @@ async function main() {
   for (const [title, hours] of [["Privacy law update webinar", 4], ["Records conference session", 6], ["Self-study: AI governance reading", 4]] as const)
     await db.cpeEntry.create({ data: { userId: member.id, title, hours } });
   await db.auditLog.create({ data: { actor: "seed", action: "seed.completed" } });
-  console.log("Seeded. Logins (password Password123!): admin@adaig.test, admin2@adaig.test, member@adaig.test, guest@adaig.test");
+  console.log(`Seeded. Logins (password ${process.env.SEED_PASSWORD ? "from SEED_PASSWORD" : "Password123!"}): admin@adaig.test, admin2@adaig.test, member@adaig.test, guest@adaig.test`);
 }
 main().finally(() => db.$disconnect());

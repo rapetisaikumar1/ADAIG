@@ -11,7 +11,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "setup": "prisma generate && prisma db push && tsx prisma/seed.ts",
     "extract-design": "python3 scripts/extract-design.py",
-    "postinstall": "prisma generate",
+    "postinstall": "node scripts/prisma-provider.mjs && prisma generate",
+    "vercel-build": "node scripts/prisma-provider.mjs --require && prisma generate && prisma db push --skip-generate && next build",
     "unlock": "tsx scripts/unlock.ts"
   },
   "dependencies": {
