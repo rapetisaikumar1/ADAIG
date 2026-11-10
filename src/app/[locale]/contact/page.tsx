@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { loadContent } from "@/lib/content";
 import { Html } from "@/components/SiteChrome";
 import { ContactForm } from "./ContactForm";
+import { SiteContactInfo } from "@/components/SiteContactInfo";
 export const dynamic = "force-dynamic";
 
 /** Contact & FAQ: a working contact form (messages go to Admin → Messages) beside the FAQ from src/content/<locale>/contact.html. */
@@ -13,7 +14,7 @@ export default async function Contact({ params, searchParams }: { params: Promis
   const { topic } = await searchParams;
   const s = await auth();
   const u = s?.user?.id ? await db.user.findUnique({ where: { id: s.user.id }, select: { name: true, email: true, organisation: true } }) : null;
-  const faq = loadContent("contact", locale);
+  const faq = await loadContent("contact", locale);
   return (
     <main id="main" className="contact-page">
       <section className="page-hero"><div className="container">
@@ -25,6 +26,7 @@ export default async function Contact({ params, searchParams }: { params: Promis
         <div className="contact-side">
           {faq?.fallback && <p className="small muted">{tc("frPending")}</p>}
           {faq && <Html html={faq.html} />}
+          <SiteContactInfo />
         </div>
       </div></section>
     </main>

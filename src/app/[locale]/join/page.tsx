@@ -2,7 +2,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { tiers, getTier as tierOf, type Locale } from "@/config/site";
+import { type Locale } from "@/config/site";
+import { getTiers, tierLookup, directoryOptInDefault } from "@/lib/settings";
 import { JoinForm } from "./JoinForm";
 import { cancelOrder } from "./actions";
 import { expireUnpaid } from "@/lib/membership";
@@ -10,7 +11,10 @@ import { expireUnpaid } from "@/lib/membership";
 export default async function Join({ params, searchParams }: { params: Promise<{ locale: Locale }>; searchParams: Promise<{ tier?: string; msg?: string }> }) {
   const { locale } = await params; setRequestLocale(locale);
   const sp = await searchParams; const t = await getTranslations("join"); const tm = await getTranslations("membership");
+  // Tiers and defaults are admin-editable (Admin → Settings) and passed to the client form as props.
+  const [tiers, tierOf, dirDefault] = await Promise.all([getTiers(), tierLookup(), directoryOptInDefault()]);
   const tier = tiers.find((x) => x.id === sp.tier)?.id ?? (tiers.find((x) => x.featured) ?? tiers[0]).id;
+  const formTiers = tiers.map((x) => ({ id: x.id, name: x.name, description: x.description, requiresVerification: x.requiresVerification }));
   const s = await auth(); const u = s?.user?.id ? await db.user.findUnique({ where: { id: s.user.id } }) : null;
   // BUG-033: already a member / application in progress → dashboard
   if (u) await expireUnpaid(u.id);
@@ -31,7 +35,7 @@ export default async function Join({ params, searchParams }: { params: Promise<{
           <b>{t("legacyOrderTitle", { tier: tierOf(legacyOrder.tierId)?.name[locale] ?? legacyOrder.tierId })}</b> {t("legacyOrderBody")}
           <form action={cancelOrder} style={{ marginTop: 8 }}><input type="hidden" name="m" value={legacyOrder.id} /><input type="hidden" name="locale" value={locale} /><input type="hidden" name="from" value="join" /><button className="btn btn-secondary btn-sm">{t("cancelOrder")}</button></form>
         </div></div></div>}
-        <JoinForm locale={locale} initialTier={tier} signedIn={!!u} defaults={{ first: u ? first : undefined, last: u ? rest.join(" ") : undefined, org: u?.organisation ?? undefined }} />
+        <JoinForm locale={locale} tiers={formTiers} directoryOptInDefault={dirDefault} initialTier={tier} signedIn={!!u} defaults={{ first: u ? first : undefined, last: u ? rest.join(" ") : undefined, org: u?.organisation ?? undefined }} />
       </section>
     </main>
   );

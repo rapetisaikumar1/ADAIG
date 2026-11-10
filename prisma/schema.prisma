@@ -1,54 +1,63 @@
-// Dev uses SQLite (Postgres was not available on the build box).
-// For Postgres: change provider to "postgresql" and set DATABASE_URL — the schema uses no SQLite-specific features.
+// Supabase Postgres (local: Supabase CLI; production: Supabase via the Vercel integration).
+// Connection URLs live in prisma.config.ts (CLI: direct/session URL) and src/lib/db.ts (runtime: pooled URL via @prisma/adapter-pg).
+// Schema changes: edit this file, then `npx prisma migrate dev --name <change>` and commit the new folder in prisma/migrations.
+// Status columns stay plain strings (validated in code), exactly as before.
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider = "postgresql"
 }
 
 model User {
   id             String         @id @default(cuid())
   email          String         @unique
+  /// Collation "C" (byte order, as on SQLite) is set in the init migration so the directory's name ordering is unchanged.
   name           String
   passwordHash   String
-  role           String         @default("member") // guest | member | admin
+  sessionVersion Int            @default(0) // bumped when staff reset the password: older sign-in sessions stop working
+  role           String         @default("member") // guest | member | admin | deleted
   organisation   String?
   jobTitle       String?
-  country        String         @default("Canada")
+  country        String         @default("Canada") // the app always sets the country explicitly
   province       String?
   locale         String         @default("en")
   directoryOptIn Boolean        @default(false)
   marketingOptIn Boolean        @default(false)
-  deletedAt      DateTime? // set when the member deletes their account (personal data anonymised)
-  createdAt      DateTime       @default(now())
+  deletedAt      DateTime?      @db.Timestamptz(3) // set when the member deletes their account (personal data anonymised)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
   memberships    Membership[]
   registrations  Registration[]
   cpe            CpeEntry[]
+
+  @@index([role])
 }
 
 model Membership {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tierId      String // references src/config/site.ts tiers
-  status      String   @default("pending") // pending | pending_verification | active | lapsed | cancelled
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tierId          String // references src/config/site.ts tiers
+  status          String    @default("pending") // pending | pending_verification | active | rejected_verification | expired | cancelled
   eligibilityNote String? // e.g. student attestation details
-  verifiedAt  DateTime?
-  verifiedBy  String?
+  verifiedAt      DateTime? @db.Timestamptz(3)
+  verifiedBy      String?
   rejectionReason String? // shown to the member (BUG-023)
-  activeSlot  String?  @unique // = userId while status is pending|pending_verification|active (BUG-033: one open membership per user); null otherwise
-  refundStatus String? // null | refund_due | refunded  (manual refunds; see REJECTED_STUDENT_POLICY)
-  currency    String   @default("CAD")
-  amountCents Int
-  taxCents    Int      @default(0)
-  autoRenew   Boolean  @default(true)
-  startsAt    DateTime?
-  renewsAt    DateTime?
-  paymentRef  String? // Stripe checkout session id or mock id
-  createdAt   DateTime @default(now())
+  activeSlot      String?   @unique // = userId while status is pending|pending_verification|active (BUG-033: one open membership per user); null otherwise
+  refundStatus    String? // null | refund_due | refunded  (manual refunds; see REJECTED_STUDENT_POLICY)
+  currency        String    @default("CAD")
+  amountCents     Int
+  taxCents        Int       @default(0)
+  autoRenew       Boolean   @default(true)
+  startsAt        DateTime? @db.Timestamptz(3)
+  renewsAt        DateTime? @db.Timestamptz(3)
+  paymentRef      String? // Stripe checkout session id or mock id
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
 }
 
 model Event {
@@ -61,30 +70,35 @@ model Event {
   type             String // Webinar | Chapter | Conference
   format           String // Online | In person | Hybrid
   location         String?
-  startsAt         DateTime
+  startsAt         DateTime       @db.Timestamptz(3)
   durationMin      Int
   cpe              Float
   memberPriceCents Int            @default(0)
   publicPriceCents Int?
   published        Boolean        @default(true)
+  cancelledAt      DateTime?      @db.Timestamptz(3) // admin cancelled the event (kept for registrations/history)
   registrations    Registration[]
+  cpeCredits       CpeEntry[]
+
+  @@index([published, startsAt])
 }
 
 model Registration {
-  id        String   @id @default(cuid())
-  userId    String
-  eventId   String
-  ticket    String // member | non-member
-  status    String   @default("confirmed") // pending_payment | confirmed | cancelled
-  amountCents Int    @default(0)
-  currency  String   @default("CAD")
-  paymentRef String?
-  attended  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id          String   @id @default(cuid())
+  userId      String
+  eventId     String
+  ticket      String // member | non-member
+  status      String   @default("confirmed") // pending_payment | confirmed | cancelled
+  amountCents Int      @default(0)
+  currency    String   @default("CAD")
+  paymentRef  String?
+  attended    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, eventId])
+  @@unique([userId, eventId]) // also serves lookups by userId
+  @@index([eventId])
 }
 
 model CpeEntry {
@@ -94,7 +108,13 @@ model CpeEntry {
   title     String
   hours     Float
   status    String   @default("approved") // submitted | approved | audit
-  createdAt DateTime @default(now())
+  eventId   String? // set when credited automatically from event attendance (one credit per user per event)
+  event     Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  createdBy String? // admin id for entries added or changed by staff
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([userId, eventId])
+  @@index([userId])
 }
 
 model AuditLog {
@@ -102,15 +122,18 @@ model AuditLog {
   actor     String
   action    String
   target    String?
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@index([target])
 }
 
 /// Login attempt counters (QA BUG-021/026). key = "e:<email>" (account backoff) or "i:<ip>" (throttle only, trusted proxy).
 model LoginThrottle {
   key         String    @id
   failures    Int       @default(0)
-  lastFailAt  DateTime  @default(now())
-  lockedUntil DateTime?
+  lastFailAt  DateTime  @default(now()) @db.Timestamptz(3)
+  lockedUntil DateTime? @db.Timestamptz(3)
 }
 
 /// Messages sent through the public contact form; staff read and resolve them in Admin → Messages.
@@ -125,9 +148,43 @@ model ContactMessage {
   userId       String?
   status       String    @default("new") // new | handled
   handledBy    String?
-  handledAt    DateTime?
-  createdAt    DateTime  @default(now())
+  handledAt    DateTime? @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
 
   @@index([status, createdAt])
   @@index([email, createdAt])
+}
+
+/// Admin-edited page content. Overrides the default file in src/content/<locale>/<slug>.html; no row = file default.
+model ContentPage {
+  id        String            @id @default(cuid())
+  slug      String
+  locale    String
+  html      String
+  updatedBy String?
+  updatedAt DateTime          @updatedAt @db.Timestamptz(3)
+  createdAt DateTime          @default(now()) @db.Timestamptz(3)
+  revisions ContentRevision[]
+
+  @@unique([slug, locale])
+}
+
+/// Every saved version of a ContentPage (for history and restore).
+model ContentRevision {
+  id        String      @id @default(cuid())
+  pageId    String
+  page      ContentPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  html      String
+  createdBy String?
+  createdAt DateTime    @default(now()) @db.Timestamptz(3)
+
+  @@index([pageId, createdAt])
+}
+
+/// Admin-editable configuration (membership tiers, site & operational settings). Missing key = built-in default from code.
+model Setting {
+  key       String   @id
+  value     Json
+  updatedBy String?
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 }

@@ -5,15 +5,16 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { activeMembership } from "@/lib/session";
+import { idParam } from "@/lib/validation";
 import { eventView, eventTimeZone, dateLocale, fmtDuration, fmtCpe, fmtTentativeMonth, eventLocation, eventTypeBadgeClass } from "@/components/EventCard";
 import { register } from "./actions";
 export const dynamic = "force-dynamic";
 
 export default async function EventDetail({ params, searchParams }: { params: Promise<{ locale: string; slug: string }>; searchParams: Promise<{ registered?: string; error?: string }> }) {
   const { locale, slug } = await params; setRequestLocale(locale);
-  const e = await db.event.findUnique({ where: { slug } });
+  const e = idParam(slug, 200) ? await db.event.findUnique({ where: { slug } }) : null; // control characters / over-long → not found
   const s = await auth(); const signedIn = !!s?.user?.id;
-  if (!e || (!e.published && s?.user?.role !== "admin")) notFound(); // drafts are visible to staff only
+  if (!e || ((!e.published || e.cancelledAt) && s?.user?.role !== "admin")) notFound(); // drafts and cancelled events are visible to staff only
   const t = await getTranslations("events"); const tm = await getTranslations("membership");
   const isMember = signedIn ? !!(await activeMembership(s!.user!.id!)) : false;
   const reg = signedIn ? await db.registration.findUnique({ where: { userId_eventId: { userId: s!.user!.id!, eventId: e.id } } }) : null;

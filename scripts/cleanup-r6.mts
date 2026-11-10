@@ -3,9 +3,9 @@
 //  2. qa+student-pending@adaig.test: ACTIVE (approval won) but refundStatus "refund_due" + rejectionReason left by the losing reject
 //     → clear refundStatus and rejectionReason.
 // Each change is a conditional update (re-checks the bad state) + an audit entry, so re-running is a no-op.
-// Usage: node scripts/cleanup-r6.mjs [--dry-run]
-import { PrismaClient } from "@prisma/client";
-const db = new PrismaClient(); const dry = process.argv.includes("--dry-run"); const actor = "system:cleanup-r6"; const log = [];
+// Usage: npx tsx scripts/cleanup-r6.mts [--dry-run]
+import { scriptDb } from "./lib/script-db";
+const { db } = scriptDb(); const dry = process.argv.includes("--dry-run"); const actor = "system:cleanup-r6"; const log = [];
 
 const up = await db.user.findUnique({ where: { email: "qa+upgrade@adaig.test" } });
 if (up) {

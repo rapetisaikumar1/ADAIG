@@ -1,6 +1,6 @@
 import { evLabel } from "@/config/site";
 import { Fragment } from "react";
-import type { Event } from "@prisma/client";
+import type { Event } from "@/generated/prisma/client";
 
 /** Event-type badges (Webinar / Chapter / Conference) share one neutral navy style; amber/green are reserved for status. */
 export const eventTypeBadgeClass = "badge ev-type";

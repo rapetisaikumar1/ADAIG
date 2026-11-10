@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { tiers, type Locale } from "@/config/site";
+import { type Locale } from "@/config/site";
+import { getTiers } from "@/lib/settings";
 import { loadContent } from "@/lib/content";
 import { Html } from "@/components/SiteChrome";
 
@@ -11,7 +12,8 @@ import { Html } from "@/components/SiteChrome";
 export default async function Membership({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params; setRequestLocale(locale);
   const t = await getTranslations("membership");
-  const rest = loadContent("membership", locale)!.html;
+  const tiers = await getTiers(); // admin-editable (Admin → Settings); defaults from src/config/site.ts
+  const rest = (await loadContent("membership", locale))!.html;
   return (
     <main id="main" className="mship-page">
       <section className="page-hero"><div className="container">

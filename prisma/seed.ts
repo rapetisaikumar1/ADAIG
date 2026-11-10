@@ -1,13 +1,14 @@
 /* Seed: demo users (admin + member + guest), events from the prototype, sample CPE. Tier data lives in src/config/site.ts. */
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { tiers } from "../src/config/site";
-const db = new PrismaClient();
+import { scriptDb, isHostedDb } from "../scripts/lib/script-db";
+const { db, url } = scriptDb();
 const at = (iso: string) => new Date(iso);
 
 async function main() {
-  // Demo password for local SQLite only. On a hosted database, SEED_PASSWORD must be set (never deploy the public demo password).
-  const hosted = /^postgres(ql)?:\/\//.test(String(process.env.DATABASE_URL ?? ""));
+  // Demo password for a local database only. On a hosted database (any host other than localhost/127.0.0.1),
+  // SEED_PASSWORD must be set (never deploy the public demo password).
+  const hosted = isHostedDb(url);
   // The seed wipes all tables first: never run it against a hosted database that already has data unless forced.
   if (hosted && (await db.user.count()) > 0 && process.env.SEED_FORCE !== "1") throw new Error("This database already has users. The seed deletes all data; set SEED_FORCE=1 only if you really want that.");
   if (hosted && !process.env.SEED_PASSWORD) throw new Error("Seeding a hosted database: set SEED_PASSWORD (12+ characters) for the seeded accounts.");

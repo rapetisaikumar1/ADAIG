@@ -1,8 +1,8 @@
 // USD-only switch (Nov 2026): cancel OPEN, UNPAID orders in a currency that is no longer offered (CAD).
 // Paid history (active/cancelled/refunded memberships, confirmed tickets) is never touched and keeps its currency.
-// Conditional updates + one audit entry per row → idempotent. Usage: node scripts/retire-cad-open-orders.mjs [--dry-run]
-import { PrismaClient } from "@prisma/client";
-const db = new PrismaClient(); const dry = process.argv.includes("--dry-run"); const actor = "system:usd-only"; const RETIRED = ["CAD"];
+// Conditional updates + one audit entry per row → idempotent. Usage: npx tsx scripts/retire-cad-open-orders.mts [--dry-run]
+import { scriptDb } from "./lib/script-db";
+const { db } = scriptDb(); const dry = process.argv.includes("--dry-run"); const actor = "system:usd-only"; const RETIRED = ["CAD"];
 const ms = await db.membership.findMany({ where: { status: "pending", currency: { in: RETIRED } }, include: { user: { select: { email: true } } } });
 const rs = await db.registration.findMany({ where: { status: "pending_payment", currency: { in: RETIRED } }, include: { user: { select: { email: true } } } });
 let n = 0;

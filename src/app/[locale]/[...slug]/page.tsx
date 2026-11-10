@@ -22,7 +22,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
     const s = await auth();
     if (s?.user?.role !== "admin") redirect(`/${locale}`);
   }
-  const c = loadContent(file, locale); if (!c) notFound();
+  const c = await loadContent(file, locale); if (!c) notFound();
   const html = c.fallback ? await withFallbackChrome(c.html) : c.html;
   return (
     <main id="main">

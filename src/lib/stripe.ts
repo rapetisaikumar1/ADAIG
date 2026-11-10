@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { headers } from "next/headers";
+import { serverEnv } from "@/lib/env";
 /**
  * Payments (QA BUG-024 + R3). Stripe TEST mode only; payments fail closed.
  * - sk_test_ key: real Stripe test checkout.
@@ -13,19 +14,20 @@ const LOCAL_ENVS = ["development", "local"];
 const isLocalHost = (h: string | null | undefined) => !!h && /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(h.trim());
 
 export function stripeKeyState(): "test" | "none" | "rejected" {
-  const key = process.env.STRIPE_SECRET_KEY?.trim();
+  const key = serverEnv().STRIPE_SECRET_KEY;
   if (!key) return "none";
   return key.startsWith("sk_test_") ? "test" : "rejected";
 }
 export function getStripe(): Stripe | null {
-  return stripeKeyState() === "test" ? new Stripe(process.env.STRIPE_SECRET_KEY!.trim()) : null;
+  return stripeKeyState() === "test" ? new Stripe(serverEnv().STRIPE_SECRET_KEY!) : null;
 }
 export async function mockAllowed(): Promise<boolean> {
   if (stripeKeyState() !== "none") return false;
-  if (LOCAL_ENVS.includes(process.env.NODE_ENV ?? "") || LOCAL_ENVS.includes(process.env.APP_ENV ?? "")) return true;
-  if (process.env.ALLOW_MOCK_PAYMENTS !== "true") return false;
+  const env = serverEnv();
+  if (LOCAL_ENVS.includes(process.env.NODE_ENV ?? "") || LOCAL_ENVS.includes(env.APP_ENV ?? "")) return true;
+  if (env.ALLOW_MOCK_PAYMENTS !== "true") return false;
   let appHost: string | null = null;
-  try { appHost = new URL(process.env.APP_URL ?? "").host; } catch { /* unset or invalid → not local */ }
+  try { appHost = new URL(env.APP_URL ?? "").host; } catch { /* unset or invalid → not local */ }
   const reqHost = (await headers()).get("host");
   return isLocalHost(appHost) && isLocalHost(reqHost);
 }

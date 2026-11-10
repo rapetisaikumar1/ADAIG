@@ -1,23 +1,26 @@
 import { evLabel } from "@/config/site";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
+import { searchParam, likeLiteral } from "@/lib/validation";
 import { EventCard, eventView, type EventCardLabels } from "@/components/EventCard";
 export const dynamic = "force-dynamic";
 
 const TYPES = ["Webinar", "Chapter", "Conference"];
 const FORMATS = ["Online", "In person", "Hybrid"];
+/** Case-insensitive "contains" (ILIKE on Postgres), matching the previous SQLite LIKE behavior. */
+const ci = (q: string) => ({ contains: likeLiteral(q), mode: "insensitive" as const });
 
-export default async function Events({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ q?: string; type?: string; format?: string }> }) {
+export default async function Events({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ q?: string | string[]; type?: string; format?: string }> }) {
   const { locale } = await params; setRequestLocale(locale);
   const sp = await searchParams; const t = await getTranslations("events"); const tm = await getTranslations("membership");
-  const q = sp.q?.trim() || undefined;
+  const q = searchParam(sp.q, 200) || undefined; // control characters (Postgres rejects NUL) → spaces
   const type = TYPES.includes(sp.type ?? "") ? sp.type : undefined;
   const format = FORMATS.includes(sp.format ?? "") ? sp.format : undefined;
   const filtered = !!(q || type || format);
   const events = await db.event.findMany({
     where: {
-      published: true, ...(type ? { type } : {}), ...(format ? { format } : {}),
-      ...(q ? { OR: [{ title: { contains: q } }, { titleFr: { contains: q } }, { summary: { contains: q } }, { summaryFr: { contains: q } }, { location: { contains: q } }] } : {}),
+      published: true, cancelledAt: null, ...(type ? { type } : {}), ...(format ? { format } : {}),
+      ...(q ? { OR: [{ title: ci(q) }, { titleFr: ci(q) }, { summary: ci(q) }, { summaryFr: ci(q) }, { location: ci(q) }] } : {}),
     },
     orderBy: { startsAt: "asc" },
   });

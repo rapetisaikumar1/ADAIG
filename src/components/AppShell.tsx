@@ -26,7 +26,8 @@ export async function AdminNav({ locale, current }: { locale: string; current: s
     db.contactMessage.count({ where: { status: "new" } }),
   ]);
   const L = (p: string) => `/${locale}${p}`;
-  const a = (p: string, label: string, extra?: React.ReactNode) => <a href={L(p)} aria-current={current === p ? "page" : undefined}>{label}{extra}</a>;
+  // Sub-pages (e.g. /admin/members/[id]) keep their section highlighted.
+  const a = (p: string, label: string, extra?: React.ReactNode) => <a href={L(p)} aria-current={current === p || current.startsWith(`${p}/`) ? "page" : undefined}>{label}{extra}</a>;
   const preview = <span className="badge nav-tag">{t("preview")}</span>;
   return (
     <nav className="sidenav" aria-label={t("aria")}>
@@ -34,7 +35,9 @@ export async function AdminNav({ locale, current }: { locale: string; current: s
       {a("/admin/members", t("members"), pending > 0 ? <span className="badge badge-amber nav-tag">{pending}<span className="sr-only"> {t("pendingSr")}</span></span> : null)}
       {a("/admin/events", t("events"))}
       {a("/admin/messages", t("messages"), unread > 0 ? <span className="badge badge-amber nav-tag">{unread}<span className="sr-only"> {t("unreadSr")}</span></span> : null)}
-      <h2>{t("planned")}</h2>{a("/admin/content", t("content"), preview)}{a("/admin/corporate", t("corporate"), preview)}{a("/admin/chapter", t("chapter"), preview)}
+      {a("/admin/content", t("content"))}
+      <h2>{t("ops")}</h2>{a("/admin/settings", t("settings"))}{a("/admin/audit", t("audit"))}{a("/admin/system", t("system"))}
+      <h2>{t("planned")}</h2>{a("/admin/corporate", t("corporate"), preview)}{a("/admin/chapter", t("chapter"), preview)}
       <h2>{t("switch")}</h2>{a("/my/dashboard", t("memberView"))}
       <SignOutButton label={tc("signOut")} locale={locale} />
       <SidenavScroll />

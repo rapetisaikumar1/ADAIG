@@ -3,11 +3,11 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { auth, signIn } from "@/auth";
-import { getStripe } from "@/lib/stripe";
-import { expireUnpaid, cancelUnpaid, activateMembership } from "@/lib/membership";
-import { getTier, subdivisionsFor, defaultCurrency } from "@/config/site";
+import { expireUnpaid, cancelUnpaid } from "@/lib/membership";
+import { subdivisionsFor, defaultCurrency } from "@/config/site";
+import { getTiers } from "@/lib/settings";
 import { getTranslations } from "next-intl/server";
-import { checkPassword, emailOk, normEmail, cleanText, normCountry, normProvince, limits, isUniqueViolation, safeLocale } from "@/lib/validation";
+import { checkPassword, emailOk, normEmail, cleanText, normCountry, normProvince, limits, isUniqueViolation, safeLocale, idParam } from "@/lib/validation";
 
 export type JoinState = { error?: string };
 const OPEN = ["pending", "pending_verification", "active"]; // statuses that block a new join (BUG-033)
@@ -21,7 +21,7 @@ const OPEN = ["pending", "pending_verification", "active"]; // statuses that blo
 export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> {
   const locale = fd.get("locale") === "fr" ? "fr" : "en";
   const t = await getTranslations({ locale, namespace: "join" }); const err = (k: string) => ({ error: t(k) });
-  const tier = getTier(String(fd.get("tier") ?? "")); if (!tier) return err("err_tier");
+  const tierId = String(fd.get("tier") ?? ""); const tier = (await getTiers()).find((x) => x.id === tierId); if (!tier) return err("err_tier"); // offered (visible) tiers only
   const first = cleanText(fd.get("firstName"), limits.name), last = cleanText(fd.get("lastName"), limits.name); if (!first || !last) return err("err_name");
   const organisation = cleanText(fd.get("organisation"), limits.organisation); if (!organisation) return err("err_org");
   const country = normCountry(fd.get("country")); if (!country) return err("err_country"); // BUG-037: whitelist
@@ -67,18 +67,8 @@ export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> 
 
 /** BUG-042: cancel my unpaid (legacy) order (from /join or the dashboard). */
 export async function cancelOrder(fd: FormData) {
-  const locale = safeLocale(fd.get("locale")); const id = String(fd.get("m") ?? ""); const back = fd.get("from") === "join" ? "join" : "my/dashboard";
+  const locale = safeLocale(fd.get("locale")); const id = idParam(fd.get("m")); const back = fd.get("from") === "join" ? "join" : "my/dashboard";
   const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login`);
   const ok = await cancelUnpaid(id, s.user.id);
   redirect(`/${locale}/${back}?msg=${ok ? "orderCancelled" : "orderNotFound"}`);
-}
-
-/** Legacy: a Stripe Checkout session started before the application flow returns here; verified server-side. */
-export async function confirmStripe(id: string, sid: string) {
-  const stripe = getStripe(); if (!stripe) return false;
-  try {
-    const cs = await stripe.checkout.sessions.retrieve(sid);
-    if (cs.payment_status === "paid" && cs.metadata?.membershipId === id) { await activateMembership(id, "stripe-return"); return true; }
-  } catch (e) { console.error("[stripe] confirm membership failed", (e as Error).message); } // bad/replayed sid → treat as unpaid
-  return false;
 }

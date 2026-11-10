@@ -1,6 +1,8 @@
 /**
  * ADAIG portal configuration — SINGLE SOURCE OF TRUTH for decisions the founder has not made yet.
  * Edit locales, currencies, membership tiers (names, prices, benefits) and sales tax here.
+ * Tier texts/flags and the operational policies below are the DEFAULTS: staff can override them in Admin → Settings
+ * (Setting table). App code reads the effective values through src/lib/settings.ts (getTiers/getTier/getOps…), not from here.
  * Prices are placeholders copied from the design prototype. Amounts are in minor units (cents).
  */
 export const locales = ["en", "fr"] as const;
@@ -31,6 +33,7 @@ export type Tier = {
   requiresVerification?: boolean;
 };
 
+/** Default tiers (Admin → Settings can override name/description/benefits/flags/order/visibility per tier; ids and prices stay here). */
 export const tiers: Tier[] = [
   {
     id: "student",
@@ -178,7 +181,7 @@ export const cpeCycleTarget = 20;
 
 /**
  * Product defaults chosen pending founder decisions (change here):
- * - directoryOptInDefault: member directory listing is OFF by default (privacy by design).
+ * - directoryOptInDefault: member directory listing is OFF by default (privacy by design). Admin → Settings can override it.
  * - Student tier: requires an eligibility attestation + institution at join; membership stays
  *   "pending_verification" after payment until staff approve it in Admin → Members.
  * - eventCurrency: event ticket prices are set and charged in USD.
@@ -195,6 +198,7 @@ export const loginRateLimit = {
   ipDelayStepMs: 500, ipDelayMaxMs: 5000,
 }
 
+/** Default tier by id (no admin overrides). Runtime code: use getTier/tierLookup from src/lib/settings.ts. */
 export const getTier = (id: string) => tiers.find((t) => t.id === id);
 const nf = (locale: string, c: Currency, digits: number) =>
   locale === "fr" ? new Intl.NumberFormat("fr-FR", { style: "currency", currency: c, minimumFractionDigits: digits, maximumFractionDigits: digits }) : null;
@@ -223,7 +227,7 @@ export const evLabel = (v: string, locale: string) => eventLabels[v]?.[locale as
 
 /**
  * What happens when staff reject a student eligibility check (QA BUG-023). Pending Bhanu's refund-policy decision.
- * Override with env REJECTED_STUDENT_POLICY.
+ * Override with env REJECTED_STUDENT_POLICY (Admin → Settings overrides env; runtime: rejectedStudentPolicy() in src/lib/settings.ts).
  *  - "notice_manual_refund" (default): member sees the rejection + reason; payment flagged "refund_due" for staff to refund by hand in Stripe. No automatic refund.
  *  - "notice_only": member sees the rejection + reason; no refund flag.
  */
@@ -232,7 +236,8 @@ export const rejectedStudentPolicy = (): RejectedStudentPolicy =>
   process.env.REJECTED_STUDENT_POLICY === "notice_only" ? "notice_only" : "notice_manual_refund";
 
 /**
- * Account-deletion product decisions (pending Bhanu). Defaults keep current behaviour. Env overrides:
+ * Account-deletion product decisions (pending Bhanu). Defaults keep current behaviour. Env overrides (Admin → Settings overrides env;
+ * runtime: deletionPolicy() in src/lib/settings.ts):
  *  DELETED_USER_PAID_TICKETS = "keep" (default; paid seat stays confirmed, anonymised) | "cancel" (seat freed, record kept)
  *  DELETED_MEMBERSHIP_REFUND = "none" (default; cancelled without refund) | "flag_manual_refund" (paid membership flagged "refund due" in admin)
  */
@@ -241,5 +246,6 @@ export const deletionPolicy = () => ({
   membershipRefund: process.env.DELETED_MEMBERSHIP_REFUND === "flag_manual_refund" ? "flag_manual_refund" : "none",
 });
 
-/** Unpaid (status "pending") membership orders expire after this many hours (BUG-042). Env UNPAID_ORDER_TTL_HOURS, default 24. */
+/** Unpaid (status "pending") membership orders expire after this many hours (BUG-042). Env UNPAID_ORDER_TTL_HOURS, default 24.
+ * Admin → Settings overrides env; runtime: unpaidOrderTtlHours() in src/lib/settings.ts. */
 export const unpaidOrderTtlHours = () => { const n = Number(process.env.UNPAID_ORDER_TTL_HOURS); return Number.isFinite(n) && n > 0 ? n : 24; };

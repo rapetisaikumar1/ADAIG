@@ -5,10 +5,10 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { signIn } from "@/auth";
 import { db } from "@/lib/db";
-import { checkPassword, emailOk, normEmail, cleanText, limits, isUniqueViolation } from "@/lib/validation";
+import { checkPassword, emailOk, normEmail, cleanText, limits, isUniqueViolation, safeLocale } from "@/lib/validation";
 
 export async function login(fd: FormData) {
-  const locale = String(fd.get("locale") ?? "en");
+  const locale = safeLocale(fd.get("locale"));
   try {
     await signIn("credentials", { email: fd.get("email"), password: fd.get("password"), redirectTo: `/${locale}/my/dashboard` });
   } catch (e) {

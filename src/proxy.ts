@@ -1,3 +1,4 @@
+// Next.js 16 "proxy" (formerly middleware.ts; runs on the Node.js runtime): next-intl locale routing + per-request nonce CSP.
 import createMiddleware from "next-intl/middleware";
 import { NextRequest } from "next/server";
 import { routing } from "./i18n/routing";
@@ -24,7 +25,7 @@ export function buildCsp(nonce: string) {
     "object-src 'none'",
   ].join("; ");
 }
-export default function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const csp = buildCsp(nonce);
   const res = intl(req);
@@ -38,4 +39,6 @@ export default function middleware(req: NextRequest) {
   res.headers.set("Content-Security-Policy", csp);
   return res;
 }
-export const config = { matcher: ["/((?!api|_next|assets|.*\\..*).*)"] };
+// Skips API routes, Next internals, /assets and real static files (by extension, incl. RSC transport files). Any other
+// path — even one with a dot, like /en/events/x.y — gets the nonce CSP (it renders a page, usually the 404 page).
+export const config = { matcher: ["/((?!api|_next|assets|.*\\.(?:ico|png|jpe?g|gif|svg|webp|avif|bmp|txt|xml|json|webmanifest|css|js|mjs|map|woff2?|ttf|otf|eot|pdf|mp4|webm|rsc)$).*)"] };

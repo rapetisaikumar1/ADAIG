@@ -39,4 +39,23 @@ export function normProvince(v: unknown, country = "Canada"): string | null {
   const k = String(v ?? "").trim().toUpperCase();
   return subdivisionsFor(country)?.some((p) => p.code === k) ? k : null;
 }
-export const isUniqueViolation = (e: unknown) => (e as { code?: string })?.code === "P2002";
+/** True when the text contains C0/DEL control characters (Postgres rejects NUL; none belong in ids, slugs, emails). */
+export const hasCtl = (v: string) => /[\u0000-\u001f\u007f]/.test(v);
+/** Audit-log targets built from untrusted input are capped (no unbounded rows from anonymous requests). */
+export const AUDIT_TARGET_MAX = 300;
+export const auditTarget = (v: string) => (v.length > AUDIT_TARGET_MAX ? v.slice(0, AUDIT_TARGET_MAX) : v);
+/**
+ * One query-string / route / form value: the first value of a repeated parameter, as a string. Ids and slugs with control
+ * characters or over `max` become "" (matches nothing, so callers take their existing "not found" path).
+ */
+export function idParam(v: unknown, max = 64): string {
+  const s = String((Array.isArray(v) ? v[0] : v) ?? "");
+  return s.length > max || hasCtl(s) ? "" : s;
+}
+/** Free-text search from the query string: first value, control characters → spaces, trimmed, capped. */
+export function searchParam(v: unknown, max: number): string {
+  return String((Array.isArray(v) ? v[0] : v) ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, max);
+}
+export const isUniqueViolation =(e: unknown) => (e as { code?: string })?.code === "P2002";
+/** Escape LIKE/ILIKE wildcards so user search text matches literally (Prisma `contains` does not escape % and _ on Postgres). */
+export const likeLiteral = (s: string) => s.replace(/[\\%_]/g, "\\$&");

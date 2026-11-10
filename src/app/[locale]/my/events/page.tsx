@@ -12,7 +12,7 @@ export default async function MyEvents({ params }: { params: Promise<{ locale: L
   const { locale } = await params; setRequestLocale(locale);
   const u = await requireUser(locale); const t = await getTranslations("member.eventsPage"); const te = await getTranslations("events");
   const now = new Date();
-  const regs = await db.registration.findMany({ where: { userId: u.id, status: { in: ["confirmed", "pending_payment"] } }, include: { event: true }, orderBy: { event: { startsAt: "asc" } } });
+  const regs = await db.registration.findMany({ where: { userId: u.id, status: { in: ["confirmed", "pending_payment"] }, event: { cancelledAt: null } }, include: { event: true }, orderBy: { event: { startsAt: "asc" } } });
   const upcoming = regs.filter((r) => r.event.startsAt >= now);
   const past = regs.filter((r) => r.event.startsAt < now && r.status === "confirmed").reverse();
   const L = (p: string) => `/${locale}${p}`;

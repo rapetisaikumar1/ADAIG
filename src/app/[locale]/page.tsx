@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
  *  from the database at the <!--HOME_EVENTS--> marker so it never shows past, stale or unpublished events. */
 export default async function Home({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params; setRequestLocale(locale);
-  const c = loadContent("home", locale)!;
+  const c = (await loadContent("home", locale))!;
   const [before, after = ""] = c.html.split("<!--HOME_EVENTS-->");
   const t = await getTranslations("events");
-  const events = await db.event.findMany({ where: { published: true, startsAt: { gte: new Date() } }, orderBy: { startsAt: "asc" }, take: 4 });
+  const events = await db.event.findMany({ where: { published: true, cancelledAt: null, startsAt: { gte: new Date() } }, orderBy: { startsAt: "asc" }, take: 4 });
   const fr = locale === "fr";
   const labels: EventCardLabels = { membersFree: t("membersFree"), proposed: t("proposed"), past: t("past"), upTo: t("upTo"), dateTbc: t("dateTbc"), venueTbc: t("venueTbc") };
   return (

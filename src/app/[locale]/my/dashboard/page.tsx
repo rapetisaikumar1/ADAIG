@@ -5,7 +5,8 @@ import { db } from "@/lib/db";
 import { requireUser, activeMembership } from "@/lib/session";
 import { MemberNav } from "@/components/AppShell";
 import { EventCard, eventView, isUnconfirmed } from "@/components/EventCard";
-import { getTier, cpeCycleTarget, type Locale } from "@/config/site";
+import { cpeCycleTarget, type Locale } from "@/config/site";
+import { tierLookup } from "@/lib/settings";
 import { fmtDate } from "../_shared/util";
 export const dynamic = "force-dynamic";
 
@@ -20,14 +21,14 @@ export default async function Dashboard({ params, searchParams }: { params: Prom
   const rejected = m || pendingVer || pendingPay ? null : await db.membership.findFirst({ where: { userId: u.id, status: "rejected_verification" }, orderBy: { createdAt: "desc" } });
   const myEventIds = (await db.registration.findMany({ where: { userId: u.id }, select: { eventId: true } })).map((r) => r.eventId);
   // Recommend confirmed events only: proposed/concept events (no date yet, no registrations) are left out.
-  const suggested = (await db.event.findMany({ where: { published: true, startsAt: { gte: new Date() }, id: { notIn: myEventIds } }, orderBy: { startsAt: "asc" }, take: 12 }))
+  const suggested = (await db.event.findMany({ where: { published: true, cancelledAt: null, startsAt: { gte: new Date() }, id: { notIn: myEventIds } }, orderBy: { startsAt: "asc" }, take: 12 }))
     .filter((e) => !isUnconfirmed(e)).slice(0, 3);
-  const regs = await db.registration.findMany({ where: { userId: u.id, status: "confirmed", event: { startsAt: { gte: new Date() } } }, include: { event: true }, orderBy: { event: { startsAt: "asc" } } });
+  const regs = await db.registration.findMany({ where: { userId: u.id, status: "confirmed", event: { startsAt: { gte: new Date() }, cancelledAt: null } }, include: { event: true }, orderBy: { event: { startsAt: "asc" } } });
   const cpe = (await db.cpeEntry.aggregate({ where: { userId: u.id, status: "approved" }, _sum: { hours: true } }))._sum.hours ?? 0;
   const cpeRecent = await db.cpeEntry.findMany({ where: { userId: u.id, status: "approved" }, orderBy: { createdAt: "desc" }, take: 3 });
   const pct = Math.min(100, Math.round((cpe / cpeCycleTarget) * 100));
   const daysLeft = m?.renewsAt ? Math.ceil((+m.renewsAt - Date.now()) / 864e5) : null;
-  const tierName = (id: string) => getTier(id)?.name[locale] ?? id;
+  const getTier = await tierLookup(); const tierName = (id: string) => getTier(id)?.name[locale] ?? id;
   const L = (p: string) => `/${locale}${p}`;
   const h2 = { fontSize: "var(--fs-lg)", margin: 0 } as const;
   const profileRows: [string, string | null][] = [

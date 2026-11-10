@@ -2,7 +2,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { requireUser, activeMembership } from "@/lib/session";
 import { MemberNav } from "@/components/AppShell";
-import { getTier, fmt, type Currency, type Locale } from "@/config/site";
+import { fmt, type Currency, type Locale } from "@/config/site";
+import { tierLookup } from "@/lib/settings";
 import { fmtDate } from "../_shared/util";
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export default async function MyMembership({ params }: { params: Promise<{ local
     ?? (await db.membership.findFirst({ where: { userId: u.id, status: "pending_verification" }, orderBy: { createdAt: "desc" } }))
     ?? (await db.membership.findFirst({ where: { userId: u.id, status: "rejected_verification" }, orderBy: { createdAt: "desc" } }));
   const paidTickets = await db.registration.findMany({ where: { userId: u.id, status: "confirmed", amountCents: { gt: 0 } }, include: { event: true }, orderBy: { event: { startsAt: "desc" } } });
+  const getTier = await tierLookup();
   const L = (p: string) => `/${locale}${p}`;
   const status = m?.status ?? "none";
   const badge = status === "active" ? "badge-green" : status === "pending_verification" ? "badge-amber" : status === "rejected_verification" ? "badge-red" : "";

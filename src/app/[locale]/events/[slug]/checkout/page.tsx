@@ -4,13 +4,16 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { getStripe, mockAllowed, paymentsUnavailable } from "@/lib/stripe";
 import { fmt2, type Currency } from "@/config/site";
-import { completeMockTicket, confirmStripeTicket } from "../actions";
+import { idParam } from "@/lib/validation";
+import { completeMockTicket } from "../actions";
+import { confirmStripeTicket } from "@/lib/stripeReturn";
 import { eventView, eventTimeZone, dateLocale } from "@/components/EventCard";
 export const dynamic = "force-dynamic";
 
-export default async function TicketCheckout({ params, searchParams }: { params: Promise<{ locale: string; slug: string }>; searchParams: Promise<{ r?: string; sid?: string }> }) {
-  const { locale, slug } = await params; setRequestLocale(locale);
-  const { r: id, sid } = await searchParams; const t = await getTranslations("events");
+export default async function TicketCheckout({ params, searchParams }: { params: Promise<{ locale: string; slug: string }>; searchParams: Promise<{ r?: string | string[]; sid?: string | string[] }> }) {
+  const { locale } = await params; setRequestLocale(locale);
+  const slug = encodeURIComponent(idParam((await params).slug, 200)); // only used in redirects back to the event page
+  const sp = await searchParams; const id = idParam(sp.r), sid = idParam(sp.sid, 255); const t = await getTranslations("events");
   const s = await auth(); if (!s?.user) redirect(`/${locale}/login`);
   const r = id ? await db.registration.findUnique({ where: { id }, include: { event: true } }) : null;
   if (!r || r.userId !== s.user.id) redirect(`/${locale}/events/${slug}`);

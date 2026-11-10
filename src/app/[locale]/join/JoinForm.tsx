@@ -1,14 +1,18 @@
 "use client";
 import { useActionState, useEffect, useRef, useState, startTransition, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import { tiers, subdivisionsFor, countries, defaultCountry, defaultProvince, directoryOptInDefault, type Locale } from "@/config/site";
+import { subdivisionsFor, countries, defaultCountry, defaultProvince, type Locale } from "@/config/site";
 import { startJoin } from "./actions";
 
 /** French display names for the country list (the submitted value stays the English name stored in the DB). */
 const countryFr: Record<string, string> = { "United States": "États-Unis", Canada: "Canada", Mexico: "Mexique", "United Kingdom": "Royaume-Uni", Ireland: "Irlande", France: "France", Germany: "Allemagne", Netherlands: "Pays-Bas", Australia: "Australie", "New Zealand": "Nouvelle-Zélande", India: "Inde", Singapore: "Singapour", "South Africa": "Afrique du Sud", Other: "Autre" };
 
-/** Membership application form: captures details only. No prices or payment; the ADAIG team (point of contact) follows up. */
-export function JoinForm({ locale, initialTier, signedIn, defaults }: { locale: Locale; initialTier: string; signedIn: boolean; defaults: { first?: string; last?: string; org?: string } }) {
+/** The tier fields the form needs (from src/lib/settings.ts on the server; admin-editable). */
+export type JoinTier = { id: string; name: Record<Locale, string>; description: Record<Locale, string>; requiresVerification?: boolean };
+
+/** Membership application form: captures details only. No prices or payment; the ADAIG team (point of contact) follows up.
+ * Tiers and the directory opt-in default come from the server page as props (admin-editable settings). */
+export function JoinForm({ locale, tiers, directoryOptInDefault, initialTier, signedIn, defaults }: { locale: Locale; tiers: JoinTier[]; directoryOptInDefault: boolean; initialTier: string; signedIn: boolean; defaults: { first?: string; last?: string; org?: string } }) {
   const t = useTranslations("join");
   const [tier, setTier] = useState(initialTier);
   const [country, setCountry] = useState(defaultCountry); const [prov, setProv] = useState(defaultProvince);

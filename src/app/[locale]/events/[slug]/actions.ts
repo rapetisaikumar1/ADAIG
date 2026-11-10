@@ -4,16 +4,20 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { activeMembership } from "@/lib/session";
 import { getStripe, mockAllowed } from "@/lib/stripe";
-import { isUniqueViolation, safeLocale } from "@/lib/validation";
+import { isUniqueViolation, safeLocale, idParam } from "@/lib/validation";
+import { serverEnv } from "@/lib/env";
 import { confirmRegistration } from "@/lib/membership";
 import { eventCurrency } from "@/config/site";
 import { eventView } from "@/components/EventCard";
+import { SLUG_RE } from "@/app/[locale]/admin/events/eventForm";
 
 /** Register for an event. Free tickets confirm immediately; paid tickets go through Stripe (test) or the mock checkout. */
 export async function register(fd: FormData) {
-  const slug = String(fd.get("slug")); const locale = String(fd.get("locale"));
+  const raw = String(fd.get("slug") ?? ""); const locale = safeLocale(fd.get("locale"));
   const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login`);
-  const e = await db.event.findUnique({ where: { slug } }); if (!e || !e.published) redirect(`/${locale}/events`);
+  const e = SLUG_RE.test(raw) && raw.length <= 200 ? await db.event.findUnique({ where: { slug: raw } }) : null;
+  if (!e || !e.published || e.cancelledAt) redirect(`/${locale}/events`); // drafts and cancelled events take no registrations
+  const slug = e.slug;
   const v = eventView(e, "en"); if (v.planned || v.past) redirect(`/${locale}/events/${slug}`); // proposed (unconfirmed) or ended: no registrations
   const isMember = !!(await activeMembership(s.user.id)); // member price auto-applied (US-7)
   const ticket = isMember ? "member" : "non-member";
@@ -34,7 +38,7 @@ export async function register(fd: FormData) {
   let next = `/${locale}/events/${slug}/checkout?r=${r.id}`;
   const stripe = getStripe();
   if (stripe) {
-    const base = process.env.APP_URL ?? "http://localhost:3000";
+    const base = serverEnv().APP_URL ?? "http://localhost:3000";
     const cs = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: [{ quantity: 1, price_data: { currency: eventCurrency.toLowerCase(), unit_amount: price, product_data: { name: `${e.title} — ${ticket} ticket` } } }],
@@ -49,7 +53,7 @@ export async function register(fd: FormData) {
 }
 
 export async function completeMockTicket(fd: FormData) {
-  const id = String(fd.get("r") ?? ""); const locale = safeLocale(fd.get("locale"));
+  const id = idParam(fd.get("r")); const locale = safeLocale(fd.get("locale"));
   const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login`);
   const r = await db.registration.findUnique({ where: { id }, include: { event: true } });
   // replay against someone else's / unknown ticket → friendly notice (never a payment, never a 500)
@@ -60,13 +64,4 @@ export async function completeMockTicket(fd: FormData) {
   await db.registration.updateMany({ where: { id, status: "pending_payment" }, data: { paymentRef: `mock_${Date.now()}` } }); // idempotent on double click
   await confirmRegistration(id, s.user.id);
   redirect(`/${locale}/events/${r.event.slug}?registered=1`);
-}
-
-export async function confirmStripeTicket(id: string, sid: string) {
-  const stripe = getStripe(); if (!stripe) return false;
-  try {
-    const cs = await stripe.checkout.sessions.retrieve(sid);
-    if (cs.payment_status === "paid" && cs.metadata?.registrationId === id) { await confirmRegistration(id, "stripe-return"); return true; }
-  } catch (e) { console.error("[stripe] confirm ticket failed", (e as Error).message); }
-  return false;
 }

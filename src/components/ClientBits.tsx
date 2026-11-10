@@ -17,8 +17,12 @@ export function LangSwitch() {
 export function NavToggle({ label, closeLabel }: { label: string; closeLabel: string }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const set = (v: boolean) => { document.getElementById("primary-nav")?.classList.toggle("open", v); setOpen(v); };
-  useEffect(() => { set(false); }, [pathname]);
+  // Close the menu on navigation (state adjusted during render instead of in an effect).
+  const [shownPath, setShownPath] = useState(pathname);
+  if (pathname !== shownPath) { setShownPath(pathname); setOpen(false); }
+  const set = (v: boolean) => setOpen(v);
+  // The panel itself (#primary-nav) is rendered elsewhere; mirror the state onto it.
+  useEffect(() => { document.getElementById("primary-nav")?.classList.toggle("open", open); }, [open]);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { set(false); document.querySelector<HTMLButtonElement>(".nav-toggle")?.focus(); } };
