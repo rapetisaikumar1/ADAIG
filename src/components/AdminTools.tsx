@@ -20,6 +20,12 @@ export async function AdminTools({ locale }: { locale: string }) {
       <div className="adm-tools-exports"><span className="small"><b>{t("exports")}</b></span>
         {exports.map(([href, k]) => <a key={k} className="btn btn-secondary btn-sm" href={href} download>{t(k)}</a>)}
       </div>
+      {/* Planned staff tools: static previews with sample data (not in the admin menu, since they don't work yet). */}
+      <div className="adm-tools-exports adm-tools-planned"><span className="small"><b>{t("planned")}</b> <span className="badge badge-amber">{t("plannedBadge")}</span></span>
+        <a className="btn btn-secondary btn-sm" href={L("/admin/corporate")}>{t("plannedCorporate")}</a>
+        <a className="btn btn-secondary btn-sm" href={L("/admin/chapter")}>{t("plannedChapter")}</a>
+        <span className="small muted">{t("plannedHint")}</span>
+      </div>
     </section>
   );
 }

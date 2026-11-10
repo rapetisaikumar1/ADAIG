@@ -4,17 +4,23 @@ import { requireUser } from "@/lib/session";
 import { MemberNav } from "@/components/AppShell";
 import { eventView, eventTypeBadgeClass, eventLocation } from "@/components/EventCard";
 import { evLabel, type Locale } from "@/config/site";
-import { fmtDate, fmtTime, dayMonth } from "../_shared/util";
+import { fmtDate, fmtTime, dayMonth, hasEnded } from "../_shared/util";
+import { AccessInfo, accessText } from "../_shared/AccessInfo";
+import { memberMetadata } from "../_shared/meta";
 export const dynamic = "force-dynamic";
+export const generateMetadata = memberMetadata("events");
 
-/** The member's own event registrations (live data). Dates and times are shown in Eastern time (ET), like the public event pages. */
+/**
+ * The member's own event registrations (live data). Dates and times are shown in Eastern time (ET), like the public event pages.
+ * An event stays under "Upcoming" until it ends, so joining details remain visible while it is in progress.
+ */
 export default async function MyEvents({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params; setRequestLocale(locale);
   const u = await requireUser(locale); const t = await getTranslations("member.eventsPage"); const te = await getTranslations("events");
   const now = new Date();
   const regs = await db.registration.findMany({ where: { userId: u.id, status: { in: ["confirmed", "pending_payment"] }, event: { cancelledAt: null } }, include: { event: true }, orderBy: { event: { startsAt: "asc" } } });
-  const upcoming = regs.filter((r) => r.event.startsAt >= now);
-  const past = regs.filter((r) => r.event.startsAt < now && r.status === "confirmed").reverse();
+  const upcoming = regs.filter((r) => !hasEnded(r.event, now));
+  const past = regs.filter((r) => hasEnded(r.event, now) && r.status === "confirmed").reverse();
   const L = (p: string) => `/${locale}${p}`;
   return (
     <div className="app"><MemberNav locale={locale} current="/my/events" />
@@ -24,6 +30,7 @@ export default async function MyEvents({ params }: { params: Promise<{ locale: L
         {upcoming.length ? (
           <ul className="mbr-events">{upcoming.map((r) => {
             const d = r.event.startsAt; const dm = dayMonth(d, locale); const v = eventView(r.event, locale); const loc = eventLocation(r.event, te("venueTbc"));
+            const access = r.status === "confirmed" ? accessText(r.event, locale) : null; // joining details: confirmed registrants only
             return (
               <li key={r.id} className="card event-card">
                 {/* Unconfirmed (proposed) events never show a specific day or time. */}
@@ -31,8 +38,9 @@ export default async function MyEvents({ params }: { params: Promise<{ locale: L
                 <div className="mbr-ev-body">
                   <div className="tags"><span className={`badge ${r.status === "pending_payment" ? "badge-amber" : "badge-green"}`}>{r.status === "pending_payment" ? t("pendingPay") : t("registered")}</span><span className={eventTypeBadgeClass}>{evLabel(r.event.type, locale)}</span>{v.planned && <span className="badge ev-status">{te("proposed")}</span>}</div>
                   <h3><a href={L(`/events/${r.event.slug}`)}>{v.title}</a></h3>
-                  <p className="mbr-ev-meta">{v.planned ? <span>{te("dateTbc")}</span> : <><span>{fmtDate(d, locale)}</span><span>{fmtTime(d, locale)}</span></>}<span>{evLabel(r.event.format, locale)}</span>{loc && <span>{loc}</span>}<span>{r.event.cpe} {t("colCpe")}</span></p>
+                  <p className="mbr-ev-meta">{v.planned ? <span>{te("dateTbc")}</span> : <><span>{fmtDate(d, locale)}</span><span>{fmtTime(d, locale, te("tz"))}</span></>}<span>{evLabel(r.event.format, locale)}</span>{loc && <span>{loc}</span>}<span>{r.event.cpe} {t("colCpe")}</span></p>
                   {r.status === "pending_payment" && <p className="small">{t("pendingBody")} <a href={L(`/events/${r.event.slug}`)}>{te("completePayment")} →</a></p>}
+                  {access ? <AccessInfo title={t("accessTitle")} text={access} /> : r.status === "confirmed" && r.event.format !== "In person" && <p className="small muted" style={{ margin: 0 }}>{t("accessPending")}</p>}
                 </div>
               </li>
             );

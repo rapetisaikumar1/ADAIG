@@ -22,6 +22,8 @@ export async function createAccount(_: NewAccountState, fd: FormData): Promise<N
   const p = parseProfile(fd); if ("error" in p) return { error: t(p.error) };
   const role = String(fd.get("role")); if (!ROLES.includes(role)) return { error: t("err_invalid") };
   const tierId = String(fd.get("tier") ?? ""); if (tierId && !getTier(tierId)) return { error: t("err_invalid") };
+  // "Member" comes from a membership (adding one below makes a guest a member); it can't be set without one.
+  if (role === "member" && !tierId) return { error: t("err_roleNeedsMembership") };
   const rawDay = String(fd.get("renewsOn") ?? "").trim(); const renewsAt = rawDay ? parseRenewalDay(rawDay) : null;
   if (rawDay && !renewsAt) return { error: t("err_date") };
   const typed = String(fd.get("password") ?? ""); const password = typed || tempPassword();

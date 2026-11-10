@@ -11,13 +11,13 @@ import { Html } from "@/components/SiteChrome";
  */
 export default async function Membership({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params; setRequestLocale(locale);
-  const t = await getTranslations("membership");
+  const t = await getTranslations("membership"); const tc = await getTranslations("chrome");
   const tiers = await getTiers(); // admin-editable (Admin → Settings); defaults from src/config/site.ts
   const rest = (await loadContent("membership", locale))!.html;
   return (
     <main id="main" className="mship-page">
       <section className="page-hero"><div className="container">
-        <nav className="crumbs" aria-label="Breadcrumb"><ol><li><a href={`/${locale}`}>{t("home")}</a></li><li aria-current="page">{t("title")}</li></ol></nav>
+        <nav className="crumbs" aria-label={tc("breadcrumbAria")}><ol><li><a href={`/${locale}`}>{t("home")}</a></li><li aria-current="page">{t("title")}</li></ol></nav>
         <span className="eyebrow">{t("eyebrow")}</span><h1>{t("title")}</h1><p className="lead">{t("lead")}</p>
       </div></section>
       <section className="section"><div className="container">
@@ -25,6 +25,7 @@ export default async function Membership({ params }: { params: Promise<{ locale:
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
           <p><b>{t("duesTitle")}</b> {t("duesBody")}</p>
         </div>
+        <h2 className="sr-only">{t("tiersHeading")}</h2>
         <div className="grid g4">
           {tiers.map((tier) => (
             <article key={tier.id} className={`card tier${tier.featured ? " featured" : ""}`}>

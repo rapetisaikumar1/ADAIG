@@ -1,20 +1,23 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { requireUser } from "@/lib/session";
+import { requireUser, activeMembership } from "@/lib/session";
 import { MemberNav } from "@/components/AppShell";
 import type { Locale } from "@/config/site";
+import { memberMetadata } from "../_shared/meta";
 export const dynamic = "force-dynamic";
+export const generateMetadata = memberMetadata("community");
 
 /** Member community hub. Online discussions are not built yet, so this page says so and points to what exists today. */
 export default async function MyCommunity({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params; setRequestLocale(locale);
-  await requireUser(locale); const t = await getTranslations("member.communityPage");
+  const u = await requireUser(locale); const t = await getTranslations("member.communityPage");
+  const canBrowse = u.role === "admin" || !!(await activeMembership(u.id)); // same rule as /my/directory
   const L = (p: string) => `/${locale}${p}`;
   const items: { key: string; status: "available" | "planned" | "proposed" | "draft"; href?: string }[] = [
     { key: "events", status: "available", href: "/events" },
-    { key: "directory", status: "available", href: "/my/directory" },
+    canBrowse ? { key: "directory", status: "available", href: "/my/directory" } : { key: "directoryGuest", status: "available", href: "/membership" },
     { key: "discussions", status: "planned" },
     { key: "groups", status: "planned", href: "/community" },
-    { key: "working", status: "proposed", href: "/community" },
+    { key: "working", status: "proposed", href: "/contact?topic=community" },
     { key: "conduct", status: "draft", href: "/governance#ethics" },
   ];
   const badge = { available: "badge-green", planned: "badge-amber", proposed: "badge-amber", draft: "badge-amber" } as const;

@@ -41,3 +41,25 @@ export async function paymentsUnavailable(): Promise<boolean> {
     : "[payments] Disabled: no STRIPE_SECRET_KEY, and the mock checkout is only allowed locally (APP_ENV/NODE_ENV development|local, or ALLOW_MOCK_PAYMENTS=true on localhost).");
   return true;
 }
+
+/**
+ * Stripe Checkout sessions may live from 30 minutes to 24 hours. Ticket sessions use just under the maximum, so a Checkout
+ * page left open can't be paid long after the visitor gave up (a late payment on a closed order is flagged, never lost).
+ */
+const CHECKOUT_TTL_S = 24 * 3600 - 300;
+/** `expires_at` (Unix seconds) for stripe.checkout.sessions.create. */
+const checkoutExpiresAt = (now = Date.now()) => Math.floor(now / 1000) + CHECKOUT_TTL_S;
+
+/**
+ * Create a Checkout session with `expires_at` set (unless the caller passes one). On any Stripe error (outage, bad key,
+ * invalid parameters) the error is logged as "[stripe] …" and null is returned, so the caller can redirect with a friendly
+ * payment error instead of a 500 page.
+ */
+export async function createCheckoutSession(stripe: Stripe, params: Stripe.Checkout.SessionCreateParams): Promise<Stripe.Checkout.Session | null> {
+  try {
+    return await stripe.checkout.sessions.create({ expires_at: checkoutExpiresAt(), ...params });
+  } catch (e) {
+    console.error("[stripe] checkout session create failed:", (e as Error)?.message ?? String(e));
+    return null;
+  }
+}

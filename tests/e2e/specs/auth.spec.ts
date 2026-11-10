@@ -1,25 +1,27 @@
 /** Sign-in, lockout and staff unlock, guest sign-up, sign-out and access control. */
-import { test, expect, uiLogin } from "../fixtures";
+import { test, expect, uiLogin, expectLoginRefused } from "../fixtures";
 import { createUser, one, auditRows, userByEmail, uniqueEmail, uniqueName, uniquePassword } from "../support/db";
-import { t } from "../support/i18n";
+import { t, re } from "../support/i18n";
 
+/** Submit the login form from a fresh /en/login. Callers assert the outcome: a refusal comes back as form state (an alert on
+ *  /en/login, no ?error= redirect), a success navigates to the dashboard. */
 async function submitLogin(page: import("@playwright/test").Page, email: string, password: string) {
   await page.goto("/en/login");
   await page.locator("#le").fill(email);
   await page.locator("#lp").fill(password);
   await page.locator("main form").getByRole("button", { name: t("auth.signIn") }).click();
-  await page.waitForURL(/\/en\/(login\?error=|my\/dashboard)/);
 }
 
 test("a wrong password shows a generic error @smoke", async ({ page }) => {
   const u = await createUser();
   await submitLogin(page, u.email, "Wrong-password-123");
-  await expect(page).toHaveURL(/\/en\/login\?error=1/);
-  await expect(page.locator("main").getByRole("alert")).toHaveText(t("auth.invalid"));
+  await expectLoginRefused(page, t("auth.invalid"), { email: u.email }); // focused alert, email kept, password cleared
   await expect(page.locator("#le")).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#le")).toHaveAttribute("aria-describedby", "login-err");
   // Unknown accounts get exactly the same message (no account enumeration).
-  await submitLogin(page, uniqueEmail(), "Wrong-password-123");
-  await expect(page.locator("main").getByRole("alert")).toHaveText(t("auth.invalid"));
+  const unknown = uniqueEmail();
+  await submitLogin(page, unknown, "Wrong-password-123");
+  await expectLoginRefused(page, t("auth.invalid"), { email: unknown });
 });
 
 test("an account locks after 5 failed attempts and an admin can unlock it", async ({ page, adminPage }) => {
@@ -28,8 +30,8 @@ test("an account locks after 5 failed attempts and an admin can unlock it", asyn
     await submitLogin(page, u.email, `Wrong-password-${i}xx`);
     // Attempts 1–4: generic error. The 5th failure locks the account (it may already say so).
     const alert = page.locator("main").getByRole("alert");
-    if (i < 5) await expect(alert).toHaveText(t("auth.invalid"));
-    else expect([t("auth.invalid"), t("auth.locked")]).toContain(await alert.textContent());
+    if (i < 5) await expectLoginRefused(page, t("auth.invalid"));
+    else await expect(alert).toHaveText(new RegExp(`^(${re(t("auth.invalid")).source}|${re(t("auth.locked")).source})$`));
   }
   const lock = await one<{ failures: number; lockedUntil: Date | null }>(`SELECT * FROM "LoginThrottle" WHERE key = $1`, [`e:${u.email}`]);
   expect(lock?.failures).toBeGreaterThanOrEqual(5);
@@ -38,8 +40,7 @@ test("an account locks after 5 failed attempts and an admin can unlock it", asyn
 
   // Even the right password is refused while locked.
   await submitLogin(page, u.email, u.password);
-  await expect(page).toHaveURL(/error=locked/);
-  await expect(page.locator("main").getByRole("alert")).toHaveText(t("auth.locked"));
+  await expectLoginRefused(page, t("auth.locked"), { email: u.email });
 
   // Admin → Members shows the lock and clears it.
   await adminPage.goto(`/en/admin/members?q=${encodeURIComponent(u.email)}`);
@@ -76,12 +77,19 @@ test("sign-up creates a free guest account", async ({ page, newPage }) => {
   await other.goto("/en/signup");
   await other.locator("#sn").fill(name); await other.locator("#se").fill(email); await other.locator("#sp").fill(uniquePassword());
   await other.getByRole("button", { name: t("auth.createBtn") }).click();
-  await expect(other).toHaveURL(/error=generic_account/);
-  await expect(other.locator("main").getByRole("alert")).toHaveText(t("join.err_generic_account"));
+  // Errors come back as form state: same URL, focused alert, name/email kept, password cleared.
+  const otherAlert = other.locator("main").getByRole("alert");
+  await expect(otherAlert).toHaveText(t("join.err_generic_account"));
+  await expect(otherAlert).toBeFocused();
+  await expect(other).toHaveURL(/\/en\/signup$/);
+  await expect(other.locator("#sn")).toHaveValue(name);
+  await expect(other.locator("#se")).toHaveValue(email);
+  await expect(other.locator("#sp")).toHaveValue("");
   await other.locator("#sn").fill(name); await other.locator("#se").fill(uniqueEmail()); await other.locator("#sp").fill("password123!");
   await other.getByRole("button", { name: t("auth.createBtn") }).click();
-  await expect(other).toHaveURL(/error=pw_common/);
-  await expect(other.locator("main").getByRole("alert")).toHaveText(t("join.err_pw_common"));
+  await expect(otherAlert).toHaveText(t("join.err_pw_common"));
+  await expect(other.locator("#sp")).toHaveAttribute("aria-invalid", "true");
+  await expect(other).toHaveURL(/\/en\/signup$/);
 });
 
 test("sign out ends the session", async ({ loginAs }) => {

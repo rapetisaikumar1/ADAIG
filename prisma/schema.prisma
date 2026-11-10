@@ -77,6 +77,8 @@ model Event {
   publicPriceCents Int?
   published        Boolean        @default(true)
   cancelledAt      DateTime?      @db.Timestamptz(3) // admin cancelled the event (kept for registrations/history)
+  accessInfo       String? // joining instructions (e.g. webinar link, venue details) shown only to confirmed registrants
+  accessInfoFr     String?
   registrations    Registration[]
   cpeCredits       CpeEntry[]
 
@@ -126,6 +128,7 @@ model AuditLog {
 
   @@index([createdAt])
   @@index([target])
+  @@index([actor])
 }
 
 /// Login attempt counters (QA BUG-021/026). key = "e:<email>" (account backoff) or "i:<ip>" (throttle only, trusted proxy).

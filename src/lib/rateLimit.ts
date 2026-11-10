@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { loginRateLimit as L } from "@/config/site";
 import { db } from "@/lib/db";
 /**
@@ -9,6 +10,7 @@ import { db } from "@/lib/db";
  * - Per IP: ONLY when TRUSTED_PROXY=true (the IP comes from the proxy-appended X-Forwarded-For hop). Never locks anyone,
  *   it only delays responses. Without a trusted proxy the client IP is unknown/spoofable, so no IP bucket is used.
  * Stale rows are removed by pruneLoginThrottle() (daily cron job).
+ * The same table also holds the anonymous-write buckets below (keys "c:<ip>" contact, "a:<ip>" account creation).
  */
 export function clientIp(h: Headers): string | null {
   if (process.env.TRUSTED_PROXY !== "true") return null;
@@ -68,4 +70,52 @@ export async function pruneLoginThrottle(now = new Date()) {
   const cutoff = new Date(now.getTime() - 24 * 3600_000);
   const r = await db.loginThrottle.deleteMany({ where: { OR: [{ lockedUntil: null, lastFailAt: { lt: cutoff } }, { lockedUntil: { lt: cutoff } }] } });
   return r.count;
+}
+
+/* ───────────── Anonymous writes (S1-3): contact form, signup, join ─────────────
+ * Global caps (always on) bound table growth and bcrypt CPU even when the client IP is unknown. Per-IP caps apply only with
+ * TRUSTED_PROXY=true (see clientIp). Counters: the global ones count real rows (ContactMessage / User created in the window);
+ * the per-IP ones are fixed-window buckets in LoginThrottle (failures = hits, lastFailAt = window start, lockedUntil unused),
+ * incremented atomically, and pruned by pruneLoginThrottle like the login rows. The existing 5-per-email contact limit stays.
+ */
+const anonWriteLimits = {
+  windowMs: 3600_000, // 1 hour
+  contactPerIp: 10, // contact messages per IP per hour
+  contactGlobal: 200, // contact messages (all senders) per hour
+  accountsPerIp: 5, // new accounts (signup + join) attempted per IP per hour
+  accountsGlobal: 100, // new accounts created (all visitors) per hour
+};
+
+/** One hit on a fixed-window bucket; true while the window's hit count (this one included) is within `max`. */
+async function hitBucket(key: string, max: number, windowMs = anonWriteLimits.windowMs): Promise<boolean> {
+  const now = new Date();
+  const rows = await db.$queryRaw<{ failures: number }[]>`
+    INSERT INTO "LoginThrottle" AS t (key, failures, "lastFailAt") VALUES (${key}, 1, ${now}::timestamptz)
+    ON CONFLICT (key) DO UPDATE SET
+      failures = CASE WHEN t."lastFailAt" > ${now}::timestamptz - ${windowMs}::float8 * interval '1 millisecond' THEN t.failures + 1 ELSE 1 END,
+      "lastFailAt" = CASE WHEN t."lastFailAt" > ${now}::timestamptz - ${windowMs}::float8 * interval '1 millisecond' THEN t."lastFailAt" ELSE ${now}::timestamptz END
+    RETURNING failures`;
+  return (rows[0]?.failures ?? 1) <= max;
+}
+
+/**
+ * Contact form: call after validation, right before saving. False → answer with the "sent several messages recently" error.
+ * Checks the global hourly cap, then counts one hit on the sender IP's bucket (trusted proxy only).
+ */
+export async function allowContactMessage(): Promise<boolean> {
+  const since = new Date(Date.now() - anonWriteLimits.windowMs);
+  if ((await db.contactMessage.count({ where: { createdAt: { gt: since } } })) >= anonWriteLimits.contactGlobal) return false;
+  const ip = clientIp(await headers());
+  return ip ? hitBucket(`c:${ip}`, anonWriteLimits.contactPerIp) : true;
+}
+
+/**
+ * Signup and join (signed-out visitors): call after validation and BEFORE hashing the password, for every attempt (also for
+ * emails that turn out to exist, so the answer reveals nothing). False → refuse with a "too many attempts, try later" error.
+ */
+export async function allowAccountCreation(): Promise<boolean> {
+  const since = new Date(Date.now() - anonWriteLimits.windowMs);
+  if ((await db.user.count({ where: { createdAt: { gt: since } } })) >= anonWriteLimits.accountsGlobal) return false;
+  const ip = clientIp(await headers());
+  return ip ? hitBucket(`a:${ip}`, anonWriteLimits.accountsPerIp) : true;
 }

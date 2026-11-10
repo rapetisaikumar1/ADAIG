@@ -1,5 +1,5 @@
 /** Member area: dashboard pages, profile edit, data export (JSON/CSV), self-service deletion, member directory opt-in. */
-import { test, expect, watchConsole, expectNoHorizontalOverflow } from "../fixtures";
+import { test, expect, watchConsole, expectNoHorizontalOverflow, expectLoginRefused } from "../fixtures";
 import { createEvent, createMember, createRegistration, createUser, membershipsOf, one, userById, uniqueName } from "../support/db";
 import { t } from "../support/i18n";
 
@@ -111,7 +111,7 @@ test("self-service account deletion needs the password, anonymizes the account a
   await page.goto("/en/login");
   await page.locator("#le").fill(m.email); await page.locator("#lp").fill(m.password);
   await page.locator("main form").getByRole("button", { name: t("auth.signIn") }).click();
-  await expect(page).toHaveURL(/error=1/);
+  await expectLoginRefused(page, t("auth.invalid"), { email: m.email });
 });
 
 test.describe("member directory", () => {

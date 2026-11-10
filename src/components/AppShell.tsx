@@ -1,13 +1,14 @@
 import { getTranslations } from "next-intl/server";
 import { signOut } from "@/auth";
 import { SidenavScroll } from "./SidenavScroll";
+import { AdminMenuDismiss } from "@/app/[locale]/admin/_components/AdminMenuDismiss";
 
 export async function MemberNav({ locale, current }: { locale: string; current: string }) {
   const t = await getTranslations("member"); const tc = await getTranslations("chrome");
   const L = (p: string) => `/${locale}${p}`;
   const a = (p: string, label: string) => <a href={L(p)} aria-current={current === p ? "page" : undefined}>{label}</a>;
   return (
-    <nav className="sidenav" aria-label="Member navigation">
+    <nav className="sidenav" aria-label={t("navAria")}>
       <h2>{t("account")}</h2>{a("/my/dashboard", t("dashboard"))}{a("/my/billing", t("billing"))}{a("/my/profile", t("profile"))}
       <h2>{t("participate")}</h2>{a("/my/events", t("events"))}{a("/my/community", t("community"))}{a("/my/directory", t("directory"))}
       {/* Public site section, not part of the member area: flagged with ↗ */}
@@ -26,22 +27,34 @@ export async function AdminNav({ locale, current }: { locale: string; current: s
     db.contactMessage.count({ where: { status: "new" } }),
   ]);
   const L = (p: string) => `/${locale}${p}`;
-  // Sub-pages (e.g. /admin/members/[id]) keep their section highlighted.
-  const a = (p: string, label: string, extra?: React.ReactNode) => <a href={L(p)} aria-current={current === p || current.startsWith(`${p}/`) ? "page" : undefined}>{label}{extra}</a>;
-  const preview = <span className="badge nav-tag">{t("preview")}</span>;
+  const isCurrent = (p: string) => current === p || current.startsWith(`${p}/`); // sub-pages (e.g. /admin/members/[id]) keep their section highlighted
+  const badge = (n: number, sr: string) => n > 0 ? <span className="badge badge-amber nav-tag">{n}<span className="sr-only"> {sr}</span></span> : null;
+  // Planned tools (enterprise seats, chapter leaders) are previews only: linked from the Overview page, not from the menu.
+  const groups: { title: string; links: [string, string, React.ReactNode?][] }[] = [
+    { title: t("staff"), links: [["/admin/dashboard", t("overview")], ["/admin/members", t("members"), badge(pending, t("pendingSr"))], ["/admin/events", t("events")], ["/admin/messages", t("messages"), badge(unread, t("unreadSr"))], ["/admin/content", t("content")]] },
+    { title: t("ops"), links: [["/admin/settings", t("settings")], ["/admin/audit", t("audit")], ["/admin/system", t("system")]] },
+    { title: t("switch"), links: [["/my/dashboard", t("memberView")]] },
+  ];
+  const a = ([p, label, extra]: [string, string, React.ReactNode?]) => <a key={p} href={L(p)} aria-current={isCurrent(p) ? "page" : undefined}>{label}{extra}</a>;
+  const here = groups.flatMap((g) => g.links).find(([p]) => isCurrent(p))?.[1];
+  const waiting = pending + unread;
   return (
-    <nav className="sidenav" aria-label={t("aria")}>
-      <h2>{t("staff")}</h2>{a("/admin/dashboard", t("overview"))}
-      {a("/admin/members", t("members"), pending > 0 ? <span className="badge badge-amber nav-tag">{pending}<span className="sr-only"> {t("pendingSr")}</span></span> : null)}
-      {a("/admin/events", t("events"))}
-      {a("/admin/messages", t("messages"), unread > 0 ? <span className="badge badge-amber nav-tag">{unread}<span className="sr-only"> {t("unreadSr")}</span></span> : null)}
-      {a("/admin/content", t("content"))}
-      <h2>{t("ops")}</h2>{a("/admin/settings", t("settings"))}{a("/admin/audit", t("audit"))}{a("/admin/system", t("system"))}
-      <h2>{t("planned")}</h2>{a("/admin/corporate", t("corporate"), preview)}{a("/admin/chapter", t("chapter"), preview)}
-      <h2>{t("switch")}</h2>{a("/my/dashboard", t("memberView"))}
-      <SignOutButton label={tc("signOut")} locale={locale} />
-      <SidenavScroll />
-    </nav>
+    <>
+      {/* Desktop: sidebar with group headings. */}
+      <nav className="sidenav adm-sidenav" aria-label={t("aria")}>
+        {groups.map((g) => <div key={g.title} className="adm-nav-group"><h2>{g.title}</h2>{g.links.map(a)}</div>)}
+        <SignOutButton label={tc("signOut")} locale={locale} />
+      </nav>
+      {/* Phones and tablets (≤900px): one "Admin menu" disclosure with the same groups, instead of a long sideways strip. */}
+      <details className="adm-mnav">
+        <summary><span className="adm-mnav-label">{t("menu")}</span>{here && <span className="adm-mnav-here"> · {here}</span>}{waiting > 0 && <span className="badge badge-amber nav-tag">{waiting}<span className="sr-only"> {t("waitingSr")}</span></span>}</summary>
+        <nav aria-label={t("aria")}>
+          {groups.map((g) => <div key={g.title} className="adm-mnav-group"><h2>{g.title}</h2>{g.links.map(a)}</div>)}
+          <SignOutButton label={tc("signOut")} locale={locale} />
+        </nav>
+        <AdminMenuDismiss />
+      </details>
+    </>
   );
 }
 

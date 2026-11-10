@@ -12,7 +12,7 @@ const ci = (q: string) => ({ contains: likeLiteral(q), mode: "insensitive" as co
 
 export default async function Events({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ q?: string | string[]; type?: string; format?: string }> }) {
   const { locale } = await params; setRequestLocale(locale);
-  const sp = await searchParams; const t = await getTranslations("events"); const tm = await getTranslations("membership");
+  const sp = await searchParams; const t = await getTranslations("events"); const tm = await getTranslations("membership"); const tc = await getTranslations("chrome");
   const q = searchParam(sp.q, 200) || undefined; // control characters (Postgres rejects NUL) → spaces
   const type = TYPES.includes(sp.type ?? "") ? sp.type : undefined;
   const format = FORMATS.includes(sp.format ?? "") ? sp.format : undefined;
@@ -31,7 +31,7 @@ export default async function Events({ params, searchParams }: { params: Promise
   return (
     <main id="main" className="events-page">
       <section className="page-hero"><div className="container">
-        <nav className="crumbs" aria-label="Breadcrumb"><ol><li><a href={`/${locale}`}>{tm("home")}</a></li><li aria-current="page">{t("title")}</li></ol></nav>
+        <nav className="crumbs" aria-label={tc("breadcrumbAria")}><ol><li><a href={`/${locale}`}>{tm("home")}</a></li><li aria-current="page">{t("title")}</li></ol></nav>
         <span className="eyebrow">{t("eyebrow")}</span><h1>{t("title")}</h1><p className="lead">{t("lead")}</p>
       </div></section>
       <section className="section"><div className="container">
@@ -49,7 +49,7 @@ export default async function Events({ params, searchParams }: { params: Promise
           <div className="card ev-empty"><p>{t("empty")}</p><a className="btn btn-secondary btn-sm" href={`/${locale}/events`}>{t("clear")}</a></div>
         ) : (
           <>
-            {upcoming.length > 0 && <div className="grid g2">{upcoming.map((e) => <EventCard key={e.id} e={e} locale={locale} labels={labels} />)}</div>}
+            {upcoming.length > 0 && <><h2 className="sr-only">{t("upcomingTitle")}</h2><div className="grid g2">{upcoming.map((e) => <EventCard key={e.id} e={e} locale={locale} labels={labels} />)}</div></>}
             {past.length > 0 && <>
               <h2 className="ev-past-title">{t("pastTitle")}</h2>
               <div className="grid g2">{past.map((e) => <EventCard key={e.id} e={e} locale={locale} labels={labels} />)}</div>
@@ -58,7 +58,7 @@ export default async function Events({ params, searchParams }: { params: Promise
         )}
       </div></section>
       <section className="section bg-mist"><div className="container">
-        <div className="section-head"><div><span className="eyebrow">{t("howEyebrow")}</span><h2>{t("howTitle")}</h2></div><a href={`/${locale}/contact`}>{t("questions")} →</a></div>
+        <div className="section-head"><div><span className="eyebrow">{t("howEyebrow")}</span><h2>{t("howTitle")}</h2></div><a href={`/${locale}/contact?topic=events`}>{t("questions")} →</a></div>
         <div className="grid g3">
           <div className="card"><span className="icon-tile" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="9" r="6"/><path d="M8.5 14.2 7 22l5-3 5 3-1.5-7.8"/></svg></span><h3>{t("how1t")}</h3><p>{t("how1b")}</p></div>
           <div className="card"><span className="icon-tile" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg></span><h3>{t("how2t")}</h3><p>{t("how2b")}</p></div>

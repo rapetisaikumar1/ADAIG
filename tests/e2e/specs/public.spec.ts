@@ -95,15 +95,19 @@ test.describe("design reference pages are admin-only", () => {
 });
 
 test("language switch keeps the path and query string @smoke", async ({ page }) => {
+  // The switch is a labelled <nav> (label in the page's language); each button is named in its own language.
+  const langNav = (locale: "en" | "fr") => page.getByRole("navigation", { name: msg("chrome.langAria", {}, locale), exact: true });
   await page.goto("/en/events?q=risk&type=Webinar");
   await expect(page.locator("#es")).toHaveValue("risk");
-  await page.getByRole("group", { name: "Language" }).getByRole("button", { name: "FR" }).click();
+  await expect(langNav("en").getByRole("button", { name: "English", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await langNav("en").getByRole("button", { name: "Français", exact: true }).click();
   await expect(page).toHaveURL(/\/fr\/events\?q=risk&type=Webinar$/);
   await expect(page.locator("html")).toHaveAttribute("lang", "fr");
   await expect(page.locator("#es")).toHaveValue("risk");
   await expect(page.locator("#et")).toHaveValue("Webinar");
   await expect(page.locator("h1")).toHaveText(msg("events.title", {}, "fr"));
-  await page.getByRole("group", { name: "Language" }).getByRole("button", { name: "EN" }).click();
+  await expect(langNav("fr").getByRole("button", { name: "Français", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await langNav("fr").getByRole("button", { name: "English", exact: true }).click();
   await expect(page).toHaveURL(/\/en\/events\?q=risk&type=Webinar$/);
 });
 

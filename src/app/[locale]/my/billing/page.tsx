@@ -1,19 +1,24 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { requireUser, activeMembership } from "@/lib/session";
+import { membershipHousekeeping, renewalDue as isRenewalDue } from "@/lib/membership";
 import { MemberNav } from "@/components/AppShell";
 import { fmt, type Currency, type Locale } from "@/config/site";
 import { tierLookup } from "@/lib/settings";
 import { fmtDate } from "../_shared/util";
+import { memberMetadata } from "../_shared/meta";
 export const dynamic = "force-dynamic";
+export const generateMetadata = memberMetadata("billing");
 
 /** Membership status. Membership fees are not taken online: the ADAIG team invoices members directly. */
 export default async function MyMembership({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params; setRequestLocale(locale);
   const u = await requireUser(locale); const t = await getTranslations("member.billingPage");
+  await membershipHousekeeping(u.id); // lazy: expire unpaid orders, lapse memberships past the renewal grace period
   const m = (await activeMembership(u.id))
     ?? (await db.membership.findFirst({ where: { userId: u.id, status: "pending_verification" }, orderBy: { createdAt: "desc" } }))
-    ?? (await db.membership.findFirst({ where: { userId: u.id, status: "rejected_verification" }, orderBy: { createdAt: "desc" } }));
+    // Otherwise the latest closed one the member should know about: a rejected application or a membership that lapsed.
+    ?? (await db.membership.findFirst({ where: { userId: u.id, status: { in: ["rejected_verification", "lapsed"] } }, orderBy: { createdAt: "desc" } }));
   const paidTickets = await db.registration.findMany({ where: { userId: u.id, status: "confirmed", amountCents: { gt: 0 } }, include: { event: true }, orderBy: { event: { startsAt: "desc" } } });
   const getTier = await tierLookup();
   const L = (p: string) => `/${locale}${p}`;
@@ -21,11 +26,13 @@ export default async function MyMembership({ params }: { params: Promise<{ local
   const badge = status === "active" ? "badge-green" : status === "pending_verification" ? "badge-amber" : status === "rejected_verification" ? "badge-red" : "";
   const rows: [string, string][] = m ? [
     [t("tier"), getTier(m.tierId)?.name[locale] ?? m.tierId],
-    ...(m.status === "active" && m.startsAt ? [[t("since"), fmtDate(m.startsAt, locale)] as [string, string]] : []),
-    ...(m.status === "active" && m.renewsAt ? [[t("renews"), fmtDate(m.renewsAt, locale)] as [string, string]] : []),
-    ...(m.status !== "active" ? [[t("applied"), fmtDate(m.createdAt, locale)] as [string, string]] : []),
+    ...((m.status === "active" || m.status === "lapsed") && m.startsAt ? [[t("since"), fmtDate(m.startsAt, locale)] as [string, string]] : []),
+    ...((m.status === "active" || m.status === "lapsed") && m.renewsAt ? [[t("renews"), fmtDate(m.renewsAt, locale)] as [string, string]] : []),
+    ...(m.status === "pending_verification" || m.status === "rejected_verification" ? [[t("applied"), fmtDate(m.createdAt, locale)] as [string, string]] : []),
   ] : [];
   const h2 = { fontSize: "var(--fs-lg)", margin: 0 } as const;
+  // Renewal date passed (grace period before the membership lapses): the team contacts the member, nothing is paid online.
+  const renewalDue = !!m && isRenewalDue(m);
   return (
     <div className="app"><MemberNav locale={locale} current="/my/billing" />
       <main id="main" className="app-main mbr">
@@ -34,17 +41,28 @@ export default async function MyMembership({ params }: { params: Promise<{ local
           <section className="card" aria-labelledby="h-status">
             <div className="mbr-row"><h2 id="h-status" style={h2}>{t("statusTitle")}</h2><span className={`badge ${badge}`}>{t(`st_${status}`)}</span></div>
             {rows.length > 0 && <dl className="mbr-dl">{rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>}
+            {renewalDue && <div className="alert alert-warning" role="status"><div><b>{t("renewalDueTitle")}</b>{t("renewalDueBody")}</div></div>}
             {status === "none" && <p>{t("noneBody")}</p>}
             {status === "pending_verification" && <p>{t("reviewBody")}</p>}
             {status === "rejected_verification" && <p>{t("rejectedBody")}</p>}
+            {status === "lapsed" && <p>{t("lapsedBody")}</p>}
             {status !== "pending_verification" && <div className="mbr-foot"><a className="btn btn-secondary btn-sm" href={L("/membership")}>{t("compare")}</a></div>}
           </section>
-          <section className="card" aria-labelledby="h-inv">
-            <h2 id="h-inv" style={h2}>{t("invoicingTitle")}</h2>
-            <p>{t("invoicingBody")}</p>
-            <p className="small">{t("invoicingHelp")}</p>
-            <div className="mbr-foot"><a className="btn btn-secondary btn-sm" href={L("/contact")}>{t("contact")}</a></div>
-          </section>
+          {status === "none" ? (
+            // No membership: nothing to invoice or renew yet, so explain how joining works instead.
+            <section className="card" aria-labelledby="h-how">
+              <h2 id="h-how" style={h2}>{t("howTitle")}</h2>
+              <p>{t("howBody")}</p>
+              <div className="mbr-foot"><a className="btn btn-primary btn-sm" href={L("/join")}>{t("apply")}</a></div>
+            </section>
+          ) : (
+            <section className="card" aria-labelledby="h-inv">
+              <h2 id="h-inv" style={h2}>{t(status === "rejected_verification" ? "questionsTitle" : "invoicingTitle")}</h2>
+              {status !== "rejected_verification" && <p>{t("invoicingBody")}</p>}
+              <p className="small">{t("invoicingHelp")}</p>
+              <div className="mbr-foot"><a className="btn btn-secondary btn-sm" href={L("/contact?topic=membership")}>{t("contact")}</a></div>
+            </section>
+          )}
         </div>
         {paidTickets.length > 0 && <>
           <h2 className="mbr-section-title">{t("ticketsTitle")}</h2>

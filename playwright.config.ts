@@ -1,12 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
-import { BASE_URL, browserOptions } from "./tests/e2e/support/env";
+import { assertSafeTargets, BASE_URL, browserOptions } from "./tests/e2e/support/env";
 
 /**
  * End-to-end tests (tests/e2e). They run against a running app (E2E_BASE_URL, default http://localhost:3000) and its
- * database, one worker at a time (tests share the seed accounts and the app's cached settings/content). The global
+ * database (E2E_DATABASE_URL, required), one worker at a time (tests share the seed accounts and the app's cached settings/content). The global
  * teardown restores the database exactly as it was before the run. See README → Testing.
  */
 const CI = !!process.env.CI;
+// Safety: the suite writes to and cleans up its database. E2E_DATABASE_URL must be set and local, and E2E_BASE_URL local
+// (overrides: ALLOW_REMOTE_DB=1, E2E_ALLOW_REMOTE=1). Never run it against production.
+assertSafeTargets();
 
 export default defineConfig({
   testDir: "./tests/e2e/specs",

@@ -1,12 +1,13 @@
 import { evLabel } from "@/config/site";
 import { Fragment } from "react";
 import type { Event } from "@/generated/prisma/client";
+import { eventTimeZone, dateLocale } from "@/lib/time";
 
 /** Event-type badges (Webinar / Chapter / Conference) share one neutral navy style; amber/green are reserved for status. */
 export const eventTypeBadgeClass = "badge ev-type";
 
-/** Event times are scheduled and shown in US Eastern time (ADAIG operates from New York). */
-export const eventTimeZone = "America/New_York";
+/** Event times are scheduled and shown in US Eastern time (ADAIG operates from New York). Defined once in src/lib/time.ts. */
+export { eventTimeZone, dateLocale };
 
 /** Only one status for unconfirmed events: "Proposed" (legacy "(concept)" titles are treated the same). */
 export type EventStatus = "proposed" | null;
@@ -20,6 +21,11 @@ const VENUE_TBC_RE = /^\s*(venue|location)?\s*(to be confirmed|tbc|tbd)\s*\.?\s*
 export const isUnconfirmed = (e: Pick<Event, "title"> & Partial<Pick<Event, "titleFr">>) =>
   STATUS_RE.test(e.title) || (!!e.titleFr && STATUS_RE.test(e.titleFr));
 
+/** A title without its "(proposed)" / "(concept)" suffix (Admin → Events manages the suffix through the "Proposed" checkbox). */
+export const stripStatus = (title: string) => title.replace(STATUS_RE, "");
+/** The suffix the "Proposed" checkbox writes on the English title (isUnconfirmed() reads it back). */
+export const PROPOSED_SUFFIX = " (proposed)";
+
 /**
  * Display info shared by the event list, card and detail page.
  * We strip the "(proposed)" title suffix and render it as a status badge instead.
@@ -31,8 +37,6 @@ export function eventView(e: Event, locale: string, now = new Date()) {
   const end = new Date(start.getTime() + e.durationMin * 60000);
   return { title: raw.replace(STATUS_RE, ""), status, planned: status !== null, past: end < now, start, end };
 }
-
-export const dateLocale = (locale: string) => (locale === "fr" ? "fr-FR" : "en-US");
 
 /** Tentative month for an unconfirmed event: "December 2026" / "décembre 2026". */
 export const fmtTentativeMonth = (d: Date, locale: string) =>
@@ -68,9 +72,12 @@ export function EventCard({ e, locale, labels: given, membersFreeLabel }: { e: E
   const month = v.start.toLocaleString(dl, { month: "short", timeZone: eventTimeZone }).replace(".", "");
   const year = v.start.toLocaleString(dl, { year: "numeric", timeZone: eventTimeZone });
   const showYear = year !== new Date().toLocaleString(dl, { year: "numeric", timeZone: eventTimeZone });
-  const cpe = v.planned ? `${labels.upTo} ${fmtCpe(e.cpe, locale)}` : fmtCpe(e.cpe, locale);
   const where = eventLocation(e, labels.venueTbc);
-  const meta = [evLabel(e.format, locale), where, fmtDuration(e.durationMin, locale), cpe].filter(Boolean) as string[];
+  // Unconfirmed events: only the format and a real venue. Duration, CPE and "venue to be confirmed" are not stated as facts
+  // (the "Date to be confirmed" line already says the details are open).
+  const meta = (v.planned
+    ? [evLabel(e.format, locale), where === labels.venueTbc ? null : where]
+    : [evLabel(e.format, locale), where, fmtDuration(e.durationMin, locale), fmtCpe(e.cpe, locale)]).filter(Boolean) as string[];
   return (
     <article className={`card event-card${v.past ? " ev-past" : ""}`}>
       {v.planned ? (

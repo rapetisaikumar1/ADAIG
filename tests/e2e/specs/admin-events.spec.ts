@@ -110,7 +110,7 @@ test("publish and unpublish from the list control public visibility", async ({ a
 });
 
 test("registrations: list, filters, search, attendance credits CPE once, undo removes it, CSV", async ({ adminPage: p, request }) => {
-  const e = await createEvent({ cpe: 1.5 });
+  const e = await createEvent({ cpe: 1.5, startsAt: new Date(Date.now() - 2 * 3600e3) }); // attendance opens at the start time
   const a = await createMember({ name: uniqueName("Attendee A") });
   const b = await createMember({ name: uniqueName("Attendee B") });
   const c = await createMember({ name: uniqueName("Attendee C") });

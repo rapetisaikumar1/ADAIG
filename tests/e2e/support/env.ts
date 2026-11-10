@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { LaunchOptions } from "@playwright/test";
+import { assertLocalDb, isLocalUrl, urlHost } from "../../../scripts/lib/db-guard";
 
 export const APP_DIR = path.resolve(__dirname, "../../..");
 /** Run state (DB snapshot, signed-in sessions, cleanup report). Gitignored. */
@@ -31,12 +32,26 @@ export function appDotEnv(): Record<string, string> {
   return out;
 }
 
-/** Database the tests inspect and clean up: E2E_DATABASE_URL, else the app's DIRECT_URL / DATABASE_URL. */
+/**
+ * Database the tests inspect, write to and clean up (the suite DELETEs rows): E2E_DATABASE_URL only, never the app's .env
+ * (which may hold production URLs). It must be a local database (localhost / 127.0.0.1 / ::1) unless ALLOW_REMOTE_DB=1.
+ * Use the same database as the app under test, e.g. E2E_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres.
+ */
 export function databaseUrl(): string {
-  const env = appDotEnv();
-  const url = process.env.E2E_DATABASE_URL || process.env.DIRECT_URL || env.DIRECT_URL || process.env.DATABASE_URL || env.DATABASE_URL;
-  if (!url) throw new Error("[e2e] No database URL: set E2E_DATABASE_URL (or DIRECT_URL/DATABASE_URL in .env).");
+  const url = process.env.E2E_DATABASE_URL?.trim();
+  if (!url) throw new Error("[e2e] Set E2E_DATABASE_URL to the (local) database of the app under test. The suite never falls back to .env, which may point at production.");
+  assertLocalDb(url, "the e2e suite (it writes and deletes rows)");
   return url;
+}
+
+/**
+ * Called by playwright.config.ts before anything runs: the app under test (E2E_BASE_URL) must be on this machine unless
+ * E2E_ALLOW_REMOTE=1 (the tests create accounts, events and messages through the UI), and E2E_DATABASE_URL must be set and local.
+ */
+export function assertSafeTargets() {
+  if (!isLocalUrl(BASE_URL) && process.env.E2E_ALLOW_REMOTE !== "1")
+    throw new Error(`[e2e] Refusing to test the non-local app "${urlHost(BASE_URL) || BASE_URL}": the suite creates and deletes data. Use a local app, or set E2E_ALLOW_REMOTE=1 if you are sure.`);
+  databaseUrl();
 }
 
 /**

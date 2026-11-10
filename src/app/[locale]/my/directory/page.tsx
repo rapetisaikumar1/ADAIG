@@ -1,11 +1,14 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { requireUser, activeMembership } from "@/lib/session";
+import { membershipHousekeeping } from "@/lib/membership";
 import { searchParam, likeLiteral } from "@/lib/validation";
 import { MemberNav } from "@/components/AppShell";
 import type { Locale } from "@/config/site";
 import { initials } from "../_shared/util";
+import { memberMetadata } from "../_shared/meta";
 export const dynamic = "force-dynamic";
+export const generateMetadata = memberMetadata("directory");
 
 /**
  * Member directory (live data). Privacy: only users who opted in (Profile & privacy) AND hold an active membership
@@ -16,6 +19,7 @@ export default async function Directory({ params, searchParams }: { params: Prom
   const u = await requireUser(locale); const t = await getTranslations("member.directoryPage");
   const q = searchParam((await searchParams).q, 80); // control characters (Postgres rejects NUL) → spaces
   const L = (p: string) => `/${locale}${p}`;
+  await membershipHousekeeping(u.id); // lazy: a membership past the renewal grace period lapses before access is checked
   const canBrowse = u.role === "admin" || !!(await activeMembership(u.id));
   const pending = canBrowse ? null : await db.membership.findFirst({ where: { userId: u.id, status: "pending_verification" } });
   const ci = { contains: likeLiteral(q), mode: "insensitive" as const }; // case-insensitive, as on SQLite (name uses collation "C": ASCII case folding)
@@ -25,6 +29,9 @@ export default async function Directory({ params, searchParams }: { params: Prom
     where: { ...listedWhere, ...(q ? { OR: [{ name: ci }, { jobTitle: ci }, { organisation: ci }] } : {}) },
     select: { id: true, name: true, jobTitle: true, organisation: true }, orderBy: { name: "asc" }, take: 200,
   }) : [];
+  // The name column sorts in byte order (collation "C"); re-sort for people: accents and lower-case names in alphabetical place.
+  const collator = new Intl.Collator(locale === "fr" ? "fr-CA" : "en-CA", { sensitivity: "base" });
+  people.sort((a, b) => collator.compare(a.name, b.name));
   return (
     <div className="app"><MemberNav locale={locale} current="/my/directory" />
       <main id="main" className="app-main mbr">

@@ -3,7 +3,7 @@
  * session invalidation, delete), new account, role changes, last-admin protections, members CSV.
  */
 import type { Page } from "@playwright/test";
-import { test, expect, uiLogin } from "../fixtures";
+import { test, expect, uiLogin, expectLoginRefused } from "../fixtures";
 import { auditRows, createMember, createUser, etDay, membershipsOf, one, q, userByEmail, userById, uniqueEmail, uniqueName, uniquePassword, RUN } from "../support/db";
 import { SEED } from "../support/env";
 import { t } from "../support/i18n";
@@ -31,8 +31,10 @@ test("account page: edit the profile (email, country, state, flags)", async ({ a
   await expect(notice(p)).toHaveText(tm("msg_profileSaved"));
   expect(await userById(u.id)).toMatchObject({ name, email: newEmail, organisation: "E2E Edited Org", jobTitle: "E2E Chief Records Officer", country: "Canada", province: "ON", locale: "fr", directoryOptIn: true });
   expect(await auditRows({ action: "admin.email_changed", target: u.id })).toHaveLength(1);
-  // A state that does not belong to the country is refused.
+  // A state that does not belong to the country is refused (the form only offers matching ones; forge the pair).
   await p.locator("#p-country").selectOption("United Kingdom");
+  await expect(p.locator("#p-prov")).toBeDisabled();
+  await p.locator("#p-prov").evaluate((el) => { const s = el as HTMLSelectElement; s.disabled = false; s.innerHTML = '<option value="ON" selected>ON</option>'; });
   await p.getByRole("button", { name: tm("saveProfile") }).click();
   await expect(p).toHaveURL(/msg=err_province/);
   expect((await userById(u.id))!.country).toBe("Canada");
@@ -134,7 +136,7 @@ test("temporary password: the old session is signed out and only the new passwor
   await fresh.goto("/en/login");
   await fresh.locator("#le").fill(u.email); await fresh.locator("#lp").fill(u.password);
   await fresh.locator("main form").getByRole("button", { name: t("auth.signIn") }).click();
-  await expect(fresh).toHaveURL(/error=1/);
+  await expectLoginRefused(fresh, t("auth.invalid"), { email: u.email });
   await uiLogin(fresh, { email: u.email, password: newPassword });
   await expect(fresh.locator("h1")).toHaveText(u.name);
 });
@@ -158,7 +160,7 @@ test("new account with a generated password and a membership", async ({ adminPag
   await p.locator("#n-email").fill(email);
   await p.locator("#n-org").fill("E2E Offline Org");
   await p.locator("#n-prov").selectOption("NY");
-  await p.locator("#n-role").selectOption("member");
+  await expect(p.locator("#n-role option[value=member]")).toHaveCount(0); // member comes from the membership below
   await p.locator("#n-tier").selectOption("professional");
   await p.locator("main form").getByRole("button", { name: tm("createButton") }).click();
   await expect(p.locator("main .alert-success")).toContainText(tm("createdTitle", { name }));
@@ -200,7 +202,8 @@ test("delete an account (anonymized, financial records kept)", async ({ adminPag
 test("make admin and remove admin from the members list", async ({ adminPage: p }) => {
   const u = await createUser();
   await p.goto(`/en/admin/members?q=${encodeURIComponent(u.email)}`);
-  await p.getByRole("button", { name: `${t("admin.makeAdmin")}: ${u.name}` }).click();
+  await p.locator(`summary[aria-label="${t("admin.makeAdmin")}: ${u.name}"]`).click(); // confirm step
+  await p.locator("details[open]").getByRole("button", { name: t("admin.makeAdminYes") }).click();
   await expect(p).toHaveURL(/msg=roleChanged/);
   expect((await userById(u.id))!.role).toBe("admin");
   await p.goto(`/en/admin/members?q=${encodeURIComponent(u.email)}`);
@@ -226,9 +229,10 @@ test.describe("last-admin and self protections", () => {
     // Forged: another account's forms re-pointed at my own id are refused server-side.
     const other = await createUser();
     await account(p, other.id);
-    await p.locator("#account form", { has: p.locator("#role") }).evaluate((f, id) => { (f.querySelector("input[name=uid]") as HTMLInputElement).value = id; }, me.id);
-    await p.locator("#role").selectOption("member");
-    await p.getByRole("button", { name: tm("changeRole") }).click();
+    await p.locator("#account summary", { hasText: t("admin.makeAdmin") }).click();
+    const roleForm = p.locator("#account details[open] form");
+    await roleForm.evaluate((f, id) => { (f.querySelector("input[name=uid]") as HTMLInputElement).value = id; }, me.id);
+    await roleForm.getByRole("button", { name: t("admin.makeAdminYes") }).click();
     await expect(p).toHaveURL(new RegExp(`/admin/members/${me.id}\\?msg=err_selfRole`));
     await expect(notice(p)).toHaveText(tm("err_selfRole"));
     await account(p, other.id);
@@ -251,6 +255,7 @@ test.describe("last-admin and self protections", () => {
       await expect(p.locator("#account")).toContainText(tm("lastAdminNote"));
       // Forge a demotion of myself through another row's role form on the list.
       await p.goto(`/en/admin/members?q=${encodeURIComponent(SEED.admin2)}`);
+      await p.locator("tbody tr", { hasText: SEED.admin2 }).locator("summary", { hasText: t("admin.makeAdmin") }).click();
       const form = p.locator("tbody tr", { hasText: SEED.admin2 }).locator("form", { has: p.locator("input[name=role]") });
       await form.evaluate((f, id) => {
         (f.querySelector("input[name=id]") as HTMLInputElement).value = id;

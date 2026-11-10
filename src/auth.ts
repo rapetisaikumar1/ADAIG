@@ -1,4 +1,5 @@
-import NextAuth, { CredentialsSignin } from "next-auth";
+import { cache } from "react";
+import NextAuth, { CredentialsSignin, type Session } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
@@ -12,9 +13,11 @@ declare module "next-auth" {
 class LockedError extends CredentialsSignin { code = "locked"; }
 const DUMMY_HASH = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8.hNnL1E0n6cYb5RkXz1qC5U5bXkGm"; // equalises timing for unknown emails
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const nextAuth = NextAuth({
   secret: serverEnv().AUTH_SECRET, // validated in src/lib/env.ts (required in production)
-  session: { strategy: "jwt" },
+  // 7-day sessions, rolling: the cookie is re-issued (and the 7 days restart) at most once a day while the visitor is active
+  // (coordinator decision F3/S1-7). Sign-out stays per-device; password reset/change end all sessions via sessionVersion.
+  session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60, updateAge: 24 * 60 * 60 },
   pages: { signIn: "/en/login" },
   providers: [
     Credentials({
@@ -57,10 +60,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 });
 
-/** Server-side admin check against the current DB role. */
-export async function currentAdmin() {
+export const { handlers, signIn, signOut } = nextAuth;
+
+/**
+ * Current session, memoized per request with React cache() (A1-7/Q1-3): the header, footer and page guards used to decode the JWT
+ * and re-read the user row 3–4 times per page. Route handlers get no React cache scope, so calls there always read fresh data.
+ * Don't call auth() to observe a change made earlier in the same server action (e.g. after signIn/signOut or a role update).
+ */
+export const auth: () => Promise<Session | null> = cache(() => nextAuth.auth());
+
+/** Server-side admin check against the current DB role (memoized per request, like auth()). */
+export const currentAdmin = cache(async () => {
   const s = await auth();
   if (!s?.user?.id) return null;
   const u = await db.user.findUnique({ where: { id: s.user.id } });
   return u?.role === "admin" ? u : null;
-}
+});

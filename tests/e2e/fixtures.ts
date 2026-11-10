@@ -10,12 +10,12 @@
  */
 import { test as base, expect, type BrowserContext, type Page } from "@playwright/test";
 import { authFile, type Role } from "./support/env";
-import { uiLogin, type Credentials } from "./support/login";
+import { uiLogin, expectLoginRefused, type Credentials } from "./support/login";
 import { closeDb } from "./support/db";
 import { appendLedger, collectSince, dbNow } from "./support/ledger";
 
 export { expect };
-export { uiLogin, type Credentials };
+export { uiLogin, expectLoginRefused, type Credentials };
 
 export function watchConsole(page: Page) {
   const errors: string[] = [];

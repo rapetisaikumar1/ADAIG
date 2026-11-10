@@ -2,7 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { AdminNav } from "@/components/AppShell";
-import { eventTimeZone, dateLocale } from "@/components/EventCard";
+import { eventTimeZone, dateLocale } from "@/lib/time";
 import pkg from "../../../../../package.json";
 export const dynamic = "force-dynamic";
 
@@ -73,11 +73,26 @@ export default async function AdminSystem({ params }: { params: Promise<{ locale
     ["contentPages", counts[10]], ["settings", counts[11]], ["auditEntries", counts[12]], ["loginLocks", counts[13]],
   ] : [];
   const fmtN = (n: number) => n.toLocaleString(dl);
+  const cronOn = isSet("CRON_SECRET");
+  // Last run's counts from its audit target ("expired:<n>", optionally followed by " lapsed:<n>").
+  const cronNum = (k: string) => { const m = new RegExp(`(?:^|\\s)${k}:(\\d+)`).exec(lastCron?.target ?? ""); return m ? Number(m[1]) : null; };
+  const cronExpired = cronNum("expired"), cronLapsed = cronNum("lapsed");
+  // Plain-language summary for non-technical staff: what (if anything) needs a developer's attention.
+  const issues = [
+    !ping.ok && t("issueDb"),
+    failedMig.length > 0 && t("issueMigrations"),
+    (noRls.length > 0 || grants !== 0) && t("issueRls"),
+    ENV.some((g) => (g.need === "required" && !g.names.every(isSet)) || (g.need === "oneOf" && !g.names.some(isSet))) && t("issueEnv"),
+    !cronOn && t("issueCron"),
+  ].filter((x): x is string => !!x);
 
   return (
     <div className="app adm"><AdminNav locale={locale} current="/admin/system" />
       <main id="main" className="app-main adm-system">
         <div className="app-head"><div><span className="eyebrow">{t("eyebrow")}</span><h1>{t("title")}</h1><p className="muted adm-lead">{t("lead")}</p></div></div>
+        {issues.length === 0
+          ? <div className="alert alert-success adm-sys-summary" role="status"><div><b>{t("allGoodTitle")}</b>{t("allGoodBody")}</div></div>
+          : <div className="alert alert-warning adm-sys-summary" role="status"><div><b>{t("issuesTitle", { n: issues.length })}</b>{t("issuesBody")}<ul>{issues.map((x) => <li key={x}>{x}</li>)}</ul></div></div>}
 
         <div className="grid g4 adm-kpis">
           <div className={`kpi${ping.ok ? "" : " kpi-attn"}`}><div className="k">{t("database")}</div><div className="v">{ping.ok ? t("up") : t("down")}</div><div className="d">{ping.ok ? t("latency", { ms: ping.ms }) : t("downHint")}{ping.ok && ping.v[0]?.v ? ` · PostgreSQL ${ping.v[0].v.split(" ")[0]}` : ""}</div></div>
@@ -89,7 +104,7 @@ export default async function AdminSystem({ params }: { params: Promise<{ locale
         <div className="grid g2 adm-dash-grid">
           <section className="card" aria-labelledby="sys-counts">
             <h2 id="sys-counts" style={h2}>{t("records")}</h2>
-            {counts ? <div className="table-wrap" tabIndex={0} role="region" aria-label={t("records")}><table className="adm-sys-table">
+            {counts ? <div className="table-wrap" tabIndex={0}><table className="adm-sys-table">
               <thead><tr><th scope="col">{t("table")}</th><th scope="col" className="num">{t("count")}</th></tr></thead>
               <tbody>{countRows.map(([k, n]) => <tr key={k}><th scope="row">{t(`n_${k}`)}</th><td className="num">{fmtN(n ?? 0)}</td></tr>)}</tbody>
             </table></div> : <div className="adm-empty"><p>{t("unavailable")}</p></div>}
@@ -98,52 +113,58 @@ export default async function AdminSystem({ params }: { params: Promise<{ locale
           <section className="card" aria-labelledby="sys-cron">
             <h2 id="sys-cron" style={h2}>{t("jobs")}</h2>
             <div className="adm-person">
-              <b>{t("jobExpire")}</b>
-              <span className="small muted">{t("jobExpireHint")}</span>
+              <b>{t("jobDaily")}</b>
+              <span className="small muted">{t("jobDailyHint")}</span>
               <span className="small"><code className="adm-code">GET /api/cron/expire-unpaid-orders</code> · {t("schedule")}</span>
             </div>
             <ul className="adm-log">
-              <li><span>{t("cronSecret")}</span>{yes(isSet("CRON_SECRET"), t("configured"), t("notConfigured"), true)}</li>
-              <li><span>{t("lastRun")}</span><span className="small">{lastCron ? <time dateTime={lastCron.createdAt.toISOString()}>{stamp(lastCron.createdAt)}</time> : <span className="muted">{t("never")}</span>}{lastCron?.target?.startsWith("expired:") ? ` · ${t("expiredN", { n: Number(lastCron.target.slice(8)) || 0 })}` : ""}</span></li>
+              <li><span>{t("cronSecret")}</span>{yes(cronOn, t("configured"), t("notConfigured"), true)}</li>
+              <li><span>{t("lastRun")}</span><span className="small">{lastCron ? <time dateTime={lastCron.createdAt.toISOString()}>{stamp(lastCron.createdAt)}</time> : <span className="muted">{t("never")}</span>}{cronExpired !== null ? ` · ${t("expiredN", { n: cronExpired })}` : ""}{cronLapsed !== null ? ` · ${t("lapsedN", { n: cronLapsed })}` : ""}</span></li>
             </ul>
             <p className="small muted" style={{ margin: 0 }}>{t("cliHint")} <code className="adm-code">npm run expire-unpaid-orders</code></p>
           </section>
         </div>
 
-        <section className="card adm-section" aria-labelledby="sys-mig">
-          <h2 id="sys-mig" style={h2}>{t("migrations")}</h2>
-          {migrations.length ? <div className="table-wrap" tabIndex={0} role="region" aria-label={t("migrations")}><table className="adm-stack adm-stack-2 adm-sys-table">
+        {/* Technical details for a developer; collapsed so the page reads as a status summary first. */}
+        <details className="card adm-section adm-sys-tech" open={issues.length > 0 && !(issues.length === 1 && !cronOn)}>
+          <summary><h2 style={h2}>{t("techTitle")}</h2><span className="small muted">{t("techHint")}</span></summary>
+          <div className="adm-sys-tech-body">
+        <section className="adm-sys-sub" aria-labelledby="sys-mig">
+          <h3 id="sys-mig" style={h2}>{t("migrations")}</h3>
+          {migrations.length ? <div className="table-wrap" tabIndex={0}><table className="adm-stack adm-stack-2 adm-sys-table">
             <thead><tr><th scope="col">{t("migName")}</th><th scope="col">{t("status")}</th><th scope="col">{t("appliedAt")}</th></tr></thead>
             <tbody>{migrations.map((m) => <tr key={m.migration_name}>
-              <td data-label={t("migName")}><code className="adm-code">{m.migration_name}</code></td>
+              <td data-label={t("migName")} className="adm-sys-mig"><code className="adm-code">{m.migration_name}</code></td>
               <td data-label={t("status")}>{m.rolled_back_at ? yes(false, "", t("rolledBack")) : m.finished_at ? yes(true, t("applied"), "") : yes(false, "", t("failed"))}</td>
-              <td className="nowrap" data-label={t("appliedAt")}>{m.finished_at ? stamp(m.finished_at) : "—"}</td>
+              <td className="nowrap adm-sys-applied" data-label={t("appliedAt")}>{m.finished_at ? stamp(m.finished_at) : "—"}</td>
             </tr>)}</tbody>
           </table></div> : <div className="adm-empty"><p>{t("unavailable")}</p></div>}
         </section>
 
-        <section className="card adm-section" aria-labelledby="sys-rls">
-          <div className="adm-card-head"><h2 id="sys-rls" style={h2}>{t("rlsTitle")}</h2>{grants > 0 ? <span className="badge badge-red">{t("grantsFound", { n: grants })}</span> : grants === 0 ? <span className="badge badge-green">{t("noGrants")}</span> : null}</div>
+        <section className="adm-sys-sub" aria-labelledby="sys-rls">
+          <div className="adm-card-head"><h3 id="sys-rls" style={h2}>{t("rlsTitle")}</h3>{grants > 0 ? <span className="badge badge-red">{t("grantsFound", { n: grants })}</span> : grants === 0 ? <span className="badge badge-green">{t("noGrants")}</span> : null}</div>
           <p className="small muted" style={{ margin: 0 }}>{t("rlsHint")}</p>
           {tables.length ? <ul className="adm-sys-chips">{tables.map((x) => <li key={x.name}><code className="adm-code">{x.name}</code> {yes(x.rls, t("rlsOn"), t("rlsOff"))}</li>)}</ul>
             : <div className="adm-empty"><p>{t("unavailable")}</p></div>}
         </section>
 
-        <section className="card adm-section" aria-labelledby="sys-env">
-          <h2 id="sys-env" style={h2}>{t("env")}</h2>
+        <section className="adm-sys-sub" aria-labelledby="sys-env">
+          <h3 id="sys-env" style={h2}>{t("env")}</h3>
           <p className="small muted" style={{ margin: 0 }}>{t("envHint")}</p>
-          <div className="table-wrap" tabIndex={0} role="region" aria-label={t("env")}><table className="adm-stack adm-stack-2 adm-sys-table">
+          <div className="table-wrap" tabIndex={0}><table className="adm-stack adm-stack-2 adm-sys-table">
             <thead><tr><th scope="col">{t("envName")}</th><th scope="col">{t("envState")}</th><th scope="col">{t("envNeed")}</th></tr></thead>
             <tbody>{ENV.flatMap((g) => {
               const groupOk = g.names.some(isSet);
               return g.names.map((k) => <tr key={k}>
                 <td data-label={t("envName")}><div className="adm-person"><code className="adm-code">{k}</code><span className="small muted">{t(`env_${k}`)}</span></div></td>
-                <td data-label={t("envState")}>{isSet(k) ? yes(true, t("set"), "") : g.need === "required" || (g.need === "oneOf" && !groupOk) ? yes(false, "", t("missing")) : <span className="badge">{t("notSet")}</span>}</td>
+                <td data-label={t("envState")}>{isSet(k) ? yes(true, t("set"), "") : g.need === "required" || (g.need === "oneOf" && !groupOk) ? yes(false, "", t("missing")) : k === "CRON_SECRET" ? yes(false, "", t("notConfigured"), true) : <span className="badge">{t("notSet")}</span>}</td>
                 <td data-label={t("envNeed")}><span className="small">{g.need === "required" ? t("required") : g.need === "oneOf" ? t("oneOf", { names: g.names.join(" / ") }) : t("optional")}</span></td>
               </tr>);
             })}</tbody>
           </table></div>
         </section>
+          </div>
+        </details>
       </main>
     </div>
   );

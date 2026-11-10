@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { activeMembership } from "@/lib/session";
-import { getStripe, mockAllowed } from "@/lib/stripe";
+import { getStripe, mockAllowed, createCheckoutSession } from "@/lib/stripe";
 import { isUniqueViolation, safeLocale, idParam } from "@/lib/validation";
 import { serverEnv } from "@/lib/env";
 import { confirmRegistration } from "@/lib/membership";
@@ -14,8 +14,9 @@ import { SLUG_RE } from "@/app/[locale]/admin/events/eventForm";
 /** Register for an event. Free tickets confirm immediately; paid tickets go through Stripe (test) or the mock checkout. */
 export async function register(fd: FormData) {
   const raw = String(fd.get("slug") ?? ""); const locale = safeLocale(fd.get("locale"));
-  const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login`);
-  const e = SLUG_RE.test(raw) && raw.length <= 200 ? await db.event.findUnique({ where: { slug: raw } }) : null;
+  const okSlug = SLUG_RE.test(raw) && raw.length <= 200;
+  const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login${okSlug ? `?next=${encodeURIComponent(`/${locale}/events/${raw}`)}` : ""}`); // session expired: come back here
+  const e = okSlug ? await db.event.findUnique({ where: { slug: raw } }) : null;
   if (!e || !e.published || e.cancelledAt) redirect(`/${locale}/events`); // drafts and cancelled events take no registrations
   const slug = e.slug;
   const v = eventView(e, "en"); if (v.planned || v.past) redirect(`/${locale}/events/${slug}`); // proposed (unconfirmed) or ended: no registrations
@@ -39,15 +40,19 @@ export async function register(fd: FormData) {
   const stripe = getStripe();
   if (stripe) {
     const base = serverEnv().APP_URL ?? "http://localhost:3000";
-    const cs = await stripe.checkout.sessions.create({
+    // createCheckoutSession sets expires_at and returns null on a Stripe error (logged): keep the unpaid ticket (the page offers
+    // "Complete payment") and explain, never a 500.
+    const cs = await createCheckoutSession(stripe, {
       mode: "payment",
-      line_items: [{ quantity: 1, price_data: { currency: eventCurrency.toLowerCase(), unit_amount: price, product_data: { name: `${e.title} — ${ticket} ticket` } } }],
+      line_items: [{ quantity: 1, price_data: { currency: eventCurrency.toLowerCase(), unit_amount: price, product_data: { name: `${v.title} — ${ticket} ticket` } } }],
       metadata: { registrationId: r.id },
       success_url: `${base}/${locale}/events/${slug}/checkout?r=${r.id}&sid={CHECKOUT_SESSION_ID}`,
       cancel_url: `${base}/${locale}/events/${slug}`,
     });
-    await db.registration.update({ where: { id: r.id }, data: { paymentRef: cs.id } });
-    next = cs.url!;
+    if (cs) await db.registration.update({ where: { id: r.id }, data: { paymentRef: cs.id } });
+    const url = cs?.url ?? null;
+    if (!url) redirect(`/${locale}/events/${slug}?error=pay`);
+    next = url;
   }
   redirect(next);
 }

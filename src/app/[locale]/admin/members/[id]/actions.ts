@@ -50,10 +50,18 @@ export async function updateProfile(fd: FormData) {
 
 /* ── account: role, password ── */
 const ROLES = ["guest", "member", "admin"] as const;
+/**
+ * Staff grant or remove admin access. Guest/member is not chosen by hand: it follows the memberships (an active membership →
+ * member, none → guest), so the only non-admin role accepted is the one the memberships give.
+ */
 export async function setUserRole(fd: FormData) {
   const { locale, admin } = await guard(fd); const u = await targetUser(fd, locale);
   const role = String(fd.get("role")); if (!(ROLES as readonly string[]).includes(role)) back(locale, u.id, "err_invalid", "account");
   if (u.id === admin.id) back(locale, u.id, "err_selfRole", "account");
+  if (role !== "admin") {
+    const derived = (await db.membership.count({ where: { userId: u.id, status: "active" } })) ? "member" : "guest";
+    if (role !== derived) back(locale, u.id, derived === "member" ? "err_roleHasMembership" : "err_roleNeedsMembership", "account");
+  }
   const r = await changeRole(u.id, role as (typeof ROLES)[number]);
   if (r === "lastAdmin") { await db.auditLog.create({ data: { actor: admin.id, action: "admin.demote_blocked_last_admin", target: u.id } }); back(locale, u.id, "err_lastAdmin", "account"); }
   if (r === "changed") await db.auditLog.create({ data: { actor: admin.id, action: role === "admin" ? "admin.role_promoted" : u.role === "admin" ? "admin.role_demoted" : "admin.role_changed", target: u.id } });

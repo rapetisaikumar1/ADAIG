@@ -10,7 +10,8 @@ import {
  * Admin-editable configuration (Admin → Settings), stored in the `Setting` table (key → JSON value).
  * A missing row means "built-in default": tier texts from src/config/site.ts, operational policies from env (then code).
  * So with no Setting rows every page renders exactly as before. Reads go through Next's data cache (tag "settings");
- * the admin save actions call updateTag("settings"), so changes apply on the next request without a redeploy.
+ * the admin save actions call updateTag("settings"), so changes apply on the next request without a redeploy. The cache
+ * also expires after SETTINGS_REVALIDATE_S, so changes made outside the admin UI (seed, SQL, a restored backup) show up too.
  * Server-only: client components receive what they need as props.
  */
 export const SETTINGS_TAG = "settings";
@@ -43,16 +44,20 @@ export type Ops = {
   deletedUserPaidTickets: (typeof PAID_TICKET_POLICIES)[number]; deletedMembershipRefund: (typeof MEMBERSHIP_REFUND_POLICIES)[number];
 };
 
+/** Safety net for the data cache: entries expire after 5 minutes even if no admin action expired them. */
+const SETTINGS_REVALIDATE_S = 300;
 const loadRows = () => db.setting.findMany({ select: { key: true, value: true } });
-const cachedRows = unstable_cache(loadRows, ["settings:all"], { tags: [SETTINGS_TAG] });
+const cachedRows = unstable_cache(loadRows, ["settings:all"], { tags: [SETTINGS_TAG], revalidate: SETTINGS_REVALIDATE_S });
 
-/** All Setting rows as a map. Falls back to an uncached read outside a Next request (scripts), and to defaults if the DB fails. */
+/**
+ * All Setting rows as a map. If the cached read fails for any reason (outside a Next request, e.g. scripts, there is no
+ * incremental cache) it reads the table directly; if that fails too, the built-in defaults apply.
+ */
 async function rows(): Promise<Map<string, unknown>> {
   let list: { key: string; value: unknown }[];
   try { list = await cachedRows(); }
-  catch (e) {
-    if (!String((e as Error)?.message).includes("incrementalCache missing")) { console.error("[settings] read failed, using defaults", (e as Error)?.message); return new Map(); }
-    try { list = await loadRows(); } catch (e2) { console.error("[settings] read failed, using defaults", (e2 as Error)?.message); return new Map(); }
+  catch {
+    try { list = await loadRows(); } catch (e) { console.error("[settings] read failed, using defaults", (e as Error)?.message); return new Map(); }
   }
   return new Map(list.map((r) => [r.key, r.value]));
 }

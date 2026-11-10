@@ -4,11 +4,12 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { AdminNav } from "@/components/AppShell";
 import { Html } from "@/components/SiteChrome";
-import { eventTimeZone, dateLocale } from "@/components/EventCard";
+import { eventTimeZone, dateLocale } from "@/lib/time";
 import { CONTENT_LOCALES, editableContent, fileContent } from "@/lib/content";
 import { CONTENT_MAX_CHARS } from "@/lib/contentSanitize";
 import { resetContent, restoreRevision, type EditorError } from "../../actions";
 import { ContentEditor } from "./ContentEditor";
+import { prettyHtml } from "../../pretty";
 export const dynamic = "force-dynamic";
 
 const MSGS: Record<string, string> = {
@@ -40,7 +41,8 @@ export default async function ContentEdit({ params, searchParams }: {
   const ids = [...new Set([page?.updatedBy, ...(page?.revisions.map((r) => r.createdBy) ?? [])].filter((x): x is string => !!x))];
   const people = new Map((await db.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
   const who = (id: string | null) => (id && people.get(id)) || t("unknownUser");
-  const fmt = (d: Date) => `${d.toLocaleString(dateLocale(locale), { dateStyle: "medium", timeStyle: "short", timeZone: eventTimeZone })} ${locale === "fr" ? "HE" : "ET"}`;
+  const et = (await getTranslations("admin"))("et");
+  const fmt = (d: Date) => `${d.toLocaleString(dateLocale(locale), { dateStyle: "medium", timeStyle: "short", timeZone: eventTimeZone })} ${et}`;
   const name = t(`page_${slug}`); const langName = t(`lang_${lang}`); const other = lang === "en" ? "fr" : "en";
   const withLinks = (h: string) => h.replaceAll("__L__", `/${lang}`);
   const viewing = sp.rev ? page?.revisions.find((r) => r.id === sp.rev) : undefined;
@@ -87,9 +89,10 @@ export default async function ContentEdit({ params, searchParams }: {
           </section>
         )}
 
-        <ContentEditor key={base} locale={locale} slug={slug} lang={lang} base={base} initialHtml={current} initialPreview={withLinks(current)}
+        <ContentEditor key={base} locale={locale} slug={slug} lang={lang} base={base} initialHtml={prettyHtml(current)} initialPreview={withLinks(current)}
           labels={{
             html: t("htmlLabel", { lang: langName }), hint: t("htmlHint", { prefix: `/${lang}` }), markerHint: slug === "home" ? t("markerHint", { marker: MARKER }) : undefined,
+            lead: t("editLead"), techNotes: t("techNotes"), find: t("find"), findPh: t("findPh"), findNext: t("findNext"), findNone: t("findNone"), findCount: String(t.raw("findCount")),
             save: t("save"), saving: t("saving"), updatePreview: t("updatePreview"), updating: t("updating"), preview: t("preview"),
             previewNote: def.kind === "page" ? t("previewNote") : `${t("previewNote")} ${t("previewPart")}`, removed: t("removedPreview"), unsaved: t("unsaved"),
             errors: Object.fromEntries(ERRORS.map((e) => [e, t(`err_${e}`, { max: CONTENT_MAX_CHARS.toLocaleString(locale), marker: MARKER })])) as Record<EditorError, string>,

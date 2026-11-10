@@ -10,7 +10,7 @@ import { expireUnpaid } from "@/lib/membership";
 
 export default async function Join({ params, searchParams }: { params: Promise<{ locale: Locale }>; searchParams: Promise<{ tier?: string; msg?: string }> }) {
   const { locale } = await params; setRequestLocale(locale);
-  const sp = await searchParams; const t = await getTranslations("join"); const tm = await getTranslations("membership");
+  const sp = await searchParams; const t = await getTranslations("join"); const tm = await getTranslations("membership"); const tc = await getTranslations("chrome");
   // Tiers and defaults are admin-editable (Admin → Settings) and passed to the client form as props.
   const [tiers, tierOf, dirDefault] = await Promise.all([getTiers(), tierLookup(), directoryOptInDefault()]);
   const tier = tiers.find((x) => x.id === sp.tier)?.id ?? (tiers.find((x) => x.featured) ?? tiers[0]).id;
@@ -26,7 +26,7 @@ export default async function Join({ params, searchParams }: { params: Promise<{
   return (
     <main id="main" className="join-page">
       <section className="page-hero"><div className="container">
-        <nav className="crumbs" aria-label="Breadcrumb"><ol><li><a href={`/${locale}`}>{tm("home")}</a></li><li><a href={`/${locale}/membership`}>{tm("eyebrow")}</a></li><li aria-current="page">{t("title")}</li></ol></nav>
+        <nav className="crumbs" aria-label={tc("breadcrumbAria")}><ol><li><a href={`/${locale}`}>{tm("home")}</a></li><li><a href={`/${locale}/membership`}>{tm("eyebrow")}</a></li><li aria-current="page">{t("title")}</li></ol></nav>
         <span className="eyebrow">{tm("eyebrow")}</span><h1>{t("title")}</h1><p className="lead">{t("lead")}</p>
       </div></section>
       <section className="section">

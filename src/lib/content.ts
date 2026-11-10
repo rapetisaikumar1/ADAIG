@@ -4,13 +4,15 @@ import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 
 /**
- * Page content. Default = the HTML files in src/content/<locale>/ (extracted by scripts/extract-design.py; FR falls back to EN
- * until translated). Staff can override a page per locale in Admin → Content (ContentPage rows, with revisions); an override
+ * Page content. Default = the HTML files in src/content/<locale>/ (originally extracted from the prototype, edited since;
+ * FR falls back to EN until translated). Staff can override a page per locale in Admin → Content (ContentPage rows, with revisions); an override
  * wins over the file. With no ContentPage rows every page renders exactly the file content. `__L__` = locale URL prefix.
  */
 
 /** Cache tag for overrides; the admin content actions call updateTag(CONTENT_TAG) after every change. */
 export const CONTENT_TAG = "content-pages";
+/** Safety net: cached overrides also expire after 5 minutes (changes made outside Admin → Content: seed, SQL, restored backup). */
+const CONTENT_REVALIDATE_S = 300;
 export const CONTENT_LOCALES = ["en", "fr"] as const;
 
 /** Pages editable in Admin → Content. kind: "page" = whole page body; "part" = the HTML part of a page whose other
@@ -33,7 +35,6 @@ export const EDITABLE_CONTENT = [
   { slug: "brand", path: "/design/brand", kind: "staff" },
   { slug: "components", path: "/design/components", kind: "staff" },
 ] as const satisfies readonly { slug: string; path: string; kind: "page" | "part" | "staff" }[];
-export type EditableContent = (typeof EDITABLE_CONTENT)[number];
 export const editableContent = (slug: string) => EDITABLE_CONTENT.find((p) => p.slug === slug);
 
 /** Raw file content (with `__L__`) for exactly this locale, or null. Slugs are looked up in a fixed folder only. */
@@ -47,7 +48,7 @@ const cachedOverride = (slug: string, locale: string) =>
   unstable_cache(
     async () => (await db.contentPage.findUnique({ where: { slug_locale: { slug, locale } }, select: { html: true } }))?.html ?? null,
     ["content-page", slug, locale],
-    { tags: [CONTENT_TAG] },
+    { tags: [CONTENT_TAG], revalidate: CONTENT_REVALIDATE_S },
   )();
 
 /** Staff override (raw, with `__L__`) or null. If the database is unreachable the page falls back to the file content. */

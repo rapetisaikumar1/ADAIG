@@ -18,14 +18,15 @@ export default async function Contact({ params, searchParams }: { params: Promis
   return (
     <main id="main" className="contact-page">
       <section className="page-hero"><div className="container">
-        <nav className="crumbs" aria-label="Breadcrumb"><ol><li><a href={`/${locale}`}>{tc("crumbHome")}</a></li><li aria-current="page">{t("title")}</li></ol></nav>
+        <nav className="crumbs" aria-label={tc("breadcrumbAria")}><ol><li><a href={`/${locale}`}>{tc("crumbHome")}</a></li><li aria-current="page">{t("title")}</li></ol></nav>
         <span className="eyebrow">{t("eyebrow")}</span><h1>{t("title")}</h1><p className="lead">{t("lead")}</p>
       </div></section>
       <section className="section"><div className="container contact-layout">
         <div className="card contact-card"><ContactForm locale={locale} initialTopic={topic} defaults={{ name: u?.name ?? undefined, email: u?.email ?? undefined, org: u?.organisation ?? undefined }} /></div>
         <div className="contact-side">
-          {faq?.fallback && <p className="small muted">{tc("frPending")}</p>}
-          {faq && <Html html={faq.html} />}
+          {faq?.fallback && <div className="alert alert-info" role="note"><div>{tc("frPending")}</div></div>}
+          {/* English fallback content keeps lang="en" so screen readers pronounce it correctly on /fr. */}
+          {faq && (faq.fallback ? <div lang="en" style={{ display: "contents" }}><Html html={faq.html} /></div> : <Html html={faq.html} />)}
           <SiteContactInfo />
         </div>
       </div></section>

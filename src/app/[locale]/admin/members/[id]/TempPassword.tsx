@@ -16,7 +16,7 @@ export function TempPassword({ locale, uid }: { locale: string; uid: string }) {
       {state.error && <div className="alert alert-danger" role="alert"><div>{state.error}</div></div>}
       {state.password && (
         <div className="alert alert-success" role="status">
-          <div><b>{t("pwSet")}</b>{t("pwOnce")}<code className="adm-mbr-secret">{state.password}</code></div>
+          <div><b>{t("pwSet")}</b>{" "}{t("pwOnce")}<code className="adm-mbr-secret">{state.password}</code></div>
         </div>
       )}
       <div className="field" style={{ margin: 0 }}><label htmlFor="pw-new">{t("pwLabel")} <span className="hint">({t("optional")})</span></label>

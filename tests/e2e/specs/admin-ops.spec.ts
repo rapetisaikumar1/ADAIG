@@ -46,7 +46,7 @@ test("audit log: filters by action, actor, target and date; CSV uses the same fi
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText("cpe.entry_added");
   await expect(rows.first()).toContainText(u.name); // target resolved to the person
-  await expect(p.locator(".adm-count")).toHaveText(t("audit.showing", { first: 1, last: 1, total: 1 }));
+  await expect(p.locator(".adm-count")).toHaveText(t("audit.showingOne")); // a single result reads "Showing 1 entry"
 
   // Target only → both entries; actor (by email) + action → just the profile update.
   await p.goto(`/en/admin/audit?target=${u.id}`);
@@ -71,7 +71,7 @@ test("audit log: filters by action, actor, target and date; CSV uses the same fi
   const csv = await p.request.get(href!);
   expect(csv.status()).toBe(200);
   const lines = (await csv.text()).split("\n");
-  expect(lines[0]).toBe('"createdAt","action","actor","actorEmail","target"');
+  expect(lines[0]).toBe('"createdAt","action","actor","actorEmail","target","createdET"');
   expect(lines).toHaveLength(2);
   expect(lines[1]).toContain(`"cpe.entry_added"`);
   expect(lines[1]).toContain(`"${SEED.admin}"`);

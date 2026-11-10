@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { AdminNav } from "@/components/AppShell";
 import { type Locale } from "@/config/site";
-import { eventTimeZone, dateLocale } from "@/components/EventCard";
+import { eventTimeZone, dateLocale } from "@/lib/time";
 import {
   SITE_KEY, OPS_KEY, tierKey, resolveTiers, opsSchema, siteSchema, opsDefaults,
   REJECTED_POLICIES, PAID_TICKET_POLICIES, MEMBERSHIP_REFUND_POLICIES,
@@ -43,12 +43,25 @@ export default async function AdminSettings({ params, searchParams }: { params: 
   );
   const h2 = { fontSize: "var(--fs-xl)", margin: 0 } as const;
   const h3 = { fontSize: "var(--fs-lg)", margin: 0 } as const;
-  const defaultLabel = (v: string) => t("useDefault", { value: v });
+  // "Default: keep the seat (anonymized)": the option label is lower-cased after the colon (no nested parentheses).
+  const defaultLabel = (v: string) => t("useDefault", { value: v.charAt(0).toLocaleLowerCase(locale) + v.slice(1) });
+  /** Same height for an EN/FR pair of textareas: rough count of wrapped lines (≈44 characters per line) of the longer text. */
+  const pairRows = (texts: string[], min: number, max: number) => {
+    const lines = (s: string) => s.split("\n").reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 44)), 0);
+    return Math.min(max, Math.max(min, ...texts.map((x) => lines(x) + 1)));
+  };
+  /** "Reset" with a confirm step. The confirm button submits a separate reset form (forms can't be nested), placed after the card. */
+  const resetConfirm = (formId: string, label: string, text: string) => (
+    <details className="adm-confirm adm-set-reset"><summary className="btn btn-ghost btn-sm">{label}…</summary>
+      <div className="adm-confirm-box"><p className="small" style={{ margin: 0 }}>{text}</p><button type="submit" form={formId} className="btn btn-danger btn-sm">{t("resetYes")}</button></div>
+    </details>
+  );
+  const legacyOpen = opsV.unpaidOrderTtlHours !== undefined || opsV.rejectedStudentPolicy !== undefined || opsV.deletedMembershipRefund !== undefined;
 
   return (
     <div className="app adm"><AdminNav locale={locale} current="/admin/settings" />
       <main id="main" className="app-main adm-settings">
-        <div className="app-head"><div><span className="eyebrow">{ta("eyebrow")}</span><h1>{t("title")}</h1><p className="muted adm-set-lead">{t("lead")}</p></div></div>
+        <div className="app-head"><div><span className="eyebrow">{ta("eyebrowOps")}</span><h1>{t("title")}</h1><p className="muted adm-set-lead">{t("lead")}</p></div></div>
         <nav className="adm-set-jump small" aria-label={t("jump")}><a href="#tiers">{t("tiersTitle")}</a><a href="#site">{t("siteTitle")}</a><a href="#ops">{t("opsTitle")}</a></nav>
 
         {/* ── Membership tiers ───────────────────────────────────────────── */}
@@ -65,13 +78,15 @@ export default async function AdminSettings({ params, searchParams }: { params: 
           <div className="adm-set-list">
             {tiers.map((tier) => {
               const key = tierKey(tier.id); const anchor = key.replace(/\./g, "-"); const p = `t-${tier.id}`;
+              const benEn = tier.benefits.map((b) => b.en).join("\n"), benFr = tier.benefits.map((b) => b.fr).join("\n");
+              const descRows = pairRows([tier.description.en, tier.description.fr], 3, 8), benRows = pairRows([benEn, benFr], 5, 16);
               return (
-                <form key={tier.id} action={saveTier} className="card adm-form adm-set-card" id={anchor} aria-labelledby={`${p}-h`}>
+                [<form key={tier.id} action={saveTier} className="card adm-form adm-set-card" id={anchor} aria-labelledby={`${p}-h`}>
                   {hidden({ id: tier.id, v: ver(key) })}
                   <div className="adm-card-head">
-                    <h3 id={`${p}-h`} style={h3}>{tier.name[locale]} <code className="adm-set-id">{tier.id}</code></h3>
+                    <h3 id={`${p}-h`} style={h3}>{tier.name[locale]} <span className="adm-set-id">{t("tierId", { id: tier.id })}</span></h3>
                     <div className="adm-actions">
-                      {tier.overridden ? <span className="badge badge-amber">{t("customized")}</span> : <span className="badge">{t("default")}</span>}
+                      {tier.overridden ? <span className="badge badge-amber">{t("customized")}</span> : <span className="badge">{t("notCustomized")}</span>}
                       {!tier.visible && <span className="badge badge-red">{t("hiddenBadge")}</span>}
                       {tier.featured && <span className="badge badge-navy">{t("featuredBadge")}</span>}
                     </div>
@@ -81,10 +96,10 @@ export default async function AdminSettings({ params, searchParams }: { params: 
                   <div className="grid g2" style={{ gap: "0 16px" }}>
                     <div className="field"><label htmlFor={`${p}-ne`}>{t("nameEn")}</label><input id={`${p}-ne`} name="nameEn" type="text" required maxLength={60} defaultValue={tier.name.en} /></div>
                     <div className="field"><label htmlFor={`${p}-nf`}>{t("nameFr")}</label><input id={`${p}-nf`} name="nameFr" type="text" required maxLength={60} defaultValue={tier.name.fr} lang="fr" /></div>
-                    <div className="field"><label htmlFor={`${p}-de`}>{t("descEn")}</label><textarea id={`${p}-de`} name="descEn" required rows={2} maxLength={300} defaultValue={tier.description.en} /></div>
-                    <div className="field"><label htmlFor={`${p}-df`}>{t("descFr")}</label><textarea id={`${p}-df`} name="descFr" required rows={2} maxLength={300} defaultValue={tier.description.fr} lang="fr" /></div>
-                    <div className="field"><label htmlFor={`${p}-be`}>{t("benefitsEn")}</label><textarea id={`${p}-be`} name="benefitsEn" required rows={Math.max(4, tier.benefits.length + 1)} defaultValue={tier.benefits.map((b) => b.en).join("\n")} aria-describedby={`${p}-bh`} /></div>
-                    <div className="field"><label htmlFor={`${p}-bf`}>{t("benefitsFr")}</label><textarea id={`${p}-bf`} name="benefitsFr" required rows={Math.max(5, tier.benefits.length + 2)} defaultValue={tier.benefits.map((b) => b.fr).join("\n")} aria-describedby={`${p}-bh`} lang="fr" /></div>
+                    <div className="field"><label htmlFor={`${p}-de`}>{t("descEn")}</label><textarea id={`${p}-de`} name="descEn" required rows={descRows} maxLength={300} defaultValue={tier.description.en} /></div>
+                    <div className="field"><label htmlFor={`${p}-df`}>{t("descFr")}</label><textarea id={`${p}-df`} name="descFr" required rows={descRows} maxLength={300} defaultValue={tier.description.fr} lang="fr" /></div>
+                    <div className="field"><label htmlFor={`${p}-be`}>{t("benefitsEn")}</label><textarea id={`${p}-be`} name="benefitsEn" required rows={benRows} defaultValue={benEn} aria-describedby={`${p}-bh`} /></div>
+                    <div className="field"><label htmlFor={`${p}-bf`}>{t("benefitsFr")}</label><textarea id={`${p}-bf`} name="benefitsFr" required rows={benRows} defaultValue={benFr} aria-describedby={`${p}-bh`} lang="fr" /></div>
                   </div>
                   <p className="hint adm-set-hint" id={`${p}-bh`}>{t("benefitsHint")}</p>
                   <div className="grid g2 adm-set-flags" style={{ gap: "0 16px" }}>
@@ -97,11 +112,12 @@ export default async function AdminSettings({ params, searchParams }: { params: 
                     </div>
                   </div>
                   <div className="adm-form-foot">
-                    {tier.overridden ? <button className="btn btn-ghost btn-sm" formAction={resetTier} formNoValidate>{t("resetTier")}</button> : <span />}
+                    {tier.overridden ? resetConfirm(`${anchor}-reset`, t("resetTier"), t("resetTierConfirm", { name: tier.name[locale] })) : <span />}
                     <button className="btn btn-accent">{t("saveTier")}</button>
                   </div>
-                </form>
-              );
+                </form>,
+                tier.overridden && <form key={`${tier.id}-reset`} id={`${anchor}-reset`} action={resetTier} hidden>{hidden({ id: tier.id })}</form>,
+              ]);
             })}
           </div>
         </section>
@@ -110,7 +126,7 @@ export default async function AdminSettings({ params, searchParams }: { params: 
         <section className="adm-section" aria-labelledby="site-h">
           <form action={saveSite} className="card adm-form adm-set-card" id="site">
             {hidden({ v: ver(SITE_KEY) })}
-            <div className="adm-card-head"><h2 id="site-h" style={h2}>{t("siteTitle")}</h2>{byKey.has(SITE_KEY) ? <span className="badge badge-amber">{t("customized")}</span> : <span className="badge">{t("default")}</span>}</div>
+            <div className="adm-card-head"><h2 id="site-h" style={h2}>{t("siteTitle")}</h2>{byKey.has(SITE_KEY) ? <span className="badge badge-amber">{t("customized")}</span> : <span className="badge">{t("notSet")}</span>}</div>
             <p className="small muted adm-set-sub">{t("siteLead")}</p>
             {meta(SITE_KEY)}
             {notice("site")}
@@ -119,17 +135,18 @@ export default async function AdminSettings({ params, searchParams }: { params: 
               <div className="field"><label htmlFor="pa">{t("postalAddress")} <span className="hint">({ta("optional")})</span></label><textarea id="pa" name="postalAddress" rows={4} maxLength={300} defaultValue={siteV.postalAddress} aria-describedby="pa-h" /><span className="hint" id="pa-h">{t("addressHint")}</span></div>
             </div>
             <div className="adm-form-foot">
-              {byKey.has(SITE_KEY) ? <button className="btn btn-ghost btn-sm" formAction={resetSite} formNoValidate>{t("resetSite")}</button> : <span />}
+              {byKey.has(SITE_KEY) ? resetConfirm("site-reset", t("resetSite"), t("resetSiteConfirm")) : <span />}
               <button className="btn btn-accent">{t("saveSite")}</button>
             </div>
           </form>
+          {byKey.has(SITE_KEY) && <form id="site-reset" action={resetSite} hidden>{hidden()}</form>}
         </section>
 
         {/* ── Operational policies ───────────────────────────────────────── */}
         <section className="adm-section" aria-labelledby="ops-h">
           <form action={saveOps} className="card adm-form adm-set-card" id="ops">
             {hidden({ v: ver(OPS_KEY) })}
-            <div className="adm-card-head"><h2 id="ops-h" style={h2}>{t("opsTitle")}</h2>{byKey.has(OPS_KEY) ? <span className="badge badge-amber">{t("customized")}</span> : <span className="badge">{t("default")}</span>}</div>
+            <div className="adm-card-head"><h2 id="ops-h" style={h2}>{t("opsTitle")}</h2>{byKey.has(OPS_KEY) ? <span className="badge badge-amber">{t("customized")}</span> : <span className="badge">{t("notCustomized")}</span>}</div>
             <p className="small muted adm-set-sub">{t("opsLead")}</p>
             {meta(OPS_KEY)}
             {notice("ops")}
@@ -138,25 +155,34 @@ export default async function AdminSettings({ params, searchParams }: { params: 
                 <select id="od" name="directoryOptInDefault" defaultValue={opsV.directoryOptInDefault === undefined ? "" : opsV.directoryOptInDefault ? "on" : "off"}>
                   <option value="">{defaultLabel(def.directoryOptInDefault ? t("dirOn") : t("dirOff"))}</option><option value="on">{t("dirOn")}</option><option value="off">{t("dirOff")}</option>
                 </select></div>
-              <div className="field"><label htmlFor="ot">{t("ttl")}</label><input id="ot" name="unpaidOrderTtlHours" type="number" min={1} max={8760} step={1} defaultValue={opsV.unpaidOrderTtlHours ?? ""} placeholder={String(def.unpaidOrderTtlHours)} aria-describedby="ot-h" /><span className="hint" id="ot-h">{t("ttlHint", { value: def.unpaidOrderTtlHours })}</span></div>
-              <div className="field"><label htmlFor="or">{t("rejected")}</label>
-                <select id="or" name="rejectedStudentPolicy" defaultValue={opsV.rejectedStudentPolicy ?? ""}>
-                  <option value="">{defaultLabel(t(`rej_${def.rejectedStudentPolicy}`))}</option>{REJECTED_POLICIES.map((v) => <option key={v} value={v}>{t(`rej_${v}`)}</option>)}
-                </select></div>
               <div className="field"><label htmlFor="opt">{t("paidTickets")}</label>
-                <select id="opt" name="deletedUserPaidTickets" defaultValue={opsV.deletedUserPaidTickets ?? ""}>
+                <select id="opt" name="deletedUserPaidTickets" defaultValue={opsV.deletedUserPaidTickets ?? ""} aria-describedby="opt-h">
                   <option value="">{defaultLabel(t(`tick_${def.deletedUserPaidTickets}`))}</option>{PAID_TICKET_POLICIES.map((v) => <option key={v} value={v}>{t(`tick_${v}`)}</option>)}
-                </select></div>
-              <div className="field"><label htmlFor="omr">{t("membershipRefund")}</label>
-                <select id="omr" name="deletedMembershipRefund" defaultValue={opsV.deletedMembershipRefund ?? ""}>
-                  <option value="">{defaultLabel(t(`refund_${def.deletedMembershipRefund}`))}</option>{MEMBERSHIP_REFUND_POLICIES.map((v) => <option key={v} value={v}>{t(`refund_${v}`)}</option>)}
-                </select></div>
+                </select><span className="hint" id="opt-h">{t("paidTicketsHint")}</span></div>
             </div>
+            {/* Policies from the earlier online membership payments: membership applications take no payment now, so these only
+                affect old paid orders. Kept (collapsed) so existing records are still handled; they stay saved with the form. */}
+            <details className="adm-set-legacy" open={legacyOpen}>
+              <summary>{t("legacyTitle")}</summary>
+              <p className="small muted" style={{ margin: "8px 0 12px" }}>{t("legacyLead")}</p>
+              <div className="grid g2" style={{ gap: "0 16px" }}>
+                <div className="field"><label htmlFor="ot">{t("ttl")}</label><input id="ot" name="unpaidOrderTtlHours" type="number" min={1} max={8760} step={1} defaultValue={opsV.unpaidOrderTtlHours ?? ""} placeholder={String(def.unpaidOrderTtlHours)} aria-describedby="ot-h" /><span className="hint" id="ot-h">{t("ttlHint", { value: def.unpaidOrderTtlHours })}</span></div>
+                <div className="field"><label htmlFor="or">{t("rejected")}</label>
+                  <select id="or" name="rejectedStudentPolicy" defaultValue={opsV.rejectedStudentPolicy ?? ""}>
+                    <option value="">{defaultLabel(t(`rej_${def.rejectedStudentPolicy}`))}</option>{REJECTED_POLICIES.map((v) => <option key={v} value={v}>{t(`rej_${v}`)}</option>)}
+                  </select></div>
+                <div className="field"><label htmlFor="omr">{t("membershipRefund")}</label>
+                  <select id="omr" name="deletedMembershipRefund" defaultValue={opsV.deletedMembershipRefund ?? ""}>
+                    <option value="">{defaultLabel(t(`refund_${def.deletedMembershipRefund}`))}</option>{MEMBERSHIP_REFUND_POLICIES.map((v) => <option key={v} value={v}>{t(`refund_${v}`)}</option>)}
+                  </select></div>
+              </div>
+            </details>
             <div className="adm-form-foot">
-              {byKey.has(OPS_KEY) ? <button className="btn btn-ghost btn-sm" formAction={resetOps} formNoValidate>{t("resetOps")}</button> : <span />}
+              {byKey.has(OPS_KEY) ? resetConfirm("ops-reset", t("resetOps"), t("resetOpsConfirm")) : <span />}
               <button className="btn btn-accent">{t("saveOps")}</button>
             </div>
           </form>
+          {byKey.has(OPS_KEY) && <form id="ops-reset" action={resetOps} hidden>{hidden()}</form>}
         </section>
       </main>
     </div>

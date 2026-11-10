@@ -38,11 +38,15 @@ export const tiers: Tier[] = [
   {
     id: "student",
     name: { en: "Student", fr: "Étudiant" },
-    description: { en: "For full-time students and career changers.", fr: "Pour les étudiants à temps plein et les personnes en reconversion." },
+    // Eligibility matches the join form check: an institution is required and the applicant attests to enrollment.
+    description: { en: "For full-time students and people in a recognized career-change program.", fr: "Pour les étudiants à temps plein et les personnes inscrites à un programme de reconversion reconnu." },
     price: { CAD: 4000, USD: 3000 },
+    // Card benefits mirror the "Compare benefits" table in src/content/<locale>/membership.html — keep them in sync.
     benefits: [
-      { en: "Community & webinars", fr: "Communauté et webinaires" },
+      { en: "Webinars (CPE-eligible)", fr: "Webinaires (admissibles aux FPC)" },
+      { en: "Community groups (planned)", fr: "Groupes de la communauté (prévus)" },
       { en: "Governance toolkit, partial access (coming soon)", fr: "Boîte à outils de gouvernance, accès partiel (bientôt disponible)" },
+      { en: "Member directory listing (opt-in)", fr: "Inscription au répertoire des membres (au choix)" },
       { en: "Mentorship (planned)", fr: "Mentorat (prévu)" },
     ],
     requiresVerification: true,
@@ -55,8 +59,7 @@ export const tiers: Tier[] = [
     benefits: [
       { en: "Everything in Student", fr: "Tout ce qu’offre Étudiant" },
       { en: "Full governance toolkit access (coming soon)", fr: "Accès complet à la boîte à outils de gouvernance (bientôt disponible)" },
-      { en: "CPE tracking for events", fr: "Suivi des FPC pour les événements" },
-      { en: "Member directory", fr: "Répertoire des membres" },
+      { en: "Vote in elections (planned)", fr: "Droit de vote aux élections (prévu)" },
     ],
     featured: true,
   },
@@ -76,9 +79,11 @@ export const tiers: Tier[] = [
     description: { en: "Stay connected after active practice.", fr: "Restez en contact après la pratique active." },
     price: { CAD: 7500, USD: 5500 },
     benefits: [
-      { en: "Community & webinars", fr: "Communauté et webinaires" },
-      { en: "Governance toolkit, read access (coming soon)", fr: "Boîte à outils de gouvernance, lecture seule (bientôt disponible)" },
-      { en: "Voting in elections (planned)", fr: "Droit de vote aux élections (prévu)" },
+      { en: "Webinars (CPE-eligible)", fr: "Webinaires (admissibles aux FPC)" },
+      { en: "Community groups (planned)", fr: "Groupes de la communauté (prévus)" },
+      { en: "Governance toolkit, read-only access (coming soon)", fr: "Boîte à outils de gouvernance, lecture seule (bientôt disponible)" },
+      { en: "Member directory listing (opt-in)", fr: "Inscription au répertoire des membres (au choix)" },
+      { en: "Vote in elections (planned)", fr: "Droit de vote aux élections (prévu)" },
     ],
   },
 ];

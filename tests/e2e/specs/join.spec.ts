@@ -62,7 +62,9 @@ test("new applicant → application received → admin approves → active membe
 test("student application needs eligibility details; a rejection reason is shown to the applicant", async ({ page, adminPage }) => {
   const a = applicant(); const reason = `E2E reason ${RUN}`;
   await page.goto("/en/join");
-  await expect(page.locator("#inst")).toHaveCount(0);
+  // The eligibility fields stay mounted (hidden + disabled) for other tiers so switching tiers keeps what was typed.
+  await expect(page.locator("#inst")).toBeHidden();
+  await expect(page.locator("#inst")).toBeDisabled();
   await page.locator("#tier").selectOption("student");
   await expect(page.locator("#inst")).toBeVisible();
   await fillApplication(page, a, { tier: "student", institution: "E2E University" });
@@ -84,7 +86,9 @@ test("student application needs eligibility details; a rejection reason is shown
 
   await page.goto("/en/my/dashboard");
   await expect(page.locator("main").getByRole("alert")).toContainText(t("dash.rejectedTitle"));
-  await expect(page.locator("main").getByRole("alert")).toContainText(reason);
+  // The admin's reason is shown as one sentence (a single closing period added).
+  await expect(page.locator("main").getByRole("alert")).toContainText(t("dash.rejectedReasonText", { reason: `${reason}.` }));
+  await expect(page.locator("main").getByRole("alert")).not.toContainText(`${reason}..`);
 });
 
 test("an existing email gets a generic error and the form keeps what was typed", async ({ page }) => {

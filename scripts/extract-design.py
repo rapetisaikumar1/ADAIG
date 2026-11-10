@@ -1,5 +1,9 @@
 # Extracts <main> content from the HTML prototype into src/content/en/*.html, rewriting links to app routes.
-import re, os, json
+import re, os, json, sys
+# Historical one-off: the files in src/content/en have been edited since (and staff overrides live in the DB). Running this
+# again would overwrite that work, so it refuses unless explicitly forced. There is deliberately no npm script for it.
+if '--force' not in sys.argv:
+    sys.exit('extract-design.py: refusing to run; it would overwrite the edited src/content/en/*.html files. Pass --force only if you really mean it.')
 D = os.path.join(os.path.dirname(__file__), '../../design')
 OUT = os.path.join(os.path.dirname(__file__), '../src/content/en')
 ROUTES = {'home':'', 'event-detail':'events/ai-risk-register', 'directory':'my/directory',

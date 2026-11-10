@@ -14,7 +14,7 @@ export default async function TicketCheckout({ params, searchParams }: { params:
   const { locale } = await params; setRequestLocale(locale);
   const slug = encodeURIComponent(idParam((await params).slug, 200)); // only used in redirects back to the event page
   const sp = await searchParams; const id = idParam(sp.r), sid = idParam(sp.sid, 255); const t = await getTranslations("events");
-  const s = await auth(); if (!s?.user) redirect(`/${locale}/login`);
+  const s = await auth(); if (!s?.user) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/events/${slug}`)}`); // back to the event after signing in
   const r = id ? await db.registration.findUnique({ where: { id }, include: { event: true } }) : null;
   if (!r || r.userId !== s.user.id) redirect(`/${locale}/events/${slug}`);
   if (r.status === "confirmed") redirect(`/${locale}/events/${slug}?registered=1`);

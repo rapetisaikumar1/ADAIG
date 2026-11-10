@@ -13,8 +13,10 @@ export default async function AdminPreview({ params }: { params: Promise<{ local
   await requireAdmin(locale); const t = await getTranslations("admin");
   const c = (await loadContent(PAGES[page], locale))!;
   return (
-    <div className="app adm"><AdminNav locale={locale} current={`/admin/${page}`} />
+    // Previews are reached from the Overview page, so Overview stays highlighted in the admin menu.
+    <div className="app adm"><AdminNav locale={locale} current="/admin/dashboard" />
       <main id="main" className="app-main adm-preview">
+        <a className="small adm-mbr-back" href={`/${locale}/admin/dashboard`}>← {t("backOverview")}</a>
         <div className="alert alert-info" role="note" style={{ marginBottom: 24 }}><div><b>{t("protoTitle")}</b>{t("protoBody")}{c.fallback ? ` ${t("protoEnOnly")}` : ""}</div></div>
         <div lang={c.fallback ? "en" : undefined}><Html html={c.html} /></div>
       </main>

@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
-import { LangSwitch, NavToggle, PrimaryNav } from "./ClientBits";
+import { HeaderNav, LangSwitch, UtilLinks } from "./ClientBits";
 
 export async function SiteHeader({ locale }: { locale: string }) {
   const t = await getTranslations("chrome");
@@ -18,22 +18,24 @@ export async function SiteHeader({ locale }: { locale: string }) {
       <a href={L("/join")} className="btn btn-highlight btn-sm">{t("join")}</a>
     </>
   );
+  const util = (["chapters", "careers", "contact"] as const).map((k) => ({ href: L(`/${k}`), label: t(k) }));
   return (
     <>
       <a className="skip" href="#main">{t("skip")}</a>
       <div className="util"><div className="container">
-        <nav className="util-links" aria-label={t("utility")}>
-          <a href={L("/chapters")}>{t("chapters")}</a><a href={L("/careers")}>{t("careers")}</a><a href={L("/contact")}>{t("contact")}</a>
-        </nav>
-        <LangSwitch />
+        <nav className="util-links" aria-label={t("utility")}><UtilLinks items={util} /></nav>
+        <LangSwitch label={t("langAria")} />
       </div></div>
       <header className="site-header"><div className="container">
-        <a className="brand" href={L("")} aria-label={t("home")}><img src="/assets/logo.svg" alt="ADAIG — Association for Data and AI Governance" width={220} height={52} /></a>
-        <PrimaryNav items={(["about", "membership", "events", "resources", "community", "advocacy"] as const).map((k) => ({ href: L(`/${k}`), label: t(k) }))}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- static SVG logo; next/image adds nothing for SVG */}
+        <a className="brand" href={L("")} aria-label={t("home")}><img src="/assets/logo.svg" alt={t("logoAlt")} width={220} height={52} /></a>
+        {/* Toggle + panel (DOM order: toggle first, A1-2). The panel's extras show only in the mobile menu (V3-1). */}
+        <HeaderNav label={t("primaryAria")} menuLabel={t("menu")} closeLabel={t("close")}
+          items={(["about", "membership", "events", "resources", "community", "advocacy"] as const).map((k) => ({ href: L(`/${k}`), label: t(k) }))}>
           <div className="nav-extra">{ctas}</div>
-        </PrimaryNav>
+          <div className="nav-util" role="group" aria-label={t("menuUtilAria")}><UtilLinks items={util} /><div className="nav-lang"><span aria-hidden="true">{t("langAria")}</span><LangSwitch label={t("langAria")} /></div></div>
+        </HeaderNav>
         <div className="header-cta">{ctas}</div>
-        <NavToggle label={t("menu")} closeLabel={t("close")} />
       </div></header>
     </>
   );
@@ -51,12 +53,13 @@ export async function SiteFooter({ locale }: { locale: string }) {
     <footer className="site-footer"><div className="container">
       <div className="footer-grid">
         <div className="footer-brand">
-          <a href={L("")} aria-label={tc("home")}><img src="/assets/logo-reverse.svg" alt="ADAIG — Association for Data and AI Governance" width={220} height={52} /></a>
+          {/* eslint-disable-next-line @next/next/no-img-element -- static SVG logo */}
+          <a href={L("")} aria-label={tc("home")}><img src="/assets/logo-reverse.svg" alt={tc("logoAlt")} width={220} height={52} /></a>
           <p className="footer-motto">{t("motto")}</p>
           <p className="footer-tagline">{t("tagline")}</p>
           <div className="footer-news">
             <h2>{t("nlTitle")}</h2>
-            <p>{t("nlSoon")} {s?.user ? t("nlSignedIn") : <a href={L("/signup")}>{t("nlCta")}</a>}</p>
+            <p>{t("nlSoon")} {s?.user ? <a href={L("/my/profile")}>{t("nlSignedIn")}</a> : <a href={L("/signup")}>{t("nlCta")}</a>}</p>
           </div>
         </div>
         {col(t("mem"), [["/membership", t("tiers")], ["/membership#corporate", t("corporate")], ["/join", t("join")], ["/vendors", t("vendors")]])}

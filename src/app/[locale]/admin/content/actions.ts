@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { safeLocale, isUniqueViolation, idParam } from "@/lib/validation";
 import { CONTENT_LOCALES, CONTENT_TAG, editableContent, fileContent } from "@/lib/content";
 import { CONTENT_MAX_CHARS, sanitizeContent } from "@/lib/contentSanitize";
+import { sameContent } from "./pretty";
 
 /**
  * Admin → Content. Every change re-checks the admin role in the DB, is conditional on the version the editor loaded
@@ -68,7 +69,8 @@ export async function saveContent(_prev: SaveState, fd: FormData): Promise<SaveS
   if ("error" in c) return { error: c.error };
   const page = await db.contentPage.findUnique({ where: { slug_locale: { slug, locale: lang } } });
   if (String(fd.get("base") ?? "") !== (page ? page.updatedAt.toISOString() : "none")) return { error: "conflict" };
-  if (c.html === (page?.html ?? (await original(slug, lang)))) return { error: "unchanged", removed: c.removed };
+  // The editor shows the HTML with a line break per block (prettyHtml); those breaks alone are not a change.
+  if (sameContent(c.html, page?.html ?? (await original(slug, lang)))) return { error: "unchanged", removed: c.removed };
   try {
     await db.$transaction(async (tx) => {
       let id = page?.id;

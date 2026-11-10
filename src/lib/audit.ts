@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { likeLiteral } from "@/lib/validation"; // Prisma turns insensitive equals/contains into ILIKE on Postgres: escape % and _
 import type { Prisma } from "@/generated/prisma/client";
-import { eventTimeZone } from "@/components/EventCard";
+import { eventTimeZone, zoneDayStart } from "@/lib/time";
 /**
  * Audit log viewer helpers (Admin → Audit log and /api/admin/audit.csv share the same filters).
  * Filters come from the query string: a = action prefix ("membership." or a full action), actor, target (free text: an id,
@@ -25,19 +25,18 @@ export function parseAuditFilters(raw: Raw): AuditFilters {
   return { a: /^[a-z0-9_.-]+$/i.test(a) ? a : "", actor: clean(get("actor")), target: clean(get("target")), from: validDay(clean(get("from"), 10)), to: validDay(clean(get("to"), 10)), p };
 }
 
-/** Milliseconds the zone is ahead of UTC at instant t. */
-function zoneOffset(t: number, timeZone: string) {
-  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })
-    .formatToParts(new Date(t)).map((x) => [x.type, x.value]));
-  return Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) - t;
-}
-/** Midnight (start of day) in ET for a YYYY-MM-DD day, plus `addDays`. DST-aware. */
-export function etDayStart(day: string, addDays = 0): Date {
-  const [y, m, d] = day.split("-").map(Number);
-  const wall = Date.UTC(y, m - 1, d + addDays);
-  let t = wall - zoneOffset(wall, eventTimeZone);
-  t = wall - zoneOffset(t, eventTimeZone);
-  return new Date(t);
+/** Midnight (start of day) in ET for a YYYY-MM-DD day, plus `addDays`. DST-aware (src/lib/time.ts). */
+export const etDayStart = (day: string, addDays = 0): Date => zoneDayStart(day, addDays, eventTimeZone);
+
+/**
+ * A timestamp as US Eastern wall time for CSV exports, e.g. "2027-07-01 09:00" (column names end in "ET"), so spreadsheets
+ * match what every admin screen shows. The ISO/UTC columns are kept next to it for machine use.
+ */
+export function etCsvStamp(d: Date | null | undefined): string {
+  if (!d) return "";
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: eventTimeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+    .formatToParts(d).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;
 }
 
 /** Users matching free text: exact email (case-insensitive), exact id, or name/email containing the text. Capped. */

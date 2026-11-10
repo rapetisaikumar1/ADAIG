@@ -2,10 +2,12 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { serverEnv } from "@/lib/env";
 /**
- * Scheduled job (vercel.json → daily): expires legacy unpaid membership orders older than UNPAID_ORDER_TTL_HOURS, the same
- * work as `npm run expire-unpaid-orders` and the lazy expiry on access (src/lib/membership.ts expireUnpaid; idempotent).
+ * Scheduled job (vercel.json → daily): expires legacy unpaid membership orders older than UNPAID_ORDER_TTL_HOURS and lapses
+ * active memberships more than 30 days past their renewal date (audit "membership.lapsed_auto" per membership). Same work as
+ * `npm run expire-unpaid-orders` and the lazy housekeeping on access (src/lib/membership.ts membershipHousekeeping; idempotent).
  * Auth: `Authorization: Bearer ${CRON_SECRET}` (Vercel Cron sends it when CRON_SECRET is set). No secret configured → 503,
- * wrong or missing token → 401. Each run writes `system.cron_expire_unpaid_orders` to the audit log (Admin → System shows the last run).
+ * wrong or missing token → 401. Each run writes `system.cron_expire_unpaid_orders` to the audit log, target `expired:<n>`
+ * (Admin → System shows the last run and parses that target, so its format stays); the lapsed count is in the JSON response.
  * The same run also deletes stale LoginThrottle rows (src/lib/rateLimit.ts pruneLoginThrottle; count in `throttlePruned`).
  */
 export const dynamic = "force-dynamic";
@@ -23,11 +25,11 @@ export async function GET(req: Request) {
   if (!secret) return NextResponse.json({ ok: false, error: "cron disabled: CRON_SECRET is not set" }, { status: 503, headers });
   if (!tokenOk(req.headers.get("authorization"), secret)) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401, headers });
   try {
-    const [{ expireUnpaid }, { db }, { pruneLoginThrottle }] = await Promise.all([import("@/lib/membership"), import("@/lib/db"), import("@/lib/rateLimit")]);
-    const expired = await expireUnpaid();
+    const [{ membershipHousekeeping }, { db }, { pruneLoginThrottle }] = await Promise.all([import("@/lib/membership"), import("@/lib/db"), import("@/lib/rateLimit")]);
+    const { expired, lapsed } = await membershipHousekeeping();
     await db.auditLog.create({ data: { actor: "system", action: "system.cron_expire_unpaid_orders", target: `expired:${expired}` } });
-    const throttlePruned = await pruneLoginThrottle(); // stale login-throttle rows (no lock and no failure for 24 h, or lock ended > 24 h ago)
-    return NextResponse.json({ ok: true, expired, throttlePruned }, { headers });
+    const throttlePruned = await pruneLoginThrottle(); // stale login-throttle / rate-limit rows (no lock and no hit for 24 h, or lock ended > 24 h ago)
+    return NextResponse.json({ ok: true, expired, lapsed, throttlePruned }, { headers });
   } catch (e) {
     const err = e as { message?: string; code?: string };
     console.error("[cron] expire-unpaid-orders failed:", err?.message || err?.code || String(e));

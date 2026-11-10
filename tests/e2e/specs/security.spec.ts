@@ -18,7 +18,7 @@ test.describe("admin Server Actions refuse non-admins", () => {
   test("make admin: a member, a guest and a visitor replaying the form stay non-admin", async ({ adminPage, memberPage, guestPage, request }) => {
     const target = await createUser();
     await adminPage.goto(`/en/admin/members?q=${encodeURIComponent(target.email)}`);
-    const fields = await formFields(adminPage.locator("form", { has: adminPage.getByRole("button", { name: `${t("admin.makeAdmin")}: ${target.name}` }) }));
+    const fields = await formFields(adminPage.locator("details", { has: adminPage.locator(`summary[aria-label="${t("admin.makeAdmin")}: ${target.name}"]`) }).locator("form"));
     expect(Object.keys(fields).some((k) => k.startsWith("$ACTION_ID_"))).toBe(true);
     for (const [who, ctx] of [["member", memberPage.request], ["guest", guestPage.request], ["visitor", request]] as const) {
       const r = await replay(ctx, "/en/admin/members", fields);

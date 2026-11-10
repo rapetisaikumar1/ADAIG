@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { idParam } from "@/lib/validation";
 import { AdminNav } from "@/components/AppShell";
-import { eventView, isUnconfirmed, eventTypeBadgeClass, eventTimeZone, dateLocale, fmtCpe } from "@/components/EventCard";
+import { eventView, isUnconfirmed, eventTypeBadgeClass, eventTimeZone, dateLocale, fmtCpe, eventLocation } from "@/components/EventCard";
 import { EventFields, formLegend } from "../EventFields";
 import { updateEvent, deleteEvent, cancelEvent, restoreEvent, setAttendance, cancelRegistration } from "../actions";
 import { REG_VIEWS, regView, regViewWhere, regSearchWhere, cleanQuery, type RegView } from "../views";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 const OK = new Set(["saved", "deleted", "cancelled", "restored", "attendanceMarked", "attendanceUnmarked", "regCancelled"]);
 const INFO = new Set(["attendancePartial", "attendanceNone", "alreadyCancelled", "notCancelled", "noneSelected"]);
-const ERR = new Set(["invalid", "slugInvalid", "slugTaken", "slugLocked", "cancelledLocked", "conflict", "hasRegistrations", "cancelledNoAttendance", "regNotCancellable"]);
+const ERR = new Set(["invalid", "slugInvalid", "slugTaken", "slugLocked", "cancelledLocked", "conflict", "hasRegistrations", "cancelledNoAttendance", "notStartedNoAttendance", "regNotCancellable"]);
 const statusBadge = (s: string) => (s === "confirmed" ? "badge-green" : s === "pending_payment" ? "badge-amber" : "");
 
 /** Admin → Events → one event: KPIs, registrations (filters, CSV, attendance + CPE, cancel), edit form, cancel/restore/delete. */
@@ -60,19 +60,23 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
   const paidTickets = paid.reduce((n, p) => n + p._count._all, 0);
   const canCancelReg = (r: (typeof regs)[number]) => r.status === "pending_payment" || (r.status === "confirmed" && r.amountCents === 0);
   const BULK = "bulk-att";
+  // Attendance can be recorded only once the event has started (server action refuses earlier); undo is always possible.
+  const started = +e.startsAt <= Date.now();
+  const canMark = started && !e.cancelledAt;
+  const where = eventLocation(e, tev("venueTbc"));
 
   return (
     <div className="app adm"><AdminNav locale={locale} current="/admin/events" />
       <main id="main" className="app-main adm-ev">
         <p className="small adm-ev-back"><a href={L("/admin/events")}>← {t("back")}</a></p>
         <div className="app-head">
-          <div><span className="eyebrow">{ta("events")}</span><h1>{v.title}</h1>
+          <div><span className="eyebrow">{ta("eyebrow")} · {ta("events")}</span><h1>{v.title}</h1>
             <div className="adm-actions adm-ev-tags">
               <span className={eventTypeBadgeClass}>{evLabel(e.type, locale)}</span>
               {e.cancelledAt ? <span className="badge badge-red">{t("cancelledBadge")}</span> : e.published ? <span className="badge badge-green">{ta("publishedBadge")}</span> : <span className="badge">{ta("draftBadge")}</span>}
               {isUnconfirmed(e) && <span className="badge ev-status" title={ta("proposedHint")}>{ta("proposedBadge")}</span>}
               {v.past && <span className="badge">{ta("past")}</span>}
-              <span className="small muted">{stamp(e.startsAt)} · {evLabel(e.format, locale)}{e.location ? ` · ${e.location}` : ""}</span>
+              <span className="small muted">{stamp(e.startsAt)} · {evLabel(e.format, locale)}{where ? ` · ${where}` : ""}</span>
             </div>
           </div>
           <a className="btn btn-secondary btn-sm" href={L(`/events/${e.slug}`)}>{t("viewPublic")}</a>
@@ -96,14 +100,17 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
           {regs.length === 0 ? (
             <div className="adm-empty"><p>{anyRegs === 0 ? t("noRegs") : t("noRegsFilter")}</p></div>
           ) : (<>
+            {/* Before the start the reason is said once, here; the toolbar hint below keeps explaining CPE credit. */}
+            {!started && !e.cancelledAt && <div className="alert alert-info adm-ev-notyet" role="note" id="att-off"><div>{t("notStartedHint", { date: stamp(e.startsAt) })}</div></div>}
             <form id={BULK} action={setAttendance} className="adm-ev-bulk">
               {hid}
               <SelectAll formId={BULK} label={t("selectAll")} />
               <div className="adm-actions">
-                <button className="btn btn-accent btn-sm" name="to" value="1" disabled={!!e.cancelledAt}>{t("bulkAttended")}</button>
-                <button className="btn btn-secondary btn-sm" name="to" value="0">{t("bulkNotAttended")}</button>
+                <button className="btn btn-accent btn-sm" name="to" value="1" disabled={!canMark} aria-describedby={!started && !e.cancelledAt ? "att-off" : undefined}>{t("bulkAttended")}</button>
+                {/* Undo only: off while nobody is marked attended (same disabled look as the button above). */}
+                <button className="btn btn-secondary btn-sm" name="to" value="0" disabled={attendedTotal === 0} aria-describedby={attendedTotal === 0 ? "att-none" : undefined}>{t("bulkNotAttended")}</button>
               </div>
-              <p className="small muted adm-ev-hint">{t("bulkHint")}</p>
+              <p className="small muted adm-ev-hint">{t("bulkHint")}{attendedTotal === 0 && <span id="att-none"> {t("noneAttendedYet")}</span>}</p>
             </form>
             <div className="table-wrap" tabIndex={0} role="region" aria-label={ta("tableLabel")}><table className="adm-table adm-stack adm-table-regs"><caption className="sr-only">{t("regsTitle")}</caption>
               <thead><tr><th scope="col">{t("colPerson")}</th><th scope="col">{t("colTicket")}</th><th scope="col">{t("colStatus")}</th><th scope="col" className="num">{t("colAmount")}</th><th scope="col">{t("colRegistered")}</th><th scope="col">{t("colAttended")}</th><th scope="col">{t("colActions")}</th></tr></thead>
@@ -121,9 +128,9 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
                   <td><div className="adm-actions">
                     {r.status === "confirmed" && (r.attended
                       ? <form action={setAttendance}>{hid}<input type="hidden" name="r" value={r.id} /><input type="hidden" name="to" value="0" /><button className="btn btn-secondary btn-sm" aria-label={`${t("unmark")}: ${r.user.name}`}>{t("unmark")}</button></form>
-                      : !e.cancelledAt && <form action={setAttendance}>{hid}<input type="hidden" name="r" value={r.id} /><input type="hidden" name="to" value="1" /><button className="btn btn-accent btn-sm" aria-label={`${t("markAttended")}: ${r.user.name}`}>{t("markAttended")}</button></form>)}
+                      : canMark && <form action={setAttendance}>{hid}<input type="hidden" name="r" value={r.id} /><input type="hidden" name="to" value="1" /><button className="btn btn-accent btn-sm" aria-label={`${t("markAttended")}: ${r.user.name}`}>{t("markAttended")}</button></form>)}
                     {canCancelReg(r) ? (
-                      <details className="adm-confirm"><summary className="btn btn-danger-outline btn-sm" aria-label={`${t("cancelReg")}: ${r.user.name}`}>{t("cancelReg")}…</summary>
+                      <details className="adm-confirm"><summary className="btn btn-danger-outline btn-sm" aria-label={`${t("cancelReg")}: ${r.user.name}`}>{t("cancelRegShort")}…</summary>
                         <form action={cancelRegistration}>{hid}<input type="hidden" name="r" value={r.id} /><p className="small" style={{ margin: 0 }}>{t("cancelRegConfirm", { name: r.user.name })}</p><button className="btn btn-danger btn-sm">{t("cancelRegYes")}</button></form>
                       </details>
                     ) : r.status === "confirmed" && <span className="small muted">{t("paidNoCancel")}</span>}

@@ -15,9 +15,10 @@ const row = (key: string) => one<{ key: string; value: unknown }>(`SELECT key, v
 async function resetBlock(p: Page, key: string) {
   if (!(await row(key))) return;
   await settings(p);
-  if (key.startsWith("tier.")) await p.locator(`#tier-${key.slice(5)}`).getByRole("button", { name: ts("resetTier") }).click();
-  else if (key === "site.contact") await p.locator("#site").getByRole("button", { name: ts("resetSite") }).click();
-  else await p.locator("#ops").getByRole("button", { name: ts("resetOps") }).click();
+  // Each reset has a confirm step: open it, then "Yes, reset".
+  const [scope, label] = key.startsWith("tier.") ? [`#tier-${key.slice(5)}`, ts("resetTier")] : key === "site.contact" ? ["#site", ts("resetSite")] : ["#ops", ts("resetOps")];
+  await p.locator(`${scope} summary`, { hasText: label }).click();
+  await p.locator(`${scope} details[open]`).getByRole("button", { name: ts("resetYes") }).click();
   await expect(p).toHaveURL(/msg=reset/);
 }
 

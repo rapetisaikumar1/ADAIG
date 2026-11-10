@@ -2,7 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/session";
 import { AdminNav } from "@/components/AppShell";
-import { eventTimeZone, dateLocale } from "@/components/EventCard";
+import { eventTimeZone, dateLocale } from "@/lib/time";
 import { EDITABLE_CONTENT, fileContent } from "@/lib/content";
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,8 @@ export default async function AdminContent({ params, searchParams }: { params: P
   const rows = await db.contentPage.findMany({ select: { slug: true, locale: true, updatedAt: true, updatedBy: true } });
   const ids = [...new Set(rows.map((r) => r.updatedBy).filter((x): x is string => !!x))];
   const people = new Map((await db.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
-  const fmt = (d: Date) => `${d.toLocaleString(dateLocale(locale), { dateStyle: "medium", timeStyle: "short", timeZone: eventTimeZone })} ${locale === "fr" ? "HE" : "ET"}`;
+  const et = (await getTranslations("admin"))("et");
+  const fmt = (d: Date) => `${d.toLocaleString(dateLocale(locale), { dateStyle: "medium", timeStyle: "short", timeZone: eventTimeZone })} ${et}`;
   const pages = EDITABLE_CONTENT.map((p) => {
     const en = rows.find((r) => r.slug === p.slug && r.locale === "en"), fr = rows.find((r) => r.slug === p.slug && r.locale === "fr");
     const last = [en, fr].filter((r) => r !== undefined).sort((a, b) => +b.updatedAt - +a.updatedAt)[0];
@@ -28,7 +29,7 @@ export default async function AdminContent({ params, searchParams }: { params: P
   );
   const status = (row: unknown, fallback = false) => row
     ? <span className="badge badge-amber">{t("stEdited")}</span>
-    : fallback ? <span className="badge" title={t("stFallbackHint")}>{t("stFallback")}</span> : <span className="badge">{t("stOriginal")}</span>;
+    : fallback ? <span className="badge cm-fallback" title={t("stFallbackHint")}>{t("stFallback")}</span> : <span className="badge">{t("stOriginal")}</span>;
   return (
     <div className="app adm"><AdminNav locale={locale} current="/admin/content" />
       <main id="main" className="app-main cm">

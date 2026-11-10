@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { currentAdmin } from "@/auth";
 import { db } from "@/lib/db";
 import { isUniqueViolation, safeLocale, idParam } from "@/lib/validation";
+import { stripStatus } from "@/components/EventCard";
 import { parseEventForm, slugify, SLUG_RE, cpeTitle } from "./eventForm";
 import { regView, cleanQuery } from "./views";
 
@@ -11,7 +12,7 @@ export async function createEvent(fd: FormData) {
   const locale = safeLocale(fd.get("locale")); const admin = await currentAdmin(); if (!admin) redirect(`/${locale}/login`);
   const f = parseEventForm(fd);
   if (!f) redirect(`/${locale}/admin/events?msg=invalid`);
-  const slug = slugify(f.title);
+  const slug = slugify(stripStatus(f.title)); // without the "(proposed)" suffix, so the address stays the same once confirmed
   const published = fd.get("publish") === "on";
   const created = await db.event.create({ data: { ...f, slug, published } });
   await db.auditLog.create({ data: { actor: admin.id, action: "event.created", target: created.id } }); // event id: the audit log links it to /admin/events/[id]
@@ -27,7 +28,8 @@ export async function togglePublish(fd: FormData) {
     if (r.count) await db.auditLog.create({ data: { actor: admin.id, action: e.published ? "event.unpublished" : "event.published", target: e.id } });
     else if (e.cancelledAt) redirect(`/${locale}/admin/events?msg=cancelledLocked`);
   }
-  redirect(`/${locale}/admin/events`);
+  const v = String(fd.get("v") ?? ""); // keep the list tab (whitelisted)
+  redirect(`/${locale}/admin/events${["drafts", "past", "all"].includes(v) ? `?v=${v}` : ""}`);
 }
 
 // ── Event detail page (/admin/events/[id]): edit, cancel/restore, delete, registrations and attendance ──
@@ -128,6 +130,9 @@ export async function setAttendance(fd: FormData) {
   const ids = [...new Set([...fd.getAll("ids"), ...fd.getAll("r")].map((x) => String(x).slice(0, 64)).filter(Boolean))].slice(0, 2000);
   if (!ids.length) back(locale, e.id, fd, "noneSelected", "#registrations");
   if (to && e.cancelledAt) back(locale, e.id, fd, "cancelledNoAttendance", "#registrations");
+  // Attendance (and its CPE credit) can only be recorded once the event has started (startsAt is an instant; shown in ET).
+  // Undoing attendance stays possible at any time.
+  if (to && +e.startsAt > Date.now()) back(locale, e.id, fd, "notStartedNoAttendance", "#registrations");
   const rows = await db.registration.findMany({ where: { id: { in: ids }, eventId: e.id, status: "confirmed", attended: !to }, include: { user: { select: { role: true } } } });
   const changed: string[] = [];
   for (const r of rows) {
