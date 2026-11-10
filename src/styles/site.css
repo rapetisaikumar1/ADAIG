@@ -659,3 +659,14 @@ details[open]>summary:not(.btn)::after{transform:translateY(4px) rotate(-135deg)
 .adm .cm .cm-preview{position:relative;border:1px solid var(--c-border);border-radius:var(--r-lg);background:#fff;overflow:hidden;max-height:none}
 .adm .cm .cm-rev .cm-preview{margin-top:var(--sp-2)}
 @media(max-width:640px){.adm .cm .cm-table,.adm .cm .cm-rev-table{min-width:0}.adm .cm .cm-editor textarea{min-height:320px;font-size:12px}.adm .cm .app-head .adm-actions{width:100%}.adm .cm .app-head .adm-actions .btn{flex:1}}
+
+/* ── /governance: leadership groups (public profiles) + open positions block, kept apart (scoped to .about-page) ── */
+.about-page .ab-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-5)}
+.about-page .ab-group{display:flex;flex-direction:column;min-width:0}.about-page .ab-group .ab-person{flex:1}
+.about-page .ab-group-title{font-size:var(--fs-lg);margin:0 0 var(--sp-4);padding-bottom:var(--sp-3);border-bottom:1px solid var(--c-border)}
+.about-page .ab-person h4{font-size:var(--fs-card-h);margin:0 0 var(--sp-1)}.about-page .ab-person>div:last-child{min-width:0;overflow-wrap:anywhere}
+.about-page .ab-open{margin-top:var(--sp-7);gap:var(--sp-3)}
+.about-page .ab-open-sub{font:600 var(--fs-sm)/1.3 var(--font-body);color:var(--slate-600);letter-spacing:0;margin:var(--sp-3) 0 0}
+.about-page .ab-seats-open{grid-template-columns:repeat(4,minmax(0,1fr))}.about-page .ab-seats-open li{background:#fff;border:1px dashed var(--slate-300)}
+@media(max-width:960px){.about-page .ab-seats-open{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.about-page .ab-groups{grid-template-columns:1fr}.about-page .ab-open{margin-top:var(--sp-6)}.about-page .ab-seats-open{grid-template-columns:repeat(2,minmax(0,1fr))}}
