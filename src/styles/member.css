@@ -1,0 +1,256 @@
+/* member.css — member portal /my/* (MEMBER, round 5; spec SP/r5/DESIGN_R5.md §10.1–10.2, §10.4).
+   Builds on shell.css (.app, .sidenav, .app-head, .panel, .kpis, .mcard, .settings-section) and components.css.
+   Every selector is scoped under .mbr (the member <main>) or .mbr-sidenav; tokens only, no raw hex. */
+
+/* ── Main column: a size container, so layouts follow the real content width (sidebar or tab bar) ───────────────────── */
+.mbr{container:mbr/inline-size}
+.mbr>*{max-width:1200px}
+
+/* ── Page header (VPo-6): [avatar] kicker · h1 · lead inside .app-head on every member page ─────────────────────────── */
+.mbr .mbr-head{align-items:center}
+.mbr .mbr-head-main{display:flex;align-items:center;gap:var(--sp-4);min-width:0;flex:1 1 420px}
+.mbr .mbr-head-text{min-width:0}
+.mbr .mbr-head .avatar{--av:60px;font-size:1.125rem}
+.mbr .mbr-kicker{margin:0 0 4px;font-size:var(--fs-ui);color:var(--slate-600);overflow-wrap:anywhere}
+.mbr .mbr-head .lead{max-width:72ch}
+
+/* ── Notices ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.mbr .mbr-alerts{display:grid;gap:var(--sp-3);margin:0 0 var(--sp-5)}
+.mbr .mbr-flash{margin:0 0 var(--sp-5)}
+.mbr .mbr-alerts-focus{margin:0}
+.mbr .alert>div{min-width:0}
+.mbr .mbr-alert-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.mbr .mbr-alert-actions form{margin:0}
+.mbr .mbr-alert-list{margin:6px 0 0;padding-left:20px}
+
+/* ── Sections ─────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.mbr .mbr-section{margin-top:var(--sp-7)}.mbr .mbr-section.is-first{margin-top:0}
+.mbr .mbr-sec-head{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);flex-wrap:wrap;margin:0 0 var(--sp-4)}
+.mbr .mbr-sec-head h2{margin:0;display:inline-flex;align-items:center;gap:10px}
+.mbr .mbr-count{display:inline-grid;place-items:center;min-width:24px;height:22px;padding:0 7px;border-radius:var(--r-pill);background:#fff;border:1px solid var(--line-cool);
+ font:500 .75rem/1 var(--font-mono);color:var(--slate-600);font-variant-numeric:tabular-nums}
+
+/* ── Panels (white, r12, hairline) ───────────────────────────────────────────────────────────────────────────────── */
+.mbr .mbr-panel{display:flex;flex-direction:column;align-items:stretch;gap:var(--sp-3);padding:var(--sp-6);min-width:0}
+.mbr .mbr-panel>.icon-tile{align-self:flex-start;margin-bottom:var(--sp-1)}
+.mbr .mbr-panel h2{margin:0}
+.mbr .mbr-panel p{margin:0;color:var(--slate-600)}
+.mbr .mbr-panel .mbr-help{font-size:var(--fs-sm);color:var(--slate-700);font-weight:500}
+.mbr .mbr-panel-foot{margin-top:auto;padding-top:var(--sp-3);display:flex;flex-wrap:wrap;gap:var(--sp-2)}
+
+/* ═══ My membership (member home) ═══════════════════════════════════════════════════════════════════════════════════ */
+.mbr .mbr-top{display:grid;gap:var(--sp-5);margin-bottom:var(--sp-5)}
+@container mbr (min-width:820px){.mbr .mbr-top{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}}
+/* stacked but still roomy (tablets): the side panel reads as a row — icon left, text right */
+@container mbr (min-width:561px) and (max-width:819.98px){
+ .mbr .mbr-top>.mbr-panel{display:grid;grid-template-columns:48px minmax(0,1fr);column-gap:var(--sp-5);row-gap:var(--sp-3);align-content:start}
+ .mbr .mbr-top>.mbr-panel>.icon-tile{grid-row:1/span 4;margin:0}
+ .mbr .mbr-top>.mbr-panel>:not(.icon-tile){grid-column:2}
+ .mbr .mbr-top>.mbr-panel>.mbr-panel-foot{padding-top:var(--sp-1)}
+}
+
+/* the membership card (.mcard in shell.css): the portal's one navy element */
+.mbr .mbr-mcard{display:flex;flex-direction:column;align-items:stretch;gap:var(--sp-4);min-height:280px;padding:var(--sp-6) var(--sp-6) calc(var(--sp-6) + 12px)}
+.mbr .mbr-mcard h2.eyebrow{margin:0;font:500 var(--fs-meta)/1.4 var(--font-mono);letter-spacing:var(--track-meta);text-transform:uppercase;color:var(--teal-300)}
+.mbr .mbr-mcard .mcard-title{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-4);margin-top:var(--sp-2);padding-right:120px}
+.mbr .mbr-mcard .mcard-tier{font-size:clamp(2rem,1.6rem + 1.2vw,2.75rem);line-height:1.05}
+.mbr .mbr-mcard .mcard-body{margin:0;max-width:52ch;color:var(--on-dark)}
+.mbr .mbr-mcard dl{margin-top:var(--sp-2)}
+.mbr .mbr-mcard .mcard-foot{margin:auto 0 0;padding-top:var(--sp-1)}
+/* standalone links on the card get a 44px hit area (FA2-5) */
+.mbr .mbr-mcard :is(.mcard-foot,.mcard-actions) a:not(.btn){display:inline-flex;align-items:center;min-height:44px}
+.mbr .mbr-mcard .mcard-foot a{color:var(--teal-300)}.mbr .mbr-mcard .mcard-foot a:hover{color:#fff}
+.mbr .mbr-mcard a:focus-visible{outline-color:var(--teal-300)}
+/* status chip on navy: white outline (shell.css) with the tone kept in its marker */
+.mbr .mbr-mcard .status{min-height:28px;padding:3px 12px;font-size:.8125rem}
+.mbr .mbr-mcard .status-available::before{background:var(--teal-300)}
+.mbr .mbr-mcard .status-dev::before{background:var(--amber-400)}
+.mbr .mbr-mcard .status-danger::before{background:var(--red-200)}
+.mbr .mbr-mcard .status-pending::before{background:var(--amber-400);box-shadow:none}
+.mbr .mbr-mcard .mcard-foot a.mcard-quiet{color:var(--on-dark-muted);font-size:var(--fs-sm);font-weight:500;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 45%,transparent);text-underline-offset:3px}
+.mbr .mbr-mcard .mcard-foot a.mcard-quiet:hover{color:#fff}
+.mbr .mbr-mcard .status-planned::before{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor}
+/* guest: the card becomes the onboarding panel (status + apply on the left, "How joining works" on the right) */
+.mbr .mbr-mcard.is-none{grid-column:1/-1;display:grid;gap:var(--sp-6);min-height:0;align-items:start}
+@container mbr (min-width:820px){.mbr .mbr-mcard.is-none{grid-template-columns:minmax(0,6fr) minmax(0,5fr);gap:var(--sp-7);padding:var(--sp-7) var(--sp-7) calc(var(--sp-7) + 12px)}
+ /* side by side, "How joining works" sits in the card's top-right corner, under the cube emblem (.mcard::after, 200px wide,
+    ends ~82px below the card top): start it one step lower so the art clears the panel (VIS-R7 m11) */
+ .mbr .mbr-mcard.is-none .mcard-how{margin-top:var(--sp-7)}}
+.mbr .mbr-mcard.is-none .mcard-col{display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-4);min-width:0}
+.mbr .mbr-mcard.is-none .mcard-tier{margin-top:var(--sp-1)}
+.mbr .mbr-mcard .mcard-actions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-3) var(--sp-5);margin-top:var(--sp-2)}
+.mbr .mbr-mcard .mcard-actions .link-arrow{color:var(--teal-300)}.mbr .mbr-mcard .mcard-actions .link-arrow:hover{color:#fff}
+.mbr .mbr-mcard .mcard-how{position:relative;display:grid;gap:var(--sp-3);min-width:0;padding:var(--sp-5);border-radius:var(--r-panel);
+ background:color-mix(in srgb,var(--navy-950) 90%,transparent);border:1px solid color-mix(in srgb,#fff 14%,transparent)}
+.mbr .mbr-mcard .mcard-how h3{margin:0;color:#fff;font-size:1.0625rem}
+.mbr .mbr-mcard .mcard-how p{margin:0;color:var(--on-dark);font-size:var(--fs-sm)}
+.mbr .mbr-mcard .mcard-how .mbr-steps.is-compact{border-top-color:color-mix(in srgb,#fff 14%,transparent)}
+.mbr .mbr-mcard .mcard-how .mbr-steps.is-compact>li{border-bottom-color:color-mix(in srgb,#fff 14%,transparent)}
+.mbr .mbr-mcard .mcard-how .mbr-steps.is-compact>li:last-child{border-bottom:0;padding-bottom:0}
+.mbr .mbr-mcard .mcard-how .mbr-steps.is-compact>li::before{background:color-mix(in srgb,var(--teal-300) 16%,transparent);color:var(--teal-300)}
+.mbr .mbr-mcard .mcard-how .mbr-steps>li b{color:#fff}
+
+/* steps ("What happens next" for a pending application; compact list inside "How joining works") */
+.mbr .mbr-steps{list-style:none;counter-reset:st;padding:0;margin:0;display:grid;gap:var(--sp-4)}
+.mbr .mbr-steps>li{counter-increment:st;position:relative;display:grid;gap:4px;align-content:start;padding-top:var(--sp-4);border-top:3px solid var(--line-strong)}
+.mbr .mbr-steps>li::before{content:counter(st,decimal-leading-zero);font:500 var(--fs-meta)/1 var(--font-mono);letter-spacing:.08em;color:var(--slate-600);margin-bottom:6px}
+.mbr .mbr-steps>li b{font-weight:600;color:var(--navy-800)}
+.mbr .mbr-steps>li span{font-size:var(--fs-sm);color:var(--slate-600)}
+.mbr .mbr-steps>li.is-done{border-top-color:var(--teal-700)}
+.mbr .mbr-steps>li.is-done::before{content:"";width:20px;height:20px;border-radius:50%;background:var(--teal-700) var(--check-mark-white) center/14px no-repeat}
+.mbr .mbr-steps>li.is-current{border-top-color:var(--navy-800)}.mbr .mbr-steps>li.is-current::before{color:var(--navy-800)}
+@container mbr (min-width:700px){.mbr .mbr-steps:not(.is-compact){grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-5)}}
+.mbr .mbr-steps.is-compact{gap:0;margin:var(--sp-1) 0 0;border-top:1px solid var(--line-cool)}
+.mbr .mbr-steps.is-compact>li{grid-template-columns:28px minmax(0,1fr);align-items:center;column-gap:var(--sp-3);padding:10px 0;border-top:0;border-bottom:1px solid var(--line-cool)}
+.mbr .mbr-steps.is-compact>li::before{margin:0;width:28px;height:32px;display:grid;place-items:center;color:var(--navy-800);background:var(--navy-50);
+ clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.mbr .mbr-steps.is-compact>li b{font-weight:500;font-size:var(--fs-ui)}
+
+.mbr .mbr-next{display:grid;gap:var(--sp-4);margin-bottom:var(--sp-5)}
+.mbr .mbr-next>.mbr-alerts{margin:0}
+.mbr .mbr-progress{gap:var(--sp-5)}
+
+/* activity tiles: real counts only (shell.css .kpis); the linked tile shows where it goes */
+.mbr .mbr-kpis{margin:0}
+.mbr .mbr-kpis .kpi{padding:20px 22px 18px;gap:4px}
+.mbr .mbr-kpis .kpi .v{font-size:2rem}
+.mbr .mbr-kpis .kpi .d{overflow-wrap:anywhere;padding-right:var(--sp-5)}
+.mbr .mbr-kpis a.kpi .kpi-go{position:absolute;right:18px;top:18px;color:var(--slate-500);transition:color var(--dur-1),translate var(--dur-2) var(--ease-out)}
+.mbr .mbr-kpis a.kpi:hover .kpi-go{color:var(--teal-700);translate:3px 0}
+.mbr .mbr-kpis a.kpi:hover .k{color:var(--navy-800)}
+.mbr .mbr-kpis a.kpi:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+
+/* ═══ Profile & privacy: one settings sheet per concern, danger zone apart ═════════════════════════════════════════ */
+.mbr .mbr-sheet{background:#fff;border:1px solid var(--line-cool);border-radius:var(--r-panel);padding:0 var(--sp-6);margin-bottom:var(--sp-5)}
+.mbr .mbr-sheet .settings-section{padding:var(--sp-6) 0;border-top:1px solid var(--line-cool)}
+.mbr .mbr-sheet>.settings-section:first-child,.mbr .mbr-sheet>form:first-child>.settings-section:first-of-type{border-top:0}
+.mbr .mbr-sheet>form>.settings-section:first-of-type{padding-top:var(--sp-6)}
+.mbr .settings-section>header{min-width:0}
+/* settings: label column only when the content column is wide enough; otherwise title + description above the fields */
+@container mbr (max-width:899.98px){.mbr .settings-section{grid-template-columns:minmax(0,1fr);gap:var(--sp-4)}.mbr .settings-section>header p{max-width:60ch}}
+.mbr .settings-section>header h2{margin:0 0 6px}
+.mbr .settings-section>header p{max-width:40ch;line-height:1.5}
+.mbr .mbr-section-body{display:grid;gap:var(--sp-4);align-content:start;min-width:0}
+.mbr .mbr-fields{gap:var(--sp-4) var(--sp-5);align-items:start}.mbr .mbr-fields .field{margin:0}
+.mbr .mbr-pref{display:grid;gap:var(--sp-5);min-width:0}
+.mbr .mbr-checks{border:0;margin:0;padding:var(--sp-4) 0 0;border-top:1px solid var(--line-cool);display:grid;gap:var(--sp-4);min-width:0}
+.mbr .mbr-check-row{display:grid;gap:4px}.mbr .mbr-check-row .hint{margin:0 0 0 30px}
+/* shared .save-row (components.css): always the last row of its section's fields column — one variant on the page */
+.mbr .mbr-section-body>.save-row,.mbr .mbr-pref>.save-row{margin-top:var(--sp-1)}
+/* shared .danger-zone (§10.5) laid on the settings grid: same inner padding as the sheets above, so the columns line up */
+.mbr .danger-zone{display:block;padding:0 var(--sp-6);margin-bottom:var(--sp-5)}
+.mbr .danger-zone>.settings-section{padding:var(--sp-6) 0;border-top:0}
+/* the label sits in the section header, where shell.css styles every p as a slate description: restore the label */
+.mbr .danger-zone .settings-section>header>.danger-zone-label{margin:0 0 var(--sp-2);max-width:none;font:500 var(--fs-meta)/1.4 var(--font-mono);color:var(--red-700)}
+/* phones: a save row that holds a confirm checkbox keeps DOM order (tick first, then the button) instead of the shared
+   primary-on-top reverse, so the visual order matches the focus order (REQUEST to DESIGN: move into components.css) */
+@media(max-width:640px){.mbr .save-row:has(>.check){flex-direction:column}}
+/* shell.css .app-main h2 (navy) loads after components.css and would win over the danger-zone red */
+.mbr .danger-zone h2{color:var(--red-700)}
+.mbr .mbr-dz-body{margin:0;color:var(--slate-700);max-width:75ch}
+/* read-only Membership summary (round 7): two facts per row, on the same columns as the form grid below; the link sits under them */
+.mbr .mbr-ms-facts{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-4) var(--sp-5)}
+.mbr .mbr-ms-facts>div{display:grid;gap:4px;align-content:start;min-width:0}
+.mbr .mbr-ms-facts dt{font-size:var(--fs-sm);font-weight:500;color:var(--slate-600)}
+.mbr .mbr-ms-facts dd{margin:0;font-weight:600;color:var(--navy-800);overflow-wrap:anywhere}
+.mbr .mbr-ms-facts dd .status{font-weight:500}
+.mbr .mbr-ms-facts .mbr-ms-tier{font:500 1.25rem/1.25 var(--font-display)}
+.mbr .mbr-ms-none{display:grid;gap:var(--sp-2);justify-items:start}.mbr .mbr-ms-none p{margin:0;color:var(--slate-600);max-width:60ch}
+.mbr .mbr-ms-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-5);margin:0}
+.mbr .mbr-ms-foot .link-arrow{display:inline-flex;align-items:center;min-height:44px}
+/* hints under the privacy checkboxes line up with the label text (box 18 + gap) */
+.mbr .mbr-check-row .hint{max-width:72ch}
+.mbr .mbr-downloads{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-content:start;align-items:flex-start}
+.mbr input[readonly]{background:var(--mist);color:var(--slate-600);border-color:var(--line-strong);cursor:default}
+.mbr .check>span{min-width:0}
+/* ═══ My events ═════════════════════════════════════════════════════════════════════════════════════════════════════ */
+.mbr .mbr-events{list-style:none;padding:0;margin:0;display:grid;gap:var(--sp-3)}
+.mbr .mbr-ev{flex-direction:row;align-items:flex-start;gap:var(--sp-5);padding:var(--sp-5) var(--sp-6)}
+.mbr .mbr-ev.is-unpaid{border-left:3px solid var(--amber-400)}
+.mbr .mbr-ev .date-block{min-width:64px}
+.mbr .mbr-ev-body{display:grid;gap:var(--sp-2);min-width:0;flex:1}
+.mbr .mbr-ev-body h3{font-size:1.125rem;line-height:1.35;margin:2px 0 0}
+.mbr .mbr-ev-body h3 a{color:var(--navy-800);text-decoration:none}.mbr .mbr-ev-body h3 a:hover{color:var(--teal-700);text-decoration:underline}
+.mbr .mbr-ev-meta{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:var(--fs-sm);color:var(--slate-600)}
+.mbr .mbr-ev-meta li{display:inline-flex;align-items:center;gap:6px;min-width:0}.mbr .mbr-ev-meta svg{color:var(--slate-500)}
+.mbr .mbr-ev-pay{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sp-2) var(--sp-4);margin-top:var(--sp-1);padding:12px 14px;border-radius:var(--r-md);background:var(--amber-50);border:1px solid var(--amber-100)}
+.mbr .mbr-ev-pay p{margin:0;font-size:var(--fs-sm);color:var(--amber-800)}
+.mbr .mbr-access{margin-top:var(--sp-1);padding:12px 16px;border-radius:var(--r-md);background:var(--teal-50);border:1px solid color-mix(in srgb,var(--teal-700) 22%,#fff);border-left:3px solid var(--teal-700)}
+.mbr .mbr-access-title{display:flex;align-items:center;gap:8px;margin:0;font-weight:600;color:var(--teal-800);font-size:var(--fs-sm)}
+.mbr .mbr-access-text{margin:4px 0 0;white-space:pre-line;overflow-wrap:anywhere;font-size:var(--fs-sm);color:var(--ink)}
+.mbr .mbr-access-pending{display:flex;align-items:center;gap:8px;margin:var(--sp-1) 0 0;padding:10px 14px;border-radius:var(--r-md);background:var(--mist);font-size:var(--fs-sm);color:var(--slate-600)}
+.mbr .mbr-access-pending svg{flex:none;color:var(--slate-500)}
+
+/* compact empty state (secondary lists): art beside the text */
+.mbr .mbr-empty-sm .empty-state{grid-template-columns:auto minmax(0,1fr);justify-items:start;text-align:left;column-gap:var(--sp-5);row-gap:2px;padding:var(--sp-5) var(--sp-6)}
+.mbr .mbr-empty-sm .empty-state .empty-art{grid-row:1/span 2;width:72px}
+.mbr .mbr-empty-sm .empty-state h3{margin:0;align-self:end}.mbr .mbr-empty-sm .empty-state p{margin:0;align-self:start}
+.mbr .mbr-empty-sm .empty-state:has(.empty-actions){grid-template-columns:auto minmax(0,1fr) auto}
+.mbr .mbr-empty-sm .empty-state .empty-actions{grid-column:3;grid-row:1/span 2;align-self:center;margin:0}
+.mbr .empty-state{max-width:1200px}
+
+/* ═══ Community ═════════════════════════════════════════════════════════════════════════════════════════════════════ */
+.mbr .mbr-com{list-style:none;padding:0;margin:0}
+.mbr .mbr-com-card{gap:var(--sp-3);padding:var(--sp-6)}
+.mbr .mbr-com-top{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--sp-3);margin-bottom:var(--sp-1)}
+.mbr .mbr-com-card h2{margin:0;font-size:1.0625rem}
+.mbr .mbr-com-card p{color:var(--slate-600)}
+.mbr .mbr-com-card .card-foot{padding-top:var(--sp-2)}
+.mbr .mbr-com-card:not(.is-live){background:color-mix(in srgb,#fff 55%,var(--canvas))}
+/* the whole card is the link's hit area (::before — .link-arrow draws its arrow in ::after) */
+.mbr .mbr-stretch::before{content:"";position:absolute;inset:0;border-radius:var(--r-panel)}
+.mbr .mbr-stretch:focus-visible{outline:0}.mbr .mbr-stretch:focus-visible::before{outline:2px solid var(--focus);outline-offset:3px}
+.mbr .mbr-com-card:has(.mbr-stretch){transition:transform var(--dur-2) var(--ease-out),box-shadow var(--dur-2),border-color var(--dur-2)}
+.mbr .mbr-com-card:has(.mbr-stretch):hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);border-color:color-mix(in srgb,var(--navy-800) 28%,var(--line-cool))}
+
+/* ═══ Member directory ══════════════════════════════════════════════════════════════════════════════════════════════ */
+.mbr .mbr-dir-toolbar{margin-bottom:var(--sp-3)}
+.mbr .mbr-dir-toolbar .search-bar{max-width:560px;flex:1 1 360px}
+.mbr .mbr-search input{min-width:0;flex:1 1 220px;background-color:#fff}
+.mbr .mbr-dir-count{margin:0;font:500 var(--fs-meta)/1.5 var(--font-mono);letter-spacing:.04em;color:var(--slate-600)}
+.mbr .mbr-optin{display:flex;align-items:flex-start;gap:10px;margin:0 0 var(--sp-5);padding:10px 14px;border-radius:var(--r-md);background:var(--navy-50);color:var(--navy-800);font-size:var(--fs-sm)}
+.mbr .mbr-optin.is-listed{background:var(--teal-50);color:var(--teal-800)}
+.mbr .mbr-optin svg{flex:none;margin-top:1px}.mbr .mbr-optin a{color:inherit;font-weight:600}
+.mbr .mbr-people{list-style:none;padding:0;margin:0}
+.mbr .mbr-person{gap:var(--sp-4);padding:var(--sp-5);align-items:center}
+.mbr .mbr-person.is-you{border-color:color-mix(in srgb,var(--teal-700) 35%,#fff)}
+.mbr .mbr-person-text{display:grid;gap:3px;min-width:0}
+.mbr .mbr-person h2{margin:0;font-size:1rem;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.mbr .mbr-person .status{min-height:20px;padding:0 8px;font-size:.75rem}
+.mbr .mbr-person-role{margin:0;font-size:var(--fs-sm);color:var(--slate-700)}
+.mbr .mbr-person-org{margin:0;display:flex;align-items:center;gap:6px;font-size:var(--fs-sm);color:var(--slate-600)}.mbr .mbr-person-org svg{flex:none;color:var(--slate-500)}
+
+/* Tab bar (≤900px, FUNC-R7 note 6): the right-edge fade only hints at more tabs while there are more; scrolled to the end it
+   is gone, so the last tab (Sign out) shows in full. The end space is a flex spacer (::after), not padding-right, which some
+   browsers drop at the end of a scrolling flex row. Without scroll-driven animations the fade stays, over the spacer only. */
+@property --mbr-tabs-fade{syntax:"<length>";inherits:false;initial-value:40px}
+@keyframes mbr-tabs-end{0%,85%{--mbr-tabs-fade:40px}100%{--mbr-tabs-fade:0px}}
+@media(max-width:900px){
+ .app>.mbr-sidenav{position:sticky;top:var(--header-h);z-index:20;background:#fff;scroll-snap-type:x mandatory;scroll-padding-inline:0 var(--sp-5);padding-right:0;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - var(--mbr-tabs-fade)),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - var(--mbr-tabs-fade)),transparent)}
+ .app>.mbr-sidenav::after{content:"";flex:0 0 var(--sp-5)}
+ .mbr-sidenav>a,.mbr-sidenav>form{scroll-snap-align:start}
+ /* the last tab snaps to the end edge (with the spacer), so a swipe to the end shows it whole instead of stopping short */
+ .mbr-sidenav>form:last-of-type{scroll-snap-align:end}
+ @supports (animation-timeline:scroll()){.app>.mbr-sidenav{animation:mbr-tabs-end linear both;animation-timeline:scroll(self inline)}}
+}
+/* ── Sidebar (MemberNav): icon spacing; Sign out matches the links (VPo-16) ───────────────────────────────────────── */
+.mbr-sidenav .sidenav-signout button{font-size:.9375rem}
+
+/* ── Responsive ───────────────────────────────────────────────────────────────────────────────────────────────────── */
+@container mbr (max-width:560px){
+ .mbr .mbr-mcard{padding:var(--sp-5) var(--sp-5) calc(var(--sp-5) + 14px);min-height:0}
+ .mbr .mbr-mcard::after{width:140px;right:-36px;top:-20px;opacity:.55}
+ .mbr .mbr-mcard .mcard-title{padding-right:48px}
+ .mbr .mbr-panel,.mbr .mbr-com-card{padding:var(--sp-5)}
+ .mbr .mbr-sheet,.mbr .danger-zone{padding:0 var(--sp-5)}
+ .mbr .mbr-ev{padding:var(--sp-4);gap:var(--sp-3)}
+ .mbr .mbr-ev .date-block{min-width:54px;padding:7px 8px 6px}.mbr .mbr-ev .date-block b{font-size:1.375rem}
+ .mbr .mbr-ev-pay .btn,.mbr .mbr-panel-foot .btn,.mbr .mbr-downloads .btn{width:100%;white-space:normal}
+ .mbr .mbr-empty-sm .empty-state{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center;padding:var(--sp-5)}
+ .mbr .mbr-empty-sm .empty-state .empty-art{grid-row:auto}
+ .mbr .mbr-empty-sm .empty-state:has(.empty-actions){grid-template-columns:minmax(0,1fr)}.mbr .mbr-empty-sm .empty-state .empty-actions{grid-column:auto;grid-row:auto;margin-top:var(--sp-2)}
+ .mbr .mbr-head .avatar{--av:48px;font-size:1rem}
+ .mbr .mbr-dir-count{width:100%}
+ .mbr .mbr-search input{flex-basis:100%}.mbr .mbr-search .btn{flex:1 1 0}
+}
+@media(max-width:640px){.mbr .mbr-head .page-actions{width:100%}.mbr .mbr-head .page-actions .btn{width:100%}.mbr .empty-state .empty-actions .btn{width:100%}}

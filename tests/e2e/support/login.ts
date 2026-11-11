@@ -3,14 +3,25 @@ import { msg } from "./i18n";
 
 export type Credentials = { email: string; password: string };
 
-/** Sign in through the login form; resolves when the dashboard (or `expectUrl`) is reached. */
+/**
+ * Any portal home: members and guests land on /<locale>/my/billing; admins on the first Admin Portal section their role can
+ * view (members, events, messages, users, roles, then the Overview), or /<locale>/admin/no-access for a role without any.
+ */
+export const PORTAL_HOME_RE = (locale: "en" | "fr" = "en") =>
+  new RegExp(`/${locale}/(my/billing|admin/(members|events|messages|users|roles|dashboard|no-access))(\\?|$)`);
+
+/**
+ * Sign in through the login form; resolves when a portal home is reached (PORTAL_HOME_RE: seed/Super Admin admins land on
+ * /<locale>/admin/members, admins with a narrower role on their first permitted section, everyone else on /<locale>/my/billing
+ * "My membership") or `expectUrl` when given. Tests that care which home was reached assert it.
+ */
 export async function uiLogin(page: Page, c: Credentials, opts: { locale?: "en" | "fr"; expectUrl?: RegExp } = {}) {
   const locale = opts.locale ?? "en";
   await page.goto(`/${locale}/login`);
   await page.locator("#le").fill(c.email);
   await page.locator("#lp").fill(c.password);
   await page.locator("main form").getByRole("button", { name: msg("auth.signIn", {}, locale) }).click();
-  await page.waitForURL(opts.expectUrl ?? new RegExp(`/${locale}/my/dashboard`));
+  await page.waitForURL(opts.expectUrl ?? PORTAL_HOME_RE(locale));
 }
 
 /**

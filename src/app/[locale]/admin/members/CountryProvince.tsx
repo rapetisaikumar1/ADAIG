@@ -18,7 +18,7 @@ export function CountryProvince({ idp, locale, country: initialCountry, province
   const list = countries.includes(initialCountry) ? countries : [initialCountry, ...countries]; // a legacy value stays selectable
   const value = subs?.some((p) => p.code === province) ? province : "";
   return (
-    <div className="grid g2" style={{ gap: "0 16px" }}>
+    <div className="adm-form-grid">
       <div className="field"><label htmlFor={`${idp}-country`}>{labels.country}</label>
         <select id={`${idp}-country`} name="country" value={country} onChange={(e) => { setCountry(e.target.value); setProvince(""); }}>
           {list.map((c) => <option key={c} value={c}>{countryLabel(c, locale)}</option>)}

@@ -1,0 +1,123 @@
+/* base.css — DESIGN (round 5, "Facet Architecture"; spec SP/r5/DESIGN_R5.md §2–§5).
+   Reset · typography · links · focus · selection · layout primitives · motion (keyframes, reveal, assemble) · utilities.
+   Area files (chrome/home/pages/member/admin) build on these; only DESIGN edits this file. */
+
+/* ── Reset ───────────────────────────────────────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:calc(var(--header-h) + 16px);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;font-family:var(--font-body);font-size:var(--fs-base);line-height:var(--lh-body);color:var(--c-text);background:var(--c-bg);
+ -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;font-optical-sizing:auto}
+/* the footer sits at the bottom of short pages (admin 404, empty lists) */
+body{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}body>main,body>.app{flex:1 0 auto}
+img,svg,video{max-width:100%;display:block}
+button,input,select,textarea{font:inherit;color:inherit}
+hr{border:0;border-top:1px solid var(--c-border);margin:var(--sp-6) 0}
+::selection{background:rgba(17,165,149,.24);color:var(--navy-950)}
+
+/* ── Typography ──────────────────────────────────────────────────────────────────────────────────────────── */
+/* Newsreader = h1/h2/display/statements at 440–500 (never below 20px, never above 600); Inter 600 = h3/h4, card titles, UI */
+h1,h2{font-family:var(--font-display);font-weight:var(--fw-display);color:var(--navy-800);text-wrap:balance;margin:0 0 var(--sp-3);font-optical-sizing:auto}
+h1{font-size:var(--fs-h1);line-height:var(--lh-tight);letter-spacing:var(--track-display)}
+h2{font-size:var(--fs-h2);line-height:1.12;letter-spacing:-.022em;font-weight:var(--fw-h2)}
+h3,h4{font-family:var(--font-body);font-weight:600;color:var(--navy-800);letter-spacing:-.011em;text-wrap:balance;margin:0 0 var(--sp-2)}
+h3{font-size:var(--fs-h3);line-height:var(--lh-snug)}h4{font-size:var(--fs-h4);line-height:1.4}
+p{margin:0 0 var(--sp-4);text-wrap:pretty}
+b,strong{font-weight:600}
+code,kbd,samp{font-family:var(--font-mono);font-size:.9em}
+small{font-size:var(--fs-sm)}
+.display{font:var(--fw-display) var(--fs-display)/1.02 var(--font-display);letter-spacing:-.032em;color:var(--navy-800);text-wrap:balance}
+/* statement: one large serif sentence; a .quiet span gives the two-tone effect at ≥4.5:1 (slate-600 = 7.06 on paper) */
+.statement{font:400 var(--fs-statement)/1.3 var(--font-display);letter-spacing:-.015em;color:var(--navy-800);max-width:28ch;text-wrap:balance;margin:0}
+.statement .quiet{color:var(--slate-600)}.statement em{font-style:italic;color:var(--face-right)}
+.h2-compact{font-size:var(--fs-h2-compact)}
+/* eyebrow = section name in mono caps (replaces breadcrumbs). The marker is the cube's top face (a 30° rhombus). */
+.eyebrow{display:inline-flex;align-items:center;gap:10px;max-width:100%;vertical-align:top;margin-bottom:var(--sp-4);
+ font:500 var(--fs-meta)/1.4 var(--font-mono);letter-spacing:var(--track-meta);text-transform:uppercase;color:var(--teal-700)}
+.eyebrow::before{content:"";flex:none;width:12px;height:7px;background:currentColor;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.meta{font:500 var(--fs-meta)/1.5 var(--font-mono);letter-spacing:.04em;color:var(--slate-600)}
+.lead{font-size:var(--fs-lead);line-height:1.55;color:var(--slate-600);max-width:60ch}
+.muted{color:var(--c-muted)}.small{font-size:var(--fs-sm)}
+.tnum,.num,time{font-variant-numeric:lining-nums tabular-nums}
+.prose{max-width:68ch}.prose h2{margin-top:var(--sp-7)}.prose h3{margin-top:var(--sp-6)}
+.prose ul,.prose ol{padding-left:1.25em;margin:0 0 var(--sp-4)}.prose li+li{margin-top:6px}
+
+/* ── Links & focus ───────────────────────────────────────────────────────────────────────────────────────── */
+a{color:var(--teal-700);text-decoration-line:underline;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-color:color-mix(in srgb,currentColor 45%,transparent);transition:color var(--dur-1),text-decoration-color var(--dur-1)}
+a:hover{color:var(--teal-800);text-decoration-color:currentColor}
+:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:4px}
+/* dark surfaces: teal-300 ring (12.4:1 on navy-950; the teal-700 ring is under 3:1 there) */
+:is(.hero,.page-hero.is-dark,.bg-navy,.auth-side,.site-footer,.util,.ds-demo-dark,.ds-tile-dark,.hero-strip,.on-dark) :focus-visible,.skip:focus-visible{outline-color:var(--teal-300)}
+.skip{position:absolute;left:-999px;top:8px;background:var(--navy-800);color:#fff;padding:10px 16px;border-radius:var(--r-sm);z-index:100;font-weight:600;text-decoration:none}.skip:focus{left:8px}
+/* <main id="main" tabindex="-1"> takes focus from the skip link (QA-FA-18); it is not a control, so no ring on it (click or skip) */
+main:focus{outline:none}
+
+/* ── Layout primitives ───────────────────────────────────────────────────────────────────────────────────── */
+.container{width:100%;max-width:var(--container);margin:0 auto;padding:0 var(--gutter)}
+.container-wide{max-width:var(--container-wide)}.container-text{max-width:calc(var(--container-text) + 2 * var(--gutter))}
+.section{padding:var(--section-y) 0}.section-lg{padding:var(--section-y-lg) 0}.section-tight{padding:clamp(40px,2rem + 2vw,64px) 0}
+.stack{display:grid;gap:var(--stack,var(--sp-4));align-content:start}.stack>*{margin:0}
+.cluster{display:flex;flex-wrap:wrap;align-items:center;gap:var(--cluster,var(--sp-3))}
+.grid{display:grid;gap:var(--sp-5)}.grid>*{min-width:0}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+/* asymmetric splits (12-col feel without a 12-col system): 5/7, 7/5, 4/8 */
+.split{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(32px,2rem + 3vw,80px);align-items:start}
+.split.is-7-5{grid-template-columns:minmax(0,7fr) minmax(0,5fr)}.split.is-4-8{grid-template-columns:minmax(0,4fr) minmax(0,8fr)}.split.is-center{align-items:center}
+.layout-sidebar{display:grid;grid-template-columns:260px minmax(0,1fr);gap:var(--sp-6)}
+.layout-aside{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--sp-7)}
+@media(max-width:960px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.split,.split.is-7-5,.split.is-4-8{grid-template-columns:minmax(0,1fr);gap:var(--sp-6)}}
+@media(max-width:900px){.layout-sidebar,.layout-aside{grid-template-columns:minmax(0,1fr)}.layout-aside .sticky-side{position:static}}
+@media(max-width:640px){.grid{gap:var(--sp-4)}.g2,.g3,.g4{grid-template-columns:minmax(0,1fr)}}
+
+/* ── Motion ──────────────────────────────────────────────────────────────────────────────────────────────── */
+/* Durations 120/200/320/520ms, one easing. Content is ALWAYS visible without animation: keyframes only animate FROM a state. */
+@keyframes adaig-rise{from{opacity:0;transform:translateY(8px)}}
+@keyframes facet-rise{from{opacity:.001;translate:0 14px}}
+/* "assemble": a piece slides 12px along the iso axis (30°: dx .866, dy .5) and fades in */
+@keyframes facet-in{from{opacity:0;translate:calc(var(--dx,-.866) * 12px) calc(var(--dy,-.5) * 12px)}}
+@keyframes facet-core{from{scale:.85;opacity:0}}
+@keyframes skeleton-sheen{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:no-preference){
+ html{scroll-behavior:smooth}
+ /* .assemble > * : children assemble in order; set --i on children for custom order (default stagger by nth-child) */
+ .assemble>*{animation:facet-in var(--dur-4) var(--ease-out) both;animation-delay:calc(var(--i,0) * 60ms)}
+ .assemble>:nth-child(2){--i:1}.assemble>:nth-child(3){--i:2}.assemble>:nth-child(4){--i:3}.assemble>:nth-child(5){--i:4}.assemble>:nth-child(n+6){--i:5}
+ /* hero/page intro: text rises once on load (≤ 520ms + 180ms stagger) */
+ .rise>*{animation:adaig-rise var(--dur-4) var(--ease-out) both}
+ .rise>:nth-child(2){animation-delay:60ms}.rise>:nth-child(3){animation-delay:120ms}.rise>:nth-child(n+4){animation-delay:180ms}
+}
+/* scroll reveal — progressive enhancement only (QA-REQ-01). Content is visible by default: fill-mode NONE means the keyframe applies
+   only while the block is actually crossing the bottom edge of the viewport (entry 0–32%), so anything not yet scrolled to, a print,
+   or a full-page capture shows the block at full opacity. Screen only; needs scroll-driven animations and motion allowed. */
+@keyframes facet-reveal{from{opacity:.35;translate:0 12px}}
+@supports (animation-timeline:view()){
+ @media screen and (prefers-reduced-motion:no-preference){
+  .reveal,.reveal-children>*{animation:facet-reveal linear none;animation-timeline:view();animation-range:entry 0% entry 32%}
+ }
+}
+@media print{.reveal,.reveal-children>*,.rise>*,.assemble>*,.facet-art .c,.facet-art .core{animation:none!important;opacity:1!important;translate:none!important}}
+/* print (QA-REQ-13): browsers drop backgrounds, so filled controls would print as faint text on white — print them as outlined
+   ink text; dark surfaces print as plain ink on paper; decorative art and lattices are left out */
+@media print{
+ .btn,.chip,.badge.nav-tag,.badge-navy.ribbon{background:none!important;color:#000!important;border:1px solid #000!important;box-shadow:none!important}
+ .bg-navy,.page-hero.is-dark,.mcard,.auth-side,.bulk-bar,.toast{background:none!important;color:#000!important;clip-path:none!important;border:1px solid #000}
+ :is(.bg-navy,.page-hero.is-dark,.mcard,.auth-side) :is(h1,h2,h3,h4,p,li,dt,dd,a,span,.eyebrow,.lead){color:#000!important}
+ .lattice::before,.page-hero::before,.page-hero::after,.bg-navy::before,.bg-navy::after,.mcard::after{display:none!important}
+ a[href]{text-decoration:underline}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+/* ── Utilities ───────────────────────────────────────────────────────────────────────────────────────────── */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.link-tap{display:inline-block;padding-block:10px;margin-block:-10px}/* ≥40px tap area for standalone text links */
+.nowrap{white-space:nowrap}.balance{text-wrap:balance}.center{text-align:center}
+.mt-0{margin-top:0}.mb-0{margin-bottom:0}
+/* isometric lattice behind EMPTY space only (never behind text): add .lattice to a positioned block; the pattern fades out */
+.lattice{position:relative;isolation:isolate}
+.lattice::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:var(--lattice) 0 0/var(--lattice-size);
+ -webkit-mask-image:radial-gradient(70% 90% at 85% 40%,#000 0%,transparent 72%);mask-image:radial-gradient(70% 90% at 85% 40%,#000 0%,transparent 72%)}
+.lattice.on-dark::before,.bg-navy.lattice::before{background-image:var(--lattice-dark)}
+/* facet cut: the 30° chamfer on ONE corner (bottom-right). Max one per view; filled panels/image slots only (clips borders) */
+.facet-cut{clip-path:polygon(0 0,100% 0,100% calc(100% - var(--cut)),calc(100% - var(--cut) * 1.732) 100%,0 100%)}
+.facet-cut-tl{clip-path:polygon(calc(var(--cut) * 1.732) 0,100% 0,100% 100%,0 100%,0 var(--cut))}
+/* three-face rule (teal · blue · navy) — a 3px brand edge for heroes, footer, featured panels */
+.face-rule{height:3px;border:0;margin:0;background:var(--grad-rule)}

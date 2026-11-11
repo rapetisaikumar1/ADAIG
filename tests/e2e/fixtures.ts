@@ -3,7 +3,8 @@
  *  - page                      anonymous visitor (the default Playwright page)
  *  - adminPage / memberPage / guestPage   signed in as the seed accounts (storageState saved by the global setup)
  *  - newPage({ role })         another, independent browser session (anonymous or a seed role)
- *  - loginAs(user)             a fresh session signed in through the real login form (throwaway users)
+ *  - loginAs(user)             a fresh session signed in through the real login form (throwaway users; admins of any role)
+ *  - loginAsAdmin(perms)       createAdmin(perms) (an "E2E Role …" + an admin holding it) and loginAs that admin → { page, user }
  *  - watchConsole(page)        collects console errors and uncaught page errors
  * All extra contexts use the project's device settings (desktop or mobile) and are closed after the test.
  * Automatic: after each test the rows it wrote without an e2e marker are added to the run ledger (cleanup).
@@ -11,18 +12,34 @@
 import { test as base, expect, type BrowserContext, type Page } from "@playwright/test";
 import { authFile, type Role } from "./support/env";
 import { uiLogin, expectLoginRefused, type Credentials } from "./support/login";
-import { closeDb } from "./support/db";
+import { closeDb, createAdmin, type TestAdmin } from "./support/db";
 import { appendLedger, collectSince, dbNow } from "./support/ledger";
+import { t } from "./support/i18n";
 
 export { expect };
 export { uiLogin, expectLoginRefused, type Credentials };
 
+type AdminPerms = Parameters<typeof createAdmin>[0];
+type AdminOpts = NonNullable<Parameters<typeof createAdmin>[1]>;
+
 export function watchConsole(page: Page) {
   const errors: string[] = [];
-  page.on("console", (m) => { if (m.type() === "error") errors.push(`console: ${m.text()}`); });
+  // Ignored: Chrome's notice when Playwright's own trace recorder (trace: "retain-on-failure") tries to inject its snapshot script into
+  // a sandboxed iframe without allow-scripts (seen with the former admin content editor's preview, removed in round 7). Tooling noise,
+  // not an app error; kept in case a sandboxed preview comes back.
+  const toolingNoise = /^Blocked script execution in 'about:(blank|srcdoc)' because the document's frame is sandboxed/;
+  page.on("console", (m) => { if (m.type() === "error" && !toolingNoise.test(m.text())) errors.push(`console: ${m.text()}`); });
   page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
   return errors;
 }
+
+/**
+ * My membership (/my/billing): the membership status card (a region named after its heading) and its status chip, matched by
+ * the text screen readers get ("Status: Active" — the "Status:" prefix is visually hidden). `st` is a member.billingPage.st_* key.
+ */
+export const membershipCard = (page: Page) => page.getByRole("region", { name: t("member.billingPage.statusTitle"), exact: true });
+export const membershipStatus = (page: Page, st: string) =>
+  membershipCard(page).getByText(`${t("member.billingPage.status")}: ${t(`member.billingPage.${st}`)}`, { exact: true });
 
 /** The page is no wider than the viewport (no horizontal scrolling). */
 export async function expectNoHorizontalOverflow(page: Page, label = "") {
@@ -34,7 +51,8 @@ type WorkerFixtures = { _closeDb: void };
 type Fixtures = {
   _ledger: void;
   newPage: (opts?: { role?: Role }) => Promise<Page>;
-  loginAs: (c: Credentials, opts?: { locale?: "en" | "fr" }) => Promise<Page>;
+  loginAs: (c: Credentials, opts?: { locale?: "en" | "fr"; expectUrl?: RegExp }) => Promise<Page>;
+  loginAsAdmin: (perms: AdminPerms, opts?: AdminOpts & { expectUrl?: RegExp }) => Promise<{ page: Page; user: TestAdmin }>;
   adminPage: Page;
   memberPage: Page;
   guestPage: Page;
@@ -59,6 +77,13 @@ export const test = base.extend<Fixtures, WorkerFixtures>({
   },
   loginAs: async ({ newPage }, provide) => {
     await provide(async (c, opts) => { const p = await newPage(); await uiLogin(p, c, opts); return p; });
+  },
+  loginAsAdmin: async ({ loginAs }, provide) => {
+    await provide(async (perms, opts = {}) => {
+      const { expectUrl, ...adminOpts } = opts;
+      const user = await createAdmin(perms, adminOpts);
+      return { page: await loginAs(user, { expectUrl }), user };
+    });
   },
   adminPage: async ({ newPage }, provide) => { await provide(await newPage({ role: "admin" })); },
   memberPage: async ({ newPage }, provide) => { await provide(await newPage({ role: "member" })); },

@@ -1,10 +1,11 @@
 /**
- * Admin operations and platform security: admin pages render (EN/FR), audit log filters + CSV, System page shows no
- * secret values, CSV exports are admin-only, cron endpoint auth, Supabase RLS (anon/authenticated cannot read tables).
+ * Admin operations and platform security: admin pages render (EN/FR), the removed Content admin is a 404, audit log filters + CSV,
+ * System page shows no secret values, CSV exports are admin-only, cron endpoint auth, Supabase RLS (anon/authenticated cannot read
+ * tables).
  */
 import pg from "pg";
 import { test, expect, watchConsole, expectNoHorizontalOverflow } from "../fixtures";
-import { createUser, etDay, q, RUN } from "../support/db";
+import { createUser, etDay, q, userByEmail, RUN } from "../support/db";
 import { appDotEnv, databaseUrl, SEED } from "../support/env";
 import { TABLES } from "../support/snapshot";
 import { t } from "../support/i18n";
@@ -12,17 +13,42 @@ import { t } from "../support/i18n";
 test("every admin page renders in EN and FR without errors or overflow at 390px @smoke", async ({ adminPage: p }) => {
   const errors = watchConsole(p);
   await p.setViewportSize({ width: 390, height: 844 });
-  const pages = ["dashboard", "members", "members/new", "events", "messages", "content", "content/about/fr", "settings", "audit", "system", "corporate", "chapter"];
-  for (const locale of ["en", "fr"]) for (const path of pages) {
+  // Round 7: Users and Roles added; the Content admin (content, content/about/fr) was removed (see "the Content admin is gone").
+  const pages = ["dashboard", "members", "members/new", "events", "messages", "users", "users/new", "roles", "roles/new", "settings", "audit", "system", "corporate", "chapter"];
+  // Detail pages: a seed admin's Users page and the Super Admin role.
+  const admin2 = (await userByEmail(SEED.admin2))!;
+  const details = [`users/${admin2.id}`, "roles/sys_super_admin"];
+  for (const locale of ["en", "fr"]) for (const path of [...pages, ...details]) {
     const r = await p.goto(`/${locale}/admin/${path}`);
     expect(r?.status(), `${locale}/admin/${path}`).toBe(200);
     await expect(p.locator("main#main h1").first(), `${locale}/admin/${path}`).toBeVisible();
+    // Admin portal chrome only: the minimal admin header and footer, never the public header/footer.
+    await expect(p.locator("header.admin-header"), `${locale}/admin/${path}`).toBeVisible();
+    await expect(p.locator(".site-header, .site-footer, #primary-nav"), `${locale}/admin/${path}`).toHaveCount(0);
     await expectNoHorizontalOverflow(p, `${locale}/admin/${path}`);
   }
   await p.goto("/en/admin/dashboard");
   for (const href of ["/api/admin/members.csv", "/api/admin/registrations.csv", "/api/admin/messages.csv", "/api/admin/audit.csv"])
-    await expect(p.locator(`.adm-tools-exports a[href="${href}"]`)).toBeVisible();
+    await expect(p.locator(`main#main a[href="${href}"]`)).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test("the Content admin is gone: its URLs are the admin 404, the public pages still render", async ({ adminPage: p, page }) => {
+  for (const path of ["/en/admin/content", "/en/admin/content/home/en"]) {
+    const r = await p.goto(path);
+    expect(r?.status(), path).toBe(404);
+    await expect(p.locator("main#main h1"), path).toHaveText(t("errors.notFoundTitle"));
+    await expect(p.locator("header.admin-header"), path).toBeVisible(); // the admin 404, inside the admin portal chrome
+    await expect(p.locator(".site-header"), path).toHaveCount(0);
+  }
+  // No way back in: the dashboard's tools and the sidebar have no Content link.
+  await p.goto("/en/admin/dashboard");
+  await expect(p.locator('a[href^="/en/admin/content"]')).toHaveCount(0);
+  // The stored page texts (ContentPage) still drive the public site.
+  const r = await page.goto("/en/about");
+  expect(r?.status()).toBe(200);
+  await expect(page.locator("main#main")).toBeVisible();
+  await expect(page.locator(".site-header")).toBeVisible();
 });
 
 test("audit log: filters by action, actor, target and date; CSV uses the same filters", async ({ adminPage: p }) => {
@@ -60,7 +86,7 @@ test("audit log: filters by action, actor, target and date; CSV uses the same fi
   // A date range after today (ET) → no results.
   const tomorrow = etDay(new Date(Date.now() + 864e5));
   await p.goto(`/en/admin/audit?target=${u.id}&from=${tomorrow}`);
-  await expect(rows.first()).toContainText(t("audit.noResults"));
+  await expect(p.getByRole("heading", { name: t("audit.noResults") })).toBeVisible();
   await p.goto(`/en/admin/audit?target=${u.id}&from=${etDay(new Date())}&to=${etDay(new Date())}`);
   await expect(rows).toHaveCount(2);
 

@@ -1,0 +1,245 @@
+/* Admin Portal access management: Users (/admin/users) and Roles (/admin/roles) pages — round 7.
+   Owner: U3 USERS-UI (file); U4 ROLES-UI appends its own delimited section. Scoped under .adm; tokens only. */
+
+/* ═══ U3 USERS-UI: shared access chips + Users pages ═══════════════════════════════════════════════════════════════ */
+
+/* Role chip (Users list + user page): neutral outline; Super Admin = teal with a shield. Never colour alone (name + icon). */
+.adm .acc-role{display:inline-flex;align-items:center;gap:5px;max-width:100%;min-height:24px;padding:1px 10px;border:1px solid var(--line-strong);
+  border-radius:var(--r-pill);background:var(--white);color:var(--slate-700);font:500 .8125rem/1.35 var(--font-body);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.adm .acc-role.is-super{border-color:var(--line-teal);background:var(--teal-50);color:var(--teal-800)}
+.adm .acc-role.is-super svg{flex:none}
+.adm .acc-role.is-none{border-style:dashed;color:var(--slate-600)}
+.adm .acc-statuses{display:inline-flex;flex-wrap:wrap;gap:6px}
+
+/* ?role= filter chip in the table toolbar (removable) */
+.adm .acc-filter-chip{display:inline-flex;align-items:center;gap:2px;min-height:36px;padding:0 4px 0 12px;border:1px solid var(--line-teal);
+  border-radius:var(--r-pill);background:var(--teal-50);color:var(--teal-800);font-size:var(--fs-sm);font-weight:500}
+.adm .acc-filter-chip a{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;color:inherit}
+.adm .acc-filter-chip a:hover{background:var(--teal-100)}
+.adm .acc-filter-chip a:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+
+/* Users table: fits its frame from 641px (no sideways scroll beside the sidebar), row cards on phones (.adm-stack) */
+.adm .acc-users-table{min-width:0}
+.adm .acc-users-table td{vertical-align:middle}
+.adm .acc-users-table tr.is-inactive .adm-name-line>a{color:var(--slate-700)}
+.adm .acc-users-table tr.is-inactive .avatar{opacity:.6}
+/* Fixed column widths: the columns stay put when switching tabs or searching (VIS p4); the person column takes the rest. */
+@media(min-width:641px){
+ .adm .acc-users-table{table-layout:fixed;width:100%}
+ .adm .acc-users-table th.acc-col-role{width:24%}
+ .adm .acc-users-table th.acc-col-status{width:19%}
+ .adm .acc-users-table th.acc-col-created{width:14%}
+ .adm .acc-users-table th.adm-col-actions{width:128px;white-space:nowrap}
+ .adm .acc-users-table td.adm-col-actions{text-align:right}
+ .adm .acc-users-table .adm-person{min-width:0}
+ .adm .acc-users-table .adm-name-line>a{overflow-wrap:anywhere}
+}
+@media(min-width:641px) and (max-width:1200px){
+ .adm .acc-users-table :is(th,td){padding-left:12px;padding-right:12px}
+ .adm .acc-users-table th.acc-col-role{width:24%}
+ .adm .acc-users-table th.acc-col-status{width:20%}
+ .adm .acc-users-table th.adm-col-actions{width:104px}
+}
+@media(max-width:640px){
+ /* card: person on top (full width), role | status, created | action */
+ .adm .acc-users-table td.adm-col-actions{grid-column:auto;align-self:end;text-align:right}
+ .adm .acc-users-table td.adm-col-actions .btn{width:auto}
+ .adm .acc-users-table tr.is-inactive{background:var(--mist)}
+ .adm .acc-role{white-space:normal;overflow:visible;text-align:left;overflow-wrap:anywhere}
+}
+
+/* Forms: show/hide password, password rules, role descriptions */
+.adm .acc-pw{position:relative;display:flex;align-items:stretch}
+.adm .acc-pw input{flex:1;min-width:0;padding-right:92px}
+.adm .acc-pw-toggle{position:absolute;top:4px;right:4px;bottom:4px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:0;border-radius:var(--r-sm);
+  background:transparent;color:var(--slate-700);font:600 .8125rem/1 var(--font-body);cursor:pointer}
+.adm .acc-pw-toggle:hover{background:var(--slate-100);color:var(--navy-800)}
+.adm .acc-pw-toggle:focus-visible{outline:2px solid var(--focus);outline-offset:0}
+.adm .acc-pw-rules{margin:0;display:flex;gap:8px;align-items:flex-start}
+.adm .acc-form .settings-section .field,.adm .acc-reset .field{margin:0}
+.adm .acc-role-help{display:grid;gap:0;margin:0;border:1px solid var(--line-cool);border-radius:var(--r-md);background:var(--mist)}
+.adm .acc-role-help>div{display:grid;grid-template-columns:minmax(120px,180px) 1fr;gap:4px 16px;padding:10px 14px;border-top:1px solid var(--line-cool)}
+.adm .acc-role-help>div:first-child{border-top:0}
+.adm .acc-role-help dt{font-weight:600;color:var(--navy-800);font-size:var(--fs-sm)}
+.adm .acc-role-help dd{margin:0;color:var(--slate-700);font-size:var(--fs-sm)}
+/* names and descriptions are free text: a long unbroken word wraps instead of widening the page */
+.adm .acc-role-help :is(dt,dd){min-width:0;overflow-wrap:anywhere}
+.adm .acc-new-user .adm-sheet-foot{border-top:1px solid var(--line-cool)}
+.adm .acc-new-user .adm-form-error{margin:var(--sp-5) 0 0}
+
+/* User page */
+.adm .acc-banner{margin-bottom:var(--sp-4)}
+/* forms and sections alternate in the sheet: keep the hairline between every pair (shell's :first-of-type would drop it) */
+.adm .acc-user .adm-sheet>.settings-section{border-top:1px solid var(--line-cool)}
+.adm .acc-user .adm-sheet>.settings-section:first-child{border-top:0}
+.adm .acc-dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-3) var(--sp-4);margin:0}
+.adm .acc-dl dt{font-size:var(--fs-sm);color:var(--slate-600);font-weight:500}
+.adm .acc-dl dd{margin:2px 0 0;color:var(--ink);overflow-wrap:anywhere}
+.adm .acc-why{display:flex;align-items:flex-start;gap:8px;margin:0;padding:10px 14px;border-radius:var(--r-md);background:var(--mist);
+  border:1px solid var(--line-cool);color:var(--slate-700);font-size:var(--fs-sm);line-height:1.5}
+.adm .acc-why svg{flex:none;margin-top:2px;color:var(--slate-600)}
+.adm .acc-state{display:flex;align-items:center;gap:10px;margin:0;font-weight:500;color:var(--ink)}
+.adm .acc-state::before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:var(--teal-700)}
+.adm .acc-state.is-off::before{background:transparent;border:2px solid var(--slate-500)}
+.adm .acc-current{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.adm .acc-current form{margin:0}
+.adm .acc-current-label{font-size:var(--fs-sm);font-weight:600;color:var(--slate-700)}
+.adm .acc-role-desc{margin:0}
+.adm .acc-inline-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--sp-2) var(--sp-3);min-width:0}
+.adm .acc-inline-form .field{margin:0;flex:0 1 320px;min-width:0}
+.adm .acc-inline-form select{width:100%;max-width:100%}
+.adm .acc-inline-form>.btn{min-height:44px}
+.adm .acc-inline-hint{flex-basis:100%;margin:0}
+.adm .acc-deactivate .confirm-box{max-width:440px}
+/* DESIGN_R5 §10.5 (same :has rule as .danger-zone in components.css): "Yes, deactivate" stays outline until its own box is ticked */
+.adm .acc-deactivate .confirm-box:has(input[type=checkbox]:checked) .btn-danger-outline{background:var(--red-700);border-color:var(--red-700);color:#fff}
+.adm .acc-deactivate .confirm-box:has(input[type=checkbox]:checked) .btn-danger-outline:hover{background:var(--red-800);border-color:var(--red-800)}
+/* self page: the banner carries the one link to Profile & privacy; the "You" tag gets an edge on the frost head (VIS p1) */
+.adm .acc-banner .acc-banner-link{margin-top:6px}
+.adm .acc-user .app-head .adm-you{border:1px solid var(--line-teal)}
+/* deactivated: the head avatar is muted as in the list (VIS p3) */
+.adm .acc-user.is-inactive .adm-head-media .avatar{opacity:.6}
+/* own email (S2): read-only value in the details form, with a lock — reads as fixed, not as a disabled control */
+.adm .acc-ro{position:relative;display:flex}
+.adm .acc-ro input{flex:1;min-width:0;padding-right:40px;background:var(--mist);border-color:var(--portal-line-strong);color:var(--slate-700);cursor:default}
+.adm .acc-ro input:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.adm .acc-ro svg{position:absolute;right:14px;top:50%;translate:0 -50%;color:var(--slate-500);pointer-events:none}
+.adm .acc-reset{display:grid;gap:var(--sp-3)}
+.adm .acc-reset .alert{margin:0}
+.adm .acc-reset .save-row{margin-top:0}
+@media(max-width:640px){
+ .adm .acc-dl{grid-template-columns:minmax(0,1fr)}
+ .adm .acc-role-help>div{grid-template-columns:minmax(0,1fr)}
+ .adm .acc-inline-form .field{flex-basis:100%}
+ .adm .acc-inline-form>.btn{width:100%}
+ .adm .acc-pw-toggle span{display:none}
+ .adm .acc-pw input{padding-right:52px}
+}
+
+/* ═══ end U3 USERS-UI ═══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Roles (U4) ─────────────────────────────────────────────────────────────────────────────────────────────────────
+   /admin/roles list (.rl-table), role form + permission matrix (.rl-form/.rl-matrix), danger zone. Prefix rl-. */
+.adm .rl-system{display:inline-flex;align-items:center;gap:4px;background:var(--navy-50);border-color:var(--line-navy);color:var(--navy-800)}
+.adm .rl-system svg{color:var(--face-right)}
+.adm .rl-page .adm-head-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.adm .rl-page .adm-head-meta .adm-you{margin-left:0}
+/* list */
+.adm .rl-table{min-width:0}
+.adm .rl-table td{vertical-align:top}
+.adm .rl-table .rl-col-role{width:26%}
+.adm .rl-table .rl-col-lvl{white-space:nowrap}
+.adm .rl-role{display:grid;gap:4px;min-width:180px}
+.adm .rl-role-line{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.adm .rl-role-line .adm-you{margin-left:0}
+/* VIS p5: names read like the Users list (bold navy, underline on hover); the user-count link is quiet until hovered */
+.adm .rl-role-name{font-weight:600;min-width:0;overflow-wrap:anywhere;color:var(--navy-800);text-decoration:none}
+.adm .rl-role-name:hover{color:var(--teal-700);text-decoration:underline}
+.adm .rl-users a{color:var(--teal-700);text-decoration:none;font-weight:500}
+.adm .rl-users a:hover{text-decoration:underline}
+.adm .rl-desc{line-height:1.45;max-width:46ch;min-width:0;overflow-wrap:anywhere}
+.adm .rl-lvl-box{display:grid;justify-items:start;gap:4px}
+.adm .rl-acts{color:var(--slate-600);line-height:1.35}
+.adm .rl-none{font-size:var(--fs-sm);color:var(--slate-600)}
+.adm .rl-users{white-space:nowrap}
+.adm .rl-table td.adm-col-actions{text-align:right}
+.adm .rl-table th.rl-col-users{white-space:nowrap}
+/* ≤1200px (sidebar + narrow content): one card per role — name, then the six modules in a row, then users + action */
+@media(max-width:1200px){
+ .adm .rl-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+ .adm .rl-table tr{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px 16px;padding:16px 18px;border-bottom:1px solid var(--line-cool)}
+ .adm .rl-table tr:last-child{border-bottom:0}
+ .adm .rl-table tbody tr:hover>td{background:transparent}
+ .adm .rl-table td{display:block;border:0;padding:0;min-width:0;width:auto}
+ .adm .rl-table td[data-label]::before{content:attr(data-label);display:block;margin-bottom:4px;font:500 .6875rem/1.4 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--slate-600)}
+ .adm .rl-table td.rl-cell-role{grid-column:1/-1}
+ .adm .rl-table td.rl-cell-role::before{display:none}
+ .adm .rl-table td.rl-users{grid-column:1/4;align-self:center}
+ .adm .rl-table td.rl-users::before{display:inline;margin:0 8px 0 0}
+ .adm .rl-table td.adm-col-actions{grid-column:4/-1;justify-self:end;align-self:center}
+ /* Module cells share two subgrid rows (label, chip): a label that wraps (e.g. "Overview & system") makes the label row
+    taller for the whole card row, so every chip stays on one line; short labels sit just above their chip. */
+ .adm .rl-table td.rl-lvl{display:grid;grid-row:span 2;grid-template-rows:subgrid;row-gap:4px;align-content:start}
+ .adm .rl-table td.rl-lvl::before{margin-bottom:0;align-self:end}
+ .adm .rl-table td.rl-lvl>*{align-self:start;justify-self:start}
+ .adm .rl-role{min-width:0}
+ .adm .rl-desc{max-width:none}
+}
+@media(max-width:640px){
+ .adm .rl-table tr{grid-template-columns:repeat(3,minmax(0,1fr));padding:16px}
+ .adm .rl-table td.rl-users{grid-column:1/3}
+ .adm .rl-table td.adm-col-actions{grid-column:3/-1}
+}
+/* form */
+.adm .rl-form textarea{min-height:88px}
+.adm .rl-form input[readonly],.adm .rl-form textarea[readonly]{background:var(--mist);border-color:var(--portal-line-strong);color:var(--slate-700)}
+.adm .rl-note svg{flex:none;color:var(--face-right)}
+/* read-only role (VIS m7): name/description as text (.adm-ro-dl, admin.css); "Full" as a chip instead of a disabled switch */
+.adm .rl-ro-dl dd{font-size:var(--fs-ui)}
+.adm .rl-full-ro{display:inline-flex}
+.adm .rl-full-ro.is-off{color:var(--slate-500)}
+/* phones: the module card has no column header, so a bare "—" for "no full access" says nothing; show only the Full chip */
+@media(max-width:640px){.adm .rl-matrix td.rl-full:has(>.rl-full-ro.is-off){display:none}.adm .rl-matrix td.rl-full:has(>.rl-full-ro){padding:2px 0 8px}}
+/* permission matrix: modules × View/Create/Edit/Delete + Full access */
+.adm .rl-matrix-wrap{border:1px solid var(--line-cool);border-radius:var(--r-panel);overflow:hidden;background:#fff}
+.adm .rl-matrix-wrap.has-error{border-color:var(--red-700);box-shadow:0 0 0 3px color-mix(in srgb,var(--red-700) 15%,transparent)}
+.adm .rl-matrix{width:100%;border-collapse:collapse;table-layout:fixed}
+.adm .rl-matrix thead th{padding:10px 8px;background:var(--portal-head);border-bottom:1px solid var(--line-cool);font:600 .78125rem/1.3 var(--font-body);color:var(--slate-600);text-align:center}
+.adm .rl-matrix thead th.rl-col-mod{width:34%;text-align:left;padding-left:16px}
+.adm .rl-matrix thead th.rl-col-full{width:15%}
+.adm .rl-matrix tbody tr+tr>*{border-top:1px solid var(--line-cool)}
+.adm .rl-matrix th.rl-mod{padding:12px 12px 12px 16px;text-align:left;font-weight:400;vertical-align:middle}
+.adm .rl-matrix tr.is-on th.rl-mod{box-shadow:inset 3px 0 0 var(--teal-700)}
+.adm .rl-mod-name{display:block;font:600 .9375rem/1.35 var(--font-body);color:var(--navy-800)}
+.adm .rl-mod-hint{display:block;margin-top:2px;font-size:.8125rem;line-height:1.4;color:var(--slate-600)}
+.adm .rl-matrix td{padding:4px;text-align:center;vertical-align:middle}
+.adm .rl-check{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:var(--target-min);min-height:var(--target-min);border-radius:var(--r-sm);cursor:pointer;position:relative}
+.adm .rl-check:hover{background:var(--portal-hover)}
+.adm .rl-check input{margin:0}
+.adm .rl-act-txt,.adm .rl-full-txt{display:none}
+.adm .rl-cell.is-locked .rl-check{cursor:not-allowed}
+.adm .rl-cell.is-locked .rl-check:hover{background:transparent}
+.adm .rl-cell.is-locked svg{position:absolute;right:-4px;top:4px;color:var(--slate-500)}
+.adm .rl-na{color:var(--slate-500)}
+.adm .rl-switch{min-height:var(--target-min);justify-content:center}
+/* VIS p9: light off-state (pale track, slate rim) with a white knob inset 4px, like the light checkboxes beside it */
+.adm .rl-switch input{background:var(--slate-100);box-shadow:inset 0 0 0 1.5px var(--slate-500)}
+.adm .rl-switch input::after{width:16px;height:16px;top:4px;left:4px;background:#fff;box-shadow:0 0 0 1px var(--slate-400),0 1px 2px rgba(11,37,69,.2)}
+.adm .rl-switch input:checked::after{left:24px;box-shadow:0 1px 2px rgba(11,37,69,.25)}
+.adm .rl-switch input:checked{background:var(--teal-700);box-shadow:none}
+.adm .rl-switch input:checked::after{background:#fff}
+.adm .rl-switch input:disabled{opacity:.5;cursor:not-allowed}
+/* read-only (Super Admin, own role…): ticks stay legible, nothing looks clickable */
+.adm .rl-matrix.is-readonly input:disabled{opacity:.7;cursor:default}
+.adm .rl-matrix.is-readonly .rl-check{cursor:default}
+.adm .rl-matrix.is-readonly .rl-check:hover{background:transparent}
+.adm .rl-matrix.is-readonly .rl-switch{cursor:default}
+.adm .rl-legend{display:flex;align-items:center;gap:6px;margin:0}
+.adm .rl-legend svg{flex:none;color:var(--slate-500)}
+.adm .rl-empty-warn:empty{display:none}
+.adm .rl-empty-warn .alert{margin:0}
+.adm .rl-del-blocked .btn[disabled]{pointer-events:none}
+/* phones: one card per module — name + hint, the Full access switch, then the applicable actions as labelled checkboxes */
+@media(max-width:640px){
+ .adm .rl-matrix-wrap{border:0;border-radius:0;overflow:visible;background:transparent}
+ .adm .rl-matrix-wrap.has-error{box-shadow:none}
+ .adm .rl-matrix,.adm .rl-matrix tbody{display:block}
+ .adm .rl-matrix thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+ .adm .rl-matrix tbody tr{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;margin-bottom:12px;padding:4px 14px 8px;border:1px solid var(--line-cool);border-radius:var(--r-panel);background:#fff}
+ .adm .rl-matrix-wrap.has-error tbody tr{border-color:var(--red-700)}
+ .adm .rl-matrix tbody tr+tr>*{border-top:0}
+ .adm .rl-matrix tr.is-on{box-shadow:inset 3px 0 0 var(--teal-700)}
+ .adm .rl-matrix tr.is-on th.rl-mod{box-shadow:none}
+ .adm .rl-matrix th.rl-mod{order:-2;grid-column:1/-1;display:block;padding:10px 0 6px}
+ .adm .rl-matrix :is(td,th){display:block;padding:0;text-align:left;border:0}
+ .adm .rl-matrix td.rl-full{order:-1;grid-column:1/-1;padding:0 0 4px;border-bottom:1px solid var(--line-cool);margin-bottom:4px}
+ .adm .rl-matrix td.rl-na{display:none}
+ .adm .rl-check,.adm .rl-switch{display:flex;justify-content:flex-start;gap:10px;width:100%;padding:0 4px;font-size:var(--fs-ui);color:var(--ink)}
+ .adm .rl-act-txt,.adm .rl-full-txt{display:inline}
+ .adm .rl-full-txt{font-weight:600;color:var(--navy-800)}
+ .adm .rl-cell.is-locked svg{position:static;margin-left:auto}
+ .adm .rl-cell.is-locked .rl-act-txt{color:var(--slate-600)}
+ .adm .save-row.rl-del-blocked{flex-direction:column;align-items:stretch}
+}
+/* ── end Roles (U4) ── */

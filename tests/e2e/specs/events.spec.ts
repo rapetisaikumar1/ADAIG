@@ -20,7 +20,7 @@ test.describe("event search", () => {
     await expect(page.locator(".event-card").getByRole("link", { name: e.title })).toBeVisible();
     // A type filter that does not match → empty state with a "clear" link.
     await page.goto(`/en/events?q=${word}&type=Conference`);
-    await expect(page.locator(".ev-empty")).toContainText(t("events.empty"));
+    await expect(page.getByRole("heading", { name: t("events.empty") })).toBeVisible();
   });
 
   test("seed events are found regardless of case", async ({ page }) => {
@@ -33,7 +33,7 @@ test.describe("event search", () => {
     const draft = await createEvent({ title: `E2E Draft ${word}`, published: false });
     const cancelled = await createEvent({ title: `E2E Cancelled ${word}`, cancelledAt: new Date() });
     await page.goto(`/en/events?q=${word}`);
-    await expect(page.locator(".ev-empty")).toBeVisible();
+    await expect(page.getByRole("heading", { name: t("events.empty") })).toBeVisible();
     for (const e of [draft, cancelled]) {
       const r = await page.goto(`/en/events/${e.slug}`);
       expect(r?.status(), e.title).toBe(404);

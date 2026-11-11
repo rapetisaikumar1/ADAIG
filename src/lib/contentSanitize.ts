@@ -1,7 +1,8 @@
 import sanitizeHtml from "sanitize-html";
 
 /**
- * Sanitizer for staff-edited page content (Admin → Content). Allowlist built from what src/content uses today
+ * Sanitizer for staff-edited page content. Unused since the Admin → Content module was removed in round 7; kept for a
+ * future CMS (see README). Allowlist built from what src/content uses today
  * (classes, ids, inline styles, aria-* / data-* attributes, tables, details/summary, inline SVG icons and charts,
  * disabled form controls in the design-reference pages, links). Removes scripts, styles, iframes, event handlers
  * (on*), javascript:/data: URLs and anything else not listed. Tag and attribute case is kept (SVG viewBox,

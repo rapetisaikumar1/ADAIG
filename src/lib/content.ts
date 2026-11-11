@@ -5,37 +5,16 @@ import { db } from "@/lib/db";
 
 /**
  * Page content. Default = the HTML files in src/content/<locale>/ (originally extracted from the prototype, edited since;
- * FR falls back to EN until translated). Staff can override a page per locale in Admin → Content (ContentPage rows, with revisions); an override
- * wins over the file. With no ContentPage rows every page renders exactly the file content. `__L__` = locale URL prefix.
+ * FR falls back to EN until translated). A ContentPage row (one per page and locale, with revisions) overrides the file: rows
+ * saved by the former Admin → Content module (removed in round 7; there is no editing UI any more) are still rendered.
+ * With no ContentPage rows every page renders exactly the file content. `__L__` = locale URL prefix.
  */
 
-/** Cache tag for overrides; the admin content actions call updateTag(CONTENT_TAG) after every change. */
+/** Cache tag for overrides (no code changes them any more; a future CMS would call updateTag(CONTENT_TAG) after each save). */
 export const CONTENT_TAG = "content-pages";
-/** Safety net: cached overrides also expire after 5 minutes (changes made outside Admin → Content: seed, SQL, restored backup). */
+/** Safety net: cached overrides also expire after 5 minutes (changes made directly in the DB: SQL, seed, restored backup). */
 const CONTENT_REVALIDATE_S = 300;
 export const CONTENT_LOCALES = ["en", "fr"] as const;
-
-/** Pages editable in Admin → Content. kind: "page" = whole page body; "part" = the HTML part of a page whose other
- *  sections are built by the app (home: live events list; membership: tier cards; contact: form); "staff" = admin-only page. */
-export const EDITABLE_CONTENT = [
-  { slug: "home", path: "", kind: "part" },
-  { slug: "about", path: "/about", kind: "page" },
-  { slug: "principles", path: "/principles", kind: "page" },
-  { slug: "governance", path: "/governance", kind: "page" },
-  { slug: "membership", path: "/membership", kind: "part" },
-  { slug: "community", path: "/community", kind: "page" },
-  { slug: "chapters", path: "/chapters", kind: "page" },
-  { slug: "resources", path: "/resources", kind: "page" },
-  { slug: "news", path: "/news", kind: "page" },
-  { slug: "advocacy", path: "/advocacy", kind: "page" },
-  { slug: "careers", path: "/careers", kind: "page" },
-  { slug: "vendors", path: "/vendors", kind: "page" },
-  { slug: "legal", path: "/legal", kind: "page" },
-  { slug: "contact", path: "/contact", kind: "part" },
-  { slug: "brand", path: "/design/brand", kind: "staff" },
-  { slug: "components", path: "/design/components", kind: "staff" },
-] as const satisfies readonly { slug: string; path: string; kind: "page" | "part" | "staff" }[];
-export const editableContent = (slug: string) => EDITABLE_CONTENT.find((p) => p.slug === slug);
 
 /** Raw file content (with `__L__`) for exactly this locale, or null. Slugs are looked up in a fixed folder only. */
 export function fileContent(slug: string, locale: string): string | null {

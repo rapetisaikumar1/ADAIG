@@ -1,0 +1,463 @@
+/* components.css — DESIGN (round 5, "Facet Architecture"; spec SP/r5/DESIGN_R5.md §6).
+   Every shared component. Existing class names keep working (.btn*, .card, .badge*, .alert-*, .field, .check, .table-wrap, .avatar …).
+   Area files may refine components only through their own scoped selectors. */
+
+/* ═══ 1. Buttons — ONE shape (pill), 44px min; hover changes colour only ═══════════════════════════════════════
+   .btn-primary (navy) main action of a page/panel · .btn-accent (teal) form submits · .btn-highlight (amber) Join/Become a member,
+   at most once per view · .btn-secondary/.btn-ghost everything else · .btn-on-dark/.btn-outline-light on navy · .btn-danger(-outline) */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--target-min);max-width:100%;padding:10px 22px;border-radius:var(--r-pill);
+ font:600 .9375rem/1.2 var(--font-body);letter-spacing:-.005em;text-decoration:none;white-space:nowrap;border:1px solid transparent;cursor:pointer;
+ transition:background-color var(--dur-1),color var(--dur-1),border-color var(--dur-1),box-shadow var(--dur-2)}
+.btn:hover{text-decoration:none}
+.btn:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:var(--r-pill)}
+.btn svg{width:18px;height:18px;flex:none}
+.btn-primary{background:var(--navy-800);color:#fff}.btn-primary:hover{background:var(--navy-700);color:#fff}
+.btn-accent{background:var(--teal-700);color:#fff}.btn-accent:hover{background:var(--teal-800);color:#fff}
+.btn-highlight{background:var(--amber-400);color:var(--navy-950)}.btn-highlight:hover{background:var(--amber-300);color:var(--navy-950)}
+.btn-secondary{background:#fff;color:var(--navy-800);border-color:rgba(11,37,69,.22)}.btn-secondary:hover{background:var(--navy-50);color:var(--navy-800);border-color:var(--navy-800)}
+.btn-ghost{background:transparent;color:var(--navy-800)}.btn-ghost:hover{background:rgba(11,37,69,.06);color:var(--navy-800)}
+.btn-danger{background:var(--red-700);color:#fff}.btn-danger:hover{background:var(--red-800);color:#fff}
+.btn-danger-outline{background:#fff;color:var(--red-700);border-color:var(--red-200)}.btn-danger-outline:hover{background:var(--red-50);color:var(--red-700);border-color:var(--red-700)}
+.btn-on-dark{background:#fff;color:var(--navy-800)}.btn-on-dark:hover{background:var(--teal-50);color:var(--navy-800)}
+.btn-outline-light{border-color:rgba(255,255,255,.55);color:#fff;background:transparent}.btn-outline-light:hover{background:rgba(255,255,255,.1);border-color:#fff;color:#fff}
+.btn-link{min-height:0;padding:0;border:0;border-radius:0;background:none;color:var(--teal-700);text-decoration:underline;text-underline-offset:3px}.btn-link:hover{color:var(--teal-800)}
+.btn-sm{min-height:36px;padding:6px 16px;font-size:var(--fs-sm)}.btn-lg{min-height:52px;padding:14px 28px;font-size:1rem}.btn-block{width:100%}
+.btn-icon{padding:0;width:var(--target-min);min-width:var(--target-min)}.btn-icon.btn-sm{width:36px;min-width:36px}
+/* trailing arrow that nudges 3px on hover (the arrow is CSS, so link text stays clean) */
+.btn-arrow::after,.link-arrow::after{content:"";flex:none;width:16px;height:16px;background:currentColor;
+ -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E") center/contain no-repeat;
+ mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E") center/contain no-repeat;
+ transition:translate var(--dur-2) var(--ease-out)}
+.btn-arrow:hover::after,.link-arrow:hover::after{translate:3px 0}
+.link-arrow{display:inline-flex;align-items:center;gap:6px;font-weight:600;text-decoration:none}.link-arrow:hover{text-decoration:underline}
+.btn[disabled],.btn[aria-disabled=true]{opacity:.45;cursor:not-allowed;box-shadow:none;pointer-events:none}
+/* loading: <button class="btn" aria-busy="true"> keeps its label and adds a spinner */
+.btn[aria-busy=true]{cursor:progress;opacity:.85}
+.btn[aria-busy=true]::before{content:"";width:14px;height:14px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;flex:none;animation:btn-spin .7s linear infinite}
+@keyframes btn-spin{to{rotate:360deg}}
+.btn-row{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center}
+@media(max-width:640px){.btn{white-space:normal;text-align:center}.btn-sm{min-height:var(--target-min)}.btn-icon.btn-sm{width:var(--target-min);min-width:var(--target-min)}}
+
+/* ═══ 2. Section bands ═══════════════════════════════════════════════════════════════════════════════════════
+   paper (default page) → .bg-mist (sand band) → .bg-white (raised sheet) → ONE .bg-navy per page besides the footer */
+.bg-mist{background:var(--sand)}.bg-mist+.bg-mist{border-top:1px solid var(--line)}
+.bg-white{background:#fff;border-block:1px solid var(--line)}.bg-paper{background:var(--paper)}
+.bg-navy{position:relative;isolation:isolate;overflow:hidden;background:var(--surface-navy);color:var(--on-dark)}
+.bg-navy::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:var(--lattice-dark) 0 0/var(--lattice-size);
+ -webkit-mask-image:radial-gradient(60% 120% at 100% 100%,#000,transparent 70%);mask-image:radial-gradient(60% 120% at 100% 100%,#000,transparent 70%)}
+.bg-navy::after{content:"";position:absolute;z-index:-1;pointer-events:none;right:max(-40px,calc(50% - 760px));bottom:-24px;width:300px;aspect-ratio:280/220;background:url("/assets/illustrations/corner-dark.svg") center/contain no-repeat;opacity:.9}
+@media(max-width:1199px){.bg-navy::after{display:none}}
+.bg-navy :is(h1,h2,h3,h4){color:#fff}.bg-navy .eyebrow{color:var(--teal-300)}.bg-navy :is(.lead,p){color:var(--on-dark)}.bg-navy .muted{color:var(--on-dark-muted)}
+.bg-navy a:not(.btn){color:var(--teal-300)}.bg-navy a:not(.btn):hover{color:#fff}
+/* inset dark panel inside a light section (r24 + the facet cut on its bottom-right corner) */
+.bg-navy.is-inset{margin-inline:auto;max-width:calc(var(--container) - 2 * var(--gutter));border-radius:var(--r-xl);
+ clip-path:polygon(0 0,100% 0,100% calc(100% - 36px),calc(100% - 62px) 100%,0 100%)}
+@media(max-width:1260px){.bg-navy.is-inset{margin-inline:var(--gutter)}}
+.section-head{display:flex;justify-content:space-between;align-items:end;gap:var(--sp-4) var(--sp-6);margin-bottom:clamp(32px,1.5rem + 1.5vw,48px);flex-wrap:wrap}
+.section-head h2{margin-bottom:0}.section-head .lead{margin:var(--sp-3) 0 0}.section-head>div{max-width:720px}
+/* a quiet hairline above a section title (Ada/D&TA pattern) */
+.section-head.is-ruled{padding-top:var(--sp-5);border-top:1px solid var(--line)}
+
+/* ═══ 3. Interior page hero — a paper title band: eyebrow (section name) · Newsreader h1 · one-line lead · lattice + assembly ═══ */
+.page-hero{position:relative;isolation:isolate;overflow:hidden;background:var(--paper);color:var(--ink);padding:var(--hero-pad) 0 clamp(40px,1.5rem + 3vw,72px);
+ min-height:var(--hero-min);display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid var(--line)}
+.page-hero>.container{width:100%;position:relative}
+/* lattice fading in on the right third — behind empty space only */
+.page-hero::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:var(--lattice) 0 0/var(--lattice-size);
+ -webkit-mask-image:linear-gradient(90deg,transparent 38%,#000 78%);mask-image:linear-gradient(90deg,transparent 38%,#000 78%)}
+/* the page's assembly (set --hero-art per section; hidden on narrow screens and on heroes with their own two-column layout) */
+.page-hero::after{content:"";position:absolute;z-index:-1;pointer-events:none;top:50%;right:max(var(--gutter),calc((100% - var(--container)) / 2 + var(--gutter)));
+ width:clamp(240px,22vw,340px);aspect-ratio:360/280;translate:0 -50%;background:var(--hero-art,url("/assets/illustrations/hero-about.svg")) center/contain no-repeat}
+.page-hero h1{color:var(--navy-800);font-size:var(--fs-h1);max-width:20ch;text-wrap:balance;margin-bottom:var(--sp-4)}
+.page-hero .eyebrow{margin-bottom:var(--sp-4)}
+.page-hero .lead{color:var(--slate-600);max-width:58ch}.page-hero .lead:last-child,.page-hero .container>:last-child{margin-bottom:0}
+.page-hero .lead+:is(.btn,.btn-row,.hero-actions,.tags){margin-top:var(--sp-5)}
+@media(min-width:1101px){.page-hero>.container>:not(.ab-hero-grid,.layout-aside,.layout-sidebar){max-width:min(100%,700px)}}
+@media(max-width:1100px){.page-hero::after{display:none}
+ /* without the art, the lattice keeps to the top-right corner so it never runs behind the text */
+ .page-hero::before{-webkit-mask-image:radial-gradient(55% 80% at 100% 0,#000,transparent 72%);mask-image:radial-gradient(55% 80% at 100% 0,#000,transparent 72%)}}
+.page-hero:has(.ab-hero-grid,.layout-aside,.layout-sidebar)::after{display:none}
+.page-hero:has(.ab-hero-grid,.layout-aside,.layout-sidebar)::before{-webkit-mask-image:linear-gradient(90deg,transparent 55%,#000);mask-image:linear-gradient(90deg,transparent 55%,#000);opacity:.7}
+.page-hero.is-compact{padding:clamp(32px,1.5rem + 2vw,56px) 0}.page-hero.is-compact h1{font-size:clamp(1.875rem,1.5rem + 1.4vw,2.625rem)}
+.page-hero.is-compact::after{width:clamp(180px,16vw,240px)}
+:lang(fr) .page-hero h1{max-width:24ch}
+/* section art (PUBLIC-PAGES may set --hero-art on its own page wrapper instead) */
+.page-hero.art-about{--hero-art:url("/assets/illustrations/hero-about.svg")}.page-hero.art-board,.page-hero:has(.ab-board-art){--hero-art:url("/assets/illustrations/hero-board.svg")}
+.page-hero.art-events,.events-page .page-hero,.event-detail .page-hero{--hero-art:url("/assets/illustrations/hero-events.svg")}
+.page-hero.art-membership,.mship-page .page-hero{--hero-art:url("/assets/illustrations/hero-membership.svg")}
+.page-hero.art-resources,.res-page .page-hero{--hero-art:url("/assets/illustrations/hero-resources.svg")}
+.page-hero.art-community,.com-page .page-hero{--hero-art:url("/assets/illustrations/hero-community.svg")}
+.page-hero.art-contact,.contact-page .page-hero{--hero-art:url("/assets/illustrations/hero-contact.svg")}
+/* sibling pages each get their own silhouette (QA-PUBLIC-19) */
+.page-hero.art-join,.join-page .page-hero{--hero-art:url("/assets/illustrations/hero-join.svg")}
+.page-hero.art-news,.news-page .page-hero{--hero-art:url("/assets/illustrations/hero-news.svg")}
+.page-hero.art-advocacy,.adv-page .page-hero{--hero-art:url("/assets/illustrations/hero-advocacy.svg")}
+.page-hero.art-chapters,.chap-page .page-hero{--hero-art:url("/assets/illustrations/hero-chapters.svg")}
+.page-hero.art-careers,.car-page .page-hero{--hero-art:url("/assets/illustrations/hero-careers.svg")}
+.page-hero.art-vendors,.ven-page .page-hero{--hero-art:url("/assets/illustrations/hero-vendors.svg")}
+.page-hero.art-legal,.legal-page .page-hero{--hero-art:url("/assets/illustrations/hero-legal.svg")}
+.page-hero.art-404{--hero-art:url("/assets/illustrations/not-found.svg")}
+.page-hero.art-none::after{display:none}
+/* dark variant (use sparingly — counts as the page's one navy band) */
+.page-hero.is-dark{background:var(--surface-navy);color:var(--on-dark);border-bottom:0}
+.page-hero.is-dark::before{background-image:var(--lattice-dark)}
+.page-hero.is-dark h1{color:#fff}.page-hero.is-dark .eyebrow{color:var(--teal-300)}.page-hero.is-dark .lead{color:var(--on-dark-muted)}
+.page-hero.is-dark a:not(.btn){color:var(--teal-300)}.page-hero.is-dark a:not(.btn):hover{color:#fff}
+.page-hero+.section{padding-top:clamp(40px,2rem + 2.5vw,72px)}
+@media(prefers-reduced-motion:no-preference){
+ .page-hero>.container>*{animation:adaig-rise var(--dur-4) var(--ease-out) both}
+ .page-hero>.container>:nth-child(2){animation-delay:60ms}.page-hero>.container>:nth-child(3){animation-delay:120ms}.page-hero>.container>:nth-child(n+4){animation-delay:180ms}
+ .page-hero::after{animation:facet-in var(--dur-4) var(--ease-out) 120ms both}
+}
+
+/* ═══ 4. Cards — white sheet on paper, 1px hairline, r16, NO resting shadow; clickable = 2px lift + darker hairline ═══ */
+.card{position:relative;background:#fff;border:1px solid var(--c-border-card);border-radius:var(--r-lg);padding:var(--sp-5);display:flex;flex-direction:column;gap:var(--sp-2);
+ min-width:0;box-shadow:var(--shadow-card);transition:transform var(--dur-2) var(--ease-out),box-shadow var(--dur-2),border-color var(--dur-2)}
+.card.is-tonal{background:var(--mist);border-color:transparent;box-shadow:none}
+.card.is-plain{background:transparent;border-color:transparent;padding:0}
+/* featured: the three-face rule across the top edge */
+.card.is-featured::before,.tier.featured::before{content:"";position:absolute;left:-1px;right:-1px;top:-1px;height:4px;border-radius:var(--r-lg) var(--r-lg) 0 0;background:var(--grad-rule);pointer-events:none}
+/* ONE hover recipe for anything clickable that looks like a tile */
+:is(a.card,.card:has(.card-link):not(.home-roadmap),.res-jump a,.adm .adm-tools-grid a,a.kpi):hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);border-color:color-mix(in srgb,var(--navy-800) 28%,var(--line))}
+a.card{color:inherit;text-decoration:none}
+a.card:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:var(--r-lg)}
+.card h3{font-size:var(--fs-card-h);line-height:1.35;margin:0}.card p{margin:0;color:var(--c-muted);font-size:1rem;line-height:1.55}
+@media(min-width:960px){.g3>.card,.g4>.card{padding:28px}}
+.card .card-foot{margin-top:auto;padding-top:var(--sp-3);display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap}
+.card-foot a:not(.btn){display:inline-flex;align-items:center;min-height:24px;font-weight:600;text-decoration:none}.card-foot a:not(.btn):hover{text-decoration:underline}
+.card>a:not(.btn):not(.card-link){display:inline-flex;align-items:center;min-height:24px}
+.card-link{text-decoration:none;color:inherit}.card-link:hover{color:inherit}.card-link:hover h3,h3 .card-link:hover{color:var(--teal-700)}
+/* sticky aside panel (after .card, which sets position:relative) */
+.sticky-side{position:sticky;top:calc(var(--header-h) + 16px)}
+@media(max-width:900px){.layout-aside .sticky-side{position:static}}
+/* stretched link: the whole card is the target, one action per card */
+.card .card-link.is-stretched::after{content:"";position:absolute;inset:0;border-radius:inherit}
+/* card media slot: a generated facet band (events, resources) or a framed illustration — never a stock photo */
+.card-band{margin:calc(-1 * var(--sp-5)) calc(-1 * var(--sp-5)) var(--sp-3);height:72px;overflow:hidden;border-radius:var(--r-lg) var(--r-lg) 0 0;
+ background:var(--paper) var(--lattice) 0 0/var(--lattice-size);border-bottom:1px solid var(--line)}
+@media(min-width:960px){:is(.g3,.g4)>.card>.card-band{margin:-28px -28px var(--sp-3)}}
+.facet-band{display:block;width:100%;height:100%}
+/* hexagonal icon tile = the cube silhouette with a faint top face; icons are 1.5px line icons in teal-800 */
+.icon-tile{width:48px;height:54px;flex:none;border-radius:0;display:grid;place-items:center;color:var(--teal-800);
+ background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 54' preserveAspectRatio='none'%3E%3Cpath d='M24 0 46.4 13.5v27L24 54 1.6 40.5v-27z' fill='%23EEFBF7'/%3E%3Cpath d='M24 0 46.4 13.5 24 27 1.6 13.5z' fill='%23D7F4EE'/%3E%3C/svg%3E") center/100% 100% no-repeat}
+.icon-tile svg{width:22px;height:22px;stroke-width:1.6;margin-top:2px}
+.bg-navy .icon-tile,.page-hero.is-dark .icon-tile{color:var(--teal-300);
+ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 54' preserveAspectRatio='none'%3E%3Cpath d='M24 0 46.4 13.5v27L24 54 1.6 40.5v-27z' fill='%23FFFFFF' fill-opacity='.07'/%3E%3Cpath d='M24 0 46.4 13.5 24 27 1.6 13.5z' fill='%235EEAD4' fill-opacity='.14'/%3E%3C/svg%3E")}
+/* phones: icon cards put the hexagon beside the title + text instead of stacking */
+@media(max-width:640px){
+ :is(.g2,.g3,.g4):not(.com-groups)>.card:has(>.icon-tile:first-child){display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:var(--sp-4);row-gap:var(--sp-2);align-content:start}
+ :is(.g2,.g3,.g4):not(.com-groups)>.card>.icon-tile:first-child{grid-row:1/span 2;width:44px;height:50px;margin:0}
+ :is(.g2,.g3,.g4):not(.com-groups)>.card>.icon-tile:first-child svg{width:20px;height:20px}
+ :is(.g2,.g3,.g4):not(.com-groups)>.card:has(>.icon-tile:first-child)>:not(.icon-tile){grid-column:2}
+}
+/* legacy thumbnail → lattice slot */
+.thumb{border-radius:var(--r-md);aspect-ratio:16/9;background:var(--paper) var(--lattice) 0 0/var(--lattice-size);position:relative;overflow:hidden;margin:-4px -4px 8px;border:1px solid var(--line)}
+.thumb.t2{background-color:var(--sand)}
+/* event date tile: day in Newsreader, month in mono, the three-face rule on top */
+.date-block{background:#fff;color:var(--navy-800);border:1px solid var(--line-strong);border-radius:var(--r-panel);text-align:center;padding:9px 10px 8px;min-width:60px;line-height:1.1;flex:none;
+ box-shadow:inset 0 3px 0 var(--face-top);overflow:hidden}
+.date-block b{font:500 1.625rem/1.05 var(--font-display);display:block;letter-spacing:-.02em}
+.date-block span{font:500 .6875rem/1.3 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--teal-700)}
+.date-block b,.price,td.num{font-variant-numeric:lining-nums tabular-nums}
+.event-card{position:relative;flex-direction:row;gap:var(--sp-4);align-items:flex-start}.event-card>:last-child{min-width:0;flex:1}
+.event-card .card-link::after{content:"";position:absolute;inset:0;border-radius:var(--r-lg)}
+/* person / member card: hex avatar beside name + role */
+.member-card{flex-direction:row;align-items:center;gap:var(--sp-4)}.member-card>:not(.avatar){min-width:0;overflow-wrap:anywhere}
+/* stat card: real counts or verifiable facts only */
+.stat-card{gap:4px}.stat-card .stat-v{font:500 2.25rem/1.1 var(--font-display);color:var(--navy-800);letter-spacing:-.02em;font-variant-numeric:lining-nums tabular-nums}
+.stat-card .stat-k{font-size:var(--fs-sm);color:var(--slate-600)}
+
+/* ═══ 5. Status — the ONE status component: outline pill · 6px marker · label. Max one per card. ═══════════════════
+   ONE TONE PER MEANING (DESIGN_R5 §6.4 table):
+   .status-available  teal, solid dot      live / active / published / confirmed / registered / paid / members free / pass
+   .status-planned    slate, hollow ring   coming soon (exists later, nothing to do)
+   .status-dev        amber, amber dot     planned / proposed / draft / in development / open (seat) / customized
+   .status-members    navy, rhombus        members only
+   .status-pending    amber fill           needs someone's action: pending review / under review / awaiting payment / new / renewal due
+   .status-neutral    grey, grey dot       factual, no action: no membership / not edited / original / handled / past / unpublished / ended
+   .status-danger     red                  rejected / lapsed / canceled / locked / hidden / missing / failed
+   .status-success = alias of available (kept for older markup). .status-ended = alias of neutral. Legacy .badge-* map onto these. */
+.badge,.status{display:inline-flex;align-items:center;gap:6px;min-height:24px;max-width:100%;padding:2px 10px;border-radius:var(--r-pill);
+ font:500 .8125rem/1.3 var(--font-body);letter-spacing:0;white-space:nowrap;vertical-align:middle;background:#fff;color:var(--slate-700);border:1px solid var(--line-strong)}
+.status::before,:is(.badge-amber,.badge.ev-status,.badge-green,.badge-teal,.badge-red,.badge-soon):not(.nav-tag)::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.status-available,.status-success,.badge-green,.badge-teal{color:var(--teal-800);border-color:var(--line-teal);background:#fff}
+.status-dev,.badge-amber,.badge.ev-status{color:var(--c-status);border-color:var(--c-status-border);background:#fff}
+.status-dev::before,:is(.badge-amber,.badge.ev-status):not(.nav-tag)::before{background:var(--amber-400)}
+.status-planned,.badge-soon{color:var(--slate-600);border:1px dashed var(--slate-300);background:#fff}
+.status-planned::before,.badge-soon::before{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor}
+.status-members,.badge-navy{color:var(--navy-800);border-color:var(--line-navy);background:var(--navy-50)}
+.status-members::before{border-radius:0;width:9px;height:6px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}/* the cube's top face */
+.status-danger,.badge-red{color:var(--red-700);border-color:var(--red-200);background:#fff}
+.status-pending{color:var(--amber-800);border-color:var(--c-status-border);background:var(--amber-50)}.status-pending::before{background:var(--amber-400);box-shadow:0 0 0 2px rgba(245,158,11,.22)}
+.status-neutral,.status-ended{color:var(--slate-600);border-color:var(--line-strong);background:#fff}.status-neutral::before,.status-ended::before{background:var(--slate-400)}
+.badge-navy.ribbon{background:var(--navy-800);color:#fff;border-color:var(--navy-800)}
+.badge-priority{background:#fff;color:var(--navy-800);border-color:var(--line-strong)}.badge-priority::before{content:"";width:7px;height:7px;background:var(--amber-400);transform:rotate(45deg);border-radius:1px}
+/* count tag (sidebar, menus): the one filled amber chip */
+.badge.nav-tag{background:var(--amber-400);color:var(--navy-950);border:0;min-width:20px;min-height:20px;justify-content:center;padding:1px 7px;font-size:.6875rem;font-weight:700}
+.bg-navy :is(.badge,.status),.page-hero.is-dark :is(.badge,.status){background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.3);color:#fff}
+.tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+td .badge{white-space:normal}
+/* a status in a card is a compact pill (never stretched); a closing status sits at the bottom */
+.card>:is(.badge,.status):not(.ribbon){align-self:flex-start;justify-self:start;width:auto;max-width:100%}.card>:is(.badge,.status):not(.ribbon):last-child{margin-top:auto}
+
+/* ═══ 6. Filter chips, tabs, segmented control ════════════════════════════════════════════════════════════════ */
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:6px 14px;border-radius:var(--r-pill);border:1px solid var(--line-strong);background:#fff;color:var(--slate-700);
+ font:500 var(--fs-sm)/1.2 var(--font-body);text-decoration:none;cursor:pointer;transition:background-color var(--dur-1),border-color var(--dur-1),color var(--dur-1)}
+.chip:hover{border-color:var(--navy-800);color:var(--navy-800)}
+.chip:is([aria-pressed=true],[aria-current=page],[aria-current=true],.is-active){background:var(--navy-800);border-color:var(--navy-800);color:#fff}
+.chip .chip-n{font:500 .75rem/1 var(--font-mono);opacity:.8}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs a,.tabs button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 12px;border:0;background:none;color:var(--slate-600);font:500 var(--fs-ui)/1.2 var(--font-body);
+ text-decoration:none;white-space:nowrap;box-shadow:inset 0 -2px 0 transparent;cursor:pointer;transition:color var(--dur-1),box-shadow var(--dur-2)}
+.tabs a:hover,.tabs button:hover{color:var(--navy-800)}
+/* focus ring never clipped (QA-PORTALS-21): the strip only scrolls where it can overflow (≤900px); there it gets 3px of room on top
+   and at the sides so the ring (offset −1px) stays visible; on desktop the strip does not clip at all */
+.tabs a:focus-visible,.tabs button:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:var(--r-sm)}
+@media(min-width:901px){.tabs{overflow:visible}}
+@media(max-width:900px){.tabs{padding:3px 3px 0;margin-inline:-3px}.tabs a:focus-visible,.tabs button:focus-visible{outline-offset:-1px}}
+.tabs :is([aria-current=page],[aria-selected=true]){color:var(--navy-800);font-weight:600;box-shadow:inset 0 -2px 0 var(--teal-700)}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;border-radius:var(--r-pill);background:var(--mist);border:1px solid var(--line)}
+.seg a,.seg button{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:6px 14px;border:0;border-radius:var(--r-pill);background:transparent;color:var(--slate-600);font:600 var(--fs-sm) var(--font-body);text-decoration:none;cursor:pointer}
+.seg a:hover,.seg button:hover{color:var(--navy-800)}.seg :is([aria-current=page],[aria-pressed=true],[aria-selected=true]){background:#fff;color:var(--navy-800);box-shadow:var(--shadow-0)}
+
+/* phones: every control in this group is a 44px target (FA-3) */
+@media(max-width:640px){.chip{min-height:var(--target-min);padding-inline:16px}.seg a,.seg button{min-height:var(--target-min)}.seg{padding:2px}}
+
+/* ═══ 7. Lists: checks, numbered (01/02), facts row, definition rows ═════════════════════════════════════════════ */
+.checks{list-style:none;padding:0;margin:var(--sp-3) 0;display:grid;gap:10px;font-size:1rem}
+.checks li{padding-left:28px;position:relative}
+.checks li::before{content:"";position:absolute;left:0;top:4px;width:18px;height:18px;border-radius:50%;background:var(--teal-50) var(--check-mark) center/14px no-repeat;box-shadow:inset 0 0 0 1px var(--ring-check)}
+.bg-navy .checks li::before,.auth-side .checks li::before{background-color:rgba(94,234,212,.14);box-shadow:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' stroke='%235EEAD4' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+/* numbered list with hairline top rules: <ol class="num-list"><li><h3>…</h3><p>…</p></li></ol> */
+.num-list{list-style:none;counter-reset:n;padding:0;margin:0;display:grid;gap:0 var(--sp-6);grid-template-columns:repeat(var(--cols,1),minmax(0,1fr))}
+.num-list>li{counter-increment:n;padding:var(--sp-5) 0;border-top:1px solid var(--line-strong);display:grid;gap:6px;align-content:start}
+.num-list>li::before{content:counter(n,decimal-leading-zero);font:500 var(--fs-meta)/1 var(--font-mono);letter-spacing:.08em;color:var(--teal-700)}
+.num-list h3{font-size:var(--fs-card-h);margin:0}.num-list p{margin:0;color:var(--slate-600)}
+@media(max-width:760px){.num-list{grid-template-columns:minmax(0,1fr)}}
+/* facts row (typographic trust: verifiable facts only, never invented numbers) */
+.facts{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));border-top:1px solid var(--line-strong)}
+.facts>li{padding:var(--sp-4) var(--sp-4) 0 0;display:grid;gap:4px;align-content:start}
+.facts>li+li{padding-left:var(--sp-4);border-left:1px solid var(--line)}
+.facts b{font:500 1.375rem/1.2 var(--font-display);color:var(--navy-800);letter-spacing:-.01em}
+.facts span{font-size:var(--fs-sm);color:var(--slate-600);line-height:1.45}
+@media(max-width:640px){.facts{grid-template-columns:minmax(0,1fr)}.facts>li+li{padding-left:0;border-left:0;border-top:1px solid var(--line)}.facts>li{padding:var(--sp-3) 0}}
+/* label/value rows */
+.dl-rows{margin:0;display:grid}.dl-rows>div{display:flex;justify-content:space-between;gap:var(--sp-4);padding:10px 0;border-bottom:1px solid var(--line)}
+.dl-rows>div:last-child{border-bottom:0}.dl-rows dt{color:var(--slate-600)}.dl-rows dd{margin:0;font-weight:600;color:var(--navy-800);text-align:right;overflow-wrap:anywhere}
+/* index rows (principles, code of ethics): icon · title · chevron */
+.index-list{list-style:none;padding:0;margin:0;display:grid;border-top:1px solid var(--line)}
+.index-list>li>a,.index-list>li>div{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:var(--sp-4);align-items:center;padding:var(--sp-4) var(--sp-2);border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+.index-list>li>a:hover{background:rgba(255,255,255,.6)}.index-list>li>a:hover h3{color:var(--teal-700)}
+
+/* ═══ 8. Membership tiers ═══════════════════════════════════════════════════════════════════════════════════ */
+.tier{position:relative}.tier.featured{border-color:color-mix(in srgb,var(--navy-800) 35%,var(--line));box-shadow:var(--shadow-hover)}
+.tier .ribbon{position:absolute;top:-12px;left:var(--sp-5);z-index:1}
+.price{font:500 2.25rem/1.1 var(--font-display);color:var(--navy-800);letter-spacing:-.02em}.price small{font:500 var(--fs-sm) var(--font-body);color:var(--c-muted)}
+
+/* ═══ 9. Tables (public; the portals tighten them in shell.css) ════════════════════════════════════════════ */
+.table-wrap{position:relative;overflow-x:auto;border:1px solid var(--line);border-radius:var(--r-lg);background:#fff;max-width:100%}
+.table-wrap:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+table{width:100%;border-collapse:collapse;font-size:.9375rem}caption{text-align:left;padding:var(--sp-4);font-weight:600;color:var(--navy-800)}
+th,td{padding:13px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{background:var(--mist);font-size:var(--fs-sm);color:var(--slate-600);font-weight:600}
+thead th,th[scope=col]{font-size:.8125rem;letter-spacing:0;text-transform:none;font-weight:600;color:var(--slate-600)}
+tbody tr{transition:background-color var(--dur-1)}tbody tr:hover>td,tbody tr:hover>th[scope=row]{background:color-mix(in srgb,var(--navy-50) 70%,#fff)}
+tr:last-child td,tr:last-child th{border-bottom:0}td.num,th.num{text-align:right}
+
+/* ═══ 10. Forms ════════════════════════════════════════════════════════════════════════════════════════════
+   Field = label · control · hint · error. Inputs: 44px, slate-500 border (4.57 paper / 4.97 white), teal focus border + halo. */
+.field{display:grid;gap:6px;margin-bottom:20px;min-width:0;align-content:start}
+label,.label{font-weight:600;font-size:var(--fs-sm);color:var(--slate-700)}
+.hint{font-size:var(--fs-sm);line-height:1.45;color:var(--slate-600)}/* 14px: readable-text floor (QA-PUBLIC-24) */
+.optional{font-weight:400;color:var(--slate-600)}
+input[type=text],input[type=email],input[type=password],input[type=search],input[type=tel],input[type=date],input[type=number],input[type=url],input[type=datetime-local],input[type=time],input:not([type]),select,textarea{
+ width:100%;min-height:var(--target-min);padding:10px 14px;border:1px solid var(--c-input-border);border-radius:var(--r-md);font:inherit;font-size:1rem;line-height:1.4;background:#fff;color:var(--ink);
+ transition:border-color var(--dur-1),box-shadow var(--dur-1)}
+input::placeholder,textarea::placeholder{color:var(--slate-500);opacity:1}
+input:hover,select:hover,textarea:hover{border-color:var(--slate-700)}
+/* focus: teal border (≥3:1 change) + 3px halo; transparent outline keeps a ring in forced-colors mode */
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid transparent;outline-offset:1px;border-color:var(--teal-700);box-shadow:0 0 0 3px rgba(15,118,110,.2)}
+input:disabled,select:disabled,textarea:disabled{background:var(--slate-100);color:var(--slate-600);border-color:var(--slate-300);cursor:not-allowed}
+input[readonly]{background:var(--mist)}
+select{appearance:none;-webkit-appearance:none;padding-right:40px;background:#fff var(--chevron) right 12px center/16px no-repeat}
+select[multiple]{padding-right:12px;background-image:none}
+textarea{min-height:120px;resize:vertical}
+input[type=search]{padding-left:40px;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475467' stroke-width='1.6' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='m16 16 4 4'/%3E%3C/svg%3E") 13px center/18px no-repeat}
+/* checkbox + radio: custom 20px controls (teal when checked); .switch keeps its own look */
+input[type=checkbox],input[type=radio]{appearance:none;-webkit-appearance:none;flex:none;width:20px;height:20px;margin:2px 0 0;border:1.5px solid var(--c-input-border);background:#fff;display:inline-grid;place-content:center;cursor:pointer;
+ transition:background-color var(--dur-1),border-color var(--dur-1)}
+input[type=checkbox]{border-radius:5px}input[type=radio]{border-radius:50%}
+input[type=checkbox]:hover,input[type=radio]:hover{border-color:var(--teal-700)}
+input[type=checkbox]:checked{background:var(--teal-700) var(--check-mark-white) center/14px no-repeat;border-color:var(--teal-700)}
+input[type=radio]:checked{border-color:var(--teal-700);background:var(--teal-700);box-shadow:inset 0 0 0 4px #fff}
+input[type=checkbox]:indeterminate{background:var(--teal-700) linear-gradient(#fff,#fff) center/10px 2px no-repeat;border-color:var(--teal-700)}
+input[type=checkbox]:disabled,input[type=radio]:disabled{opacity:.5;cursor:not-allowed}
+input[type=checkbox]:focus-visible,input[type=radio]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.check{display:flex;gap:10px;align-items:flex-start;font-weight:400;font-size:var(--fs-ui);color:var(--ink);line-height:1.5;cursor:pointer}
+.check input{margin-top:1px}
+/* phones: the whole label row is the hit area — at least 44px tall (FA-3) */
+@media(max-width:640px){.check{min-height:var(--target-min);padding-block:11px}.check input{margin-top:1px}}
+.switch{display:inline-flex;align-items:center;gap:10px;cursor:pointer}
+.switch input{appearance:none;width:44px;height:24px;background:var(--slate-300);border:0;border-radius:99px;position:relative;cursor:pointer;margin:0;box-shadow:none}
+.switch input::after{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left var(--dur-2) var(--ease-out);box-shadow:var(--shadow-0)}
+.switch input:checked{background:var(--teal-700)}.switch input:checked::after{left:23px}
+:is(.check,.switch) input:focus-visible{outline:2px solid var(--focus);outline-offset:2px;box-shadow:none}
+/* errors: red border + halo on the control, message below (with role="alert" or aria-describedby in markup) */
+.field.error :is(input,select,textarea),:is(input,select,textarea)[aria-invalid=true]{border-color:var(--red-700);box-shadow:0 0 0 3px rgba(180,35,24,.12)}
+.error-msg{display:flex;align-items:flex-start;gap:6px;color:var(--red-700);font-size:var(--fs-sm);font-weight:500;line-height:1.45}
+.error-msg::before{content:"!";flex:none;display:grid;place-items:center;width:15px;height:15px;margin-top:1px;border-radius:50%;background:var(--red-700);color:#fff;font:700 .625rem/1 var(--font-body)}
+/* fieldsets / form layout */
+.fieldset{border:0;border-top:1px solid var(--line);margin:0;padding:var(--sp-5) 0 var(--sp-2);min-width:0}
+.fieldset>legend{float:left;width:100%;padding:0;margin:0 0 var(--sp-4);font:600 var(--fs-lg)/1.3 var(--font-body);color:var(--navy-800)}.fieldset>legend+*{clear:both}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 var(--sp-4)}.form-grid>.span-2{grid-column:1/-1}
+.form-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;border-top:1px solid var(--line);padding-top:var(--sp-5);margin-top:var(--sp-2)}
+@media(max-width:640px){.form-grid{grid-template-columns:minmax(0,1fr)}.form-actions .btn{flex:1 1 100%}}
+.search-bar{display:flex;gap:8px;flex-wrap:wrap}.search-bar input{flex:1;min-width:200px}
+.filters{display:grid;gap:var(--sp-4);align-content:start}
+
+/* ═══ 10b. Save row + danger zone — ONE recipe for member AND admin settings cards (DESIGN_R5 §10.4–10.5) ═════════════
+   <div class="save-row"><p class="save-row-note">optional note</p><button class="btn btn-ghost">Cancel</button><button class="btn btn-accent">Save changes</button></div>
+   Always the last child of its card/section: hairline above, actions in the bottom-RIGHT corner, primary (accent) last.
+   Phones: full-width buttons, primary on top. No grey band, no floating buttons. Long forms add the sticky .savebar instead. */
+.save-row{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:var(--sp-2) var(--sp-3);margin-top:var(--sp-4);padding-top:var(--sp-4);border-top:1px solid var(--line)}
+.save-row>.save-row-note,.save-row>.check{margin:0 auto 0 0;font-size:var(--fs-sm);color:var(--slate-600)}
+.save-row>form{margin:0}
+.save-row.is-flush{border-top:0;padding-top:0}
+@media(max-width:640px){.save-row{flex-direction:column-reverse;align-items:stretch}.save-row>.btn,.save-row>form>.btn{width:100%}.save-row>:is(.save-row-note,.check){margin:0}}
+/* a confirm checkbox in the row stays ABOVE its button on phones (visual order = focus order) */
+@media(max-width:640px){.save-row:has(>.check){flex-direction:column}}
+/* danger zone: <section class="panel danger-zone"> [.danger-zone-label] h2 · p · (.danger-row …)* or fields · .save-row
+   White sheet, red hairline + 3px red rule on the left, red title. The destructive button is .btn-danger-outline and turns solid only
+   once its own confirm checkbox is ticked (CSS :has, no JS). One action per .danger-row (text left, action right). */
+.danger-zone{position:relative;overflow:hidden;background:#fff;border:1px solid var(--red-200);border-radius:var(--r-panel);padding:var(--sp-5) var(--sp-5) var(--sp-5) calc(var(--sp-5) + 3px)}
+.danger-zone::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red-700)}
+.danger-zone>h2,.danger-zone>header h2{color:var(--red-700)}
+/* (0,3,0) on purpose: beats area rules such as ".adm/.mbr .settings-section>header p" that style every header paragraph */
+.danger-zone .danger-zone-label.danger-zone-label,.danger-zone-label{display:inline-flex;align-items:center;gap:6px;margin:0 0 var(--sp-2);font:500 var(--fs-meta)/1.4 var(--font-mono);letter-spacing:var(--track-meta);text-transform:uppercase;color:var(--red-700)}
+.danger-zone-label svg{width:16px;height:16px;flex:none}
+.danger-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--sp-3) var(--sp-6);padding:var(--sp-4) 0;border-top:1px solid var(--line)}
+.danger-row:first-of-type{border-top:0}
+.danger-row>:first-child{flex:1 1 320px;min-width:0}.danger-row>:first-child>*{margin:0}.danger-row>:first-child>*+*{margin-top:4px}
+.danger-row>:last-child{margin-left:auto}
+.danger-zone .save-row{border-top-color:var(--red-200)}
+.danger-row:has(input[type=checkbox]:checked) .btn-danger-outline,.danger-zone:not(:has(.danger-row)):has(input[type=checkbox]:checked) .btn-danger-outline{background:var(--red-700);border-color:var(--red-700);color:#fff}
+@media(max-width:640px){.danger-zone{padding:var(--sp-4) var(--sp-4) var(--sp-4) calc(var(--sp-4) + 3px)}.danger-row>:last-child{margin-left:0;width:100%}.danger-row .btn{width:100%}}
+
+/* ═══ 11. Alerts & notices — tinted panel, 3px left rule, optional 20px icon ═════════════════════════════════════ */
+.alert{display:flex;gap:12px;padding:14px 16px 14px 14px;border-radius:var(--r-panel);border:1px solid;border-left-width:3px;font-size:.9375rem;line-height:1.55}
+.alert b{display:block;font-weight:600}.alert>svg{flex:none;width:20px;height:20px;margin-top:1px}.alert p{margin:0}.alert a{color:inherit;text-decoration-thickness:1px}
+.alert-info{background:var(--navy-50);border-color:var(--line-info);border-left-color:var(--face-right);color:var(--navy-800)}.alert-info>svg{color:var(--face-right)}
+.alert-success{background:var(--teal-50);border-color:var(--line-success);border-left-color:var(--teal-700);color:var(--ink-success)}.alert-success>svg{color:var(--teal-700)}
+.alert-warning{background:var(--amber-50);border-color:var(--amber-100);border-left-color:var(--amber-400);color:var(--amber-800)}.alert-warning>svg{color:var(--amber-700)}
+.alert-danger{background:var(--red-50);border-color:var(--red-200);border-left-color:var(--red-700);color:var(--ink-danger)}.alert-danger>svg{color:var(--red-700)}
+/* notices focused after an action (<FocusOnLoad>, D7/FA-5): no outline for pointer users; a calm ring + soft halo when the browser
+   treats the focus as keyboard focus (:focus-visible). It wraps an .alert, so the ring sits 4px outside the notice. */
+.focus-on-load{border-radius:var(--r-panel);scroll-margin-block:calc(var(--header-h) + 24px);--fol-halo:var(--navy-100)}
+.focus-on-load:has(>.alert-success){--fol-halo:var(--teal-100)}.focus-on-load:has(>.alert-warning){--fol-halo:var(--amber-100)}.focus-on-load:has(>.alert-danger){--fol-halo:var(--red-200)}
+/* calm (QA-PORTALS-2-3): a notice is not a control, so no ring — a 4px halo in the notice's own tone marks where focus landed */
+.focus-on-load:focus,.focus-on-load:focus-visible{outline:none}
+.focus-on-load:focus-visible{box-shadow:0 0 0 4px var(--fol-halo)}
+@media(forced-colors:active){.focus-on-load:focus-visible{outline:2px solid CanvasText;outline-offset:3px}}
+.focus-on-load>.alert{margin:0}
+/* FR fallback notice (untranslated content pages) — slim bar above the hero */
+.fallback-bar{background:var(--navy-50);border-bottom:1px solid var(--navy-100);color:var(--navy-800);font-size:var(--fs-sm);line-height:1.45}
+.fallback-bar .container{display:flex;align-items:flex-start;gap:var(--sp-2);padding-top:10px;padding-bottom:10px}.fallback-bar svg{flex:none;margin-top:1px}
+
+/* ═══ 12. Disclosure (details/summary), steps, progress, pagination ══════════════════════════════════════════════ */
+details{border:1px solid var(--line);border-radius:var(--r-panel);padding:var(--sp-3) var(--sp-4);background:#fff}details+details{margin-top:8px}
+summary{font-weight:600;color:var(--navy-800);cursor:pointer;min-height:28px}
+summary:not(.btn){list-style:none;position:relative;padding-right:32px}summary:not(.btn)::-webkit-details-marker{display:none}
+summary:not(.btn)::after{content:"";position:absolute;right:var(--sp-4);top:50%;margin-top:-6px;width:8px;height:8px;border-right:1.5px solid var(--teal-700);border-bottom:1.5px solid var(--teal-700);transform:rotate(45deg);transition:transform var(--dur-2) var(--ease-out)}
+details[open]>summary:not(.btn)::after{transform:translateY(4px) rotate(-135deg)}
+summary:hover{color:var(--teal-800)}
+/* plain FAQ disclosures: the whole 52px row is the tap target */
+details:not([class]){padding:0}details:not([class])>summary:not(.btn){display:flex;align-items:center;min-height:52px;padding:var(--sp-3) 44px var(--sp-3) var(--sp-5)}
+details:not([class])>:not(summary){margin-left:var(--sp-5);margin-right:var(--sp-5)}details:not([class])[open]>:last-child{margin-bottom:var(--sp-5)}
+details:not([class])[open]{border-color:var(--line-strong)}
+.steps{display:flex;gap:8px;list-style:none;padding:0;margin:0 0 var(--sp-5);flex-wrap:wrap;counter-reset:st}
+.steps li{flex:1;min-width:0;border-top:3px solid var(--line-strong);padding-top:10px;font-size:var(--fs-sm);color:var(--slate-600)}
+.steps li.done{border-color:var(--teal-700)}.steps li[aria-current]{border-color:var(--navy-800);color:var(--navy-800);font-weight:600}
+.progress{height:6px;background:var(--slate-200);border-radius:99px;overflow:hidden}.progress>span{display:block;height:100%;background:var(--teal-700);border-radius:99px}
+.pagination{display:flex;gap:6px;list-style:none;padding:0;margin:var(--sp-5) 0 0;flex-wrap:wrap;align-items:center}
+.pagination a,.pagination>li>span{display:grid;place-items:center;min-width:40px;height:40px;padding:0 10px;border:1px solid var(--line-strong);border-radius:var(--r-pill);text-decoration:none;color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums;background:#fff;transition:background-color var(--dur-1),border-color var(--dur-1)}
+.pagination a:hover{border-color:var(--navy-800)}
+@media(max-width:640px){.pagination a,.pagination>li>span{min-width:var(--target-min);height:var(--target-min)}}.pagination [aria-current=page]{background:var(--navy-800);color:#fff;border-color:var(--navy-800)}
+
+/* ═══ 13. Dialogs, confirms, toasts, skeletons ══════════════════════════════════════════════════════════════ */
+dialog,.modal{border:0;border-radius:var(--r-lg);padding:var(--sp-6);max-width:480px;width:calc(100% - 2 * var(--gutter));background:#fff;color:var(--ink);box-shadow:var(--shadow-pop)}
+dialog::backdrop{background:rgba(6,21,43,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.modal-backdrop{position:relative;background:rgba(6,21,43,.55);border-radius:var(--r-lg);padding:var(--sp-7) var(--sp-4);display:grid;place-items:center}
+.modal-head{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3)}
+.modal-actions,.confirm-actions{display:flex;gap:var(--sp-2);justify-content:flex-end;flex-wrap:wrap;margin-top:var(--sp-5)}
+/* inline confirm (details-based, no JS): <details class="confirm"><summary class="btn …">Delete…</summary><div class="confirm-box">…</div></details> */
+details.confirm{border:0;padding:0;background:none}details.confirm>summary::after{content:none}
+.confirm-box{display:grid;gap:10px;margin-top:8px;padding:14px;border:1px solid var(--line-strong);border-radius:var(--r-md);background:#fff;box-shadow:var(--shadow-pop)}
+.toast{position:fixed;right:var(--gutter);bottom:var(--gutter);z-index:80;display:flex;gap:10px;align-items:center;max-width:min(420px,calc(100% - 2 * var(--gutter)));
+ padding:12px 16px;border-radius:var(--r-panel);background:var(--navy-900);color:#fff;font-size:var(--fs-sm);box-shadow:var(--shadow-pop)}
+.skeleton{display:block;border-radius:var(--r-sm);background:var(--slate-100);min-height:1em}
+@media(prefers-reduced-motion:no-preference){.skeleton{background:linear-gradient(90deg,var(--slate-100) 0 40%,var(--sheen) 50%,var(--slate-100) 60% 100%) 0 0/200% 100%;animation:skeleton-sheen 1.4s linear infinite}}
+
+/* ═══ 14. Avatars — hex-framed monogram (the cube's silhouette: three faces, white initials 8:1+) ═══════════════════ */
+.avatar{--av:48px;width:var(--av);height:var(--av);flex:none;display:grid;place-items:center;border-radius:0;color:#fff;
+ font:600 calc(var(--av) * .32)/1 var(--font-body);letter-spacing:.02em;
+ clip-path:polygon(50% 0,93.3% 25%,93.3% 75%,50% 100%,6.7% 75%,6.7% 25%);
+ background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M50 0 93.3 25 50 50 6.7 25z' fill='%231E4E8C'/%3E%3Cpath d='M50 50 93.3 25v50L50 100z' fill='%23163A6B'/%3E%3Cpath d='M50 50 6.7 25v50L50 100z' fill='%230B2545'/%3E%3C/svg%3E") center/100% 100% no-repeat}
+.avatar.sm{--av:32px}.avatar.lg{--av:88px}
+.avatar.teal{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M50 0 93.3 25 50 50 6.7 25z' fill='%230F766E'/%3E%3Cpath d='M50 50 93.3 25v50L50 100z' fill='%23115E59'/%3E%3Cpath d='M50 50 6.7 25v50L50 100z' fill='%230B4A45'/%3E%3C/svg%3E")}
+.avatar.amber{color:var(--navy-950);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M50 0 93.3 25 50 50 6.7 25z' fill='%23FBB13C'/%3E%3Cpath d='M50 50 93.3 25v50L50 100z' fill='%23F59E0B'/%3E%3Cpath d='M50 50 6.7 25v50L50 100z' fill='%23F7A823'/%3E%3C/svg%3E")}
+
+/* ═══ 15. Empty states — facet art ≤160px, heading, one sentence, one action. Never a blank table. ═════════════════ */
+.empty-state,.news-empty,.adm .adm-empty,.events-page .ev-empty{border:1px dashed var(--line-strong);border-radius:var(--r-lg);background:var(--mist);box-shadow:none}
+.empty-state{display:grid;justify-items:center;gap:var(--sp-2);padding:var(--sp-7) var(--sp-5);text-align:center;color:var(--c-muted)}
+.empty-state :is(h2,h3,h4),.empty-state .empty-title{margin:var(--sp-2) 0 0;font:600 var(--fs-card-h)/1.35 var(--font-body);letter-spacing:-.01em;color:var(--navy-800)}.empty-state p{margin:0 auto;max-width:52ch}
+.empty-state .empty-art{width:120px}.empty-state .empty-actions{display:flex;flex-wrap:wrap;gap:var(--sp-3);justify-content:center;margin-top:var(--sp-3)}
+
+/* ═══ 16. Facet art (inline assemblies from <FacetArt/>) ════════════════════════════════════════════════════ */
+.facet-art{display:block;line-height:0}.facet-art svg{width:100%;height:auto;overflow:visible}
+@media(prefers-reduced-motion:no-preference){
+ .facet-art.is-assembling .c{animation:facet-in 420ms var(--ease-out) both;animation-delay:calc(var(--i,0) * 40ms)}
+ .facet-art.is-assembling .core{transform-box:fill-box;transform-origin:center;animation:facet-core var(--dur-3) var(--ease-out) 700ms both}
+}
+
+/* ═══ 18. Design reference pages /design/brand + /design/components (DESIGN) — scoped to .ds-page ═══════════════ */
+.ds-page .ds-hero-links{display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-top:var(--sp-5)}
+.ds-page .ds-head{margin-bottom:var(--sp-6);max-width:760px}.ds-page .ds-head h2{margin-bottom:var(--sp-2)}.ds-page .ds-head .lead{margin:0}
+.ds-page .ds-h3{font-size:var(--fs-xl);margin:var(--sp-7) 0 var(--sp-4)}.ds-page .ds-h4{font:600 var(--fs-sm) var(--font-body);color:var(--slate-600);margin:var(--sp-3) 0 0}
+.ds-page .ds-note{margin-top:var(--sp-4);max-width:80ch}.ds-page code{font-family:var(--font-mono);font-size:.86em;background:var(--mist);padding:1px 5px;border-radius:4px}
+.ds-page .ds-logo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-5);margin-bottom:var(--sp-5)}
+.ds-page .ds-tile{margin:0;border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--sp-6);display:flex;flex-direction:column;justify-content:center;gap:var(--sp-4);min-height:200px}
+.ds-page .ds-tile-light{background:#fff}.ds-page .ds-tile-mist{background:var(--paper)}.ds-page .ds-tile-dark{background:var(--navy-950);border-color:var(--navy-950)}
+.ds-page .ds-tile img{width:auto;height:auto}.ds-page .ds-tile-wide img{width:100%;max-width:330px}
+.ds-page .ds-tile figcaption{font-size:var(--fs-sm);color:var(--c-muted)}.ds-page .ds-tile-dark figcaption{color:var(--on-dark-muted)}
+.ds-page .ds-mark-row{display:flex;gap:var(--sp-6);align-items:flex-end}
+.ds-page .ds-anatomy{justify-content:flex-start}.ds-page .ds-anatomy h3{font-size:var(--fs-lg);margin:0}.ds-page .ds-anatomy .checks{margin:0}
+.ds-page .ds-type{border-top:1px solid var(--line)}
+.ds-page .ds-type-row{display:grid;grid-template-columns:220px minmax(0,1fr);gap:var(--sp-5);align-items:baseline;padding:var(--sp-4) 0;border-bottom:1px solid var(--line)}
+.ds-page .ds-spec{font:500 var(--fs-xs)/1.5 var(--font-mono);color:var(--slate-600)}.ds-page .ds-sample{margin:0;overflow-wrap:anywhere}
+.ds-page .ds-dodont{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-4)}.ds-page .ds-dodont p{color:var(--ink)}
+.ds-page .ds-do{box-shadow:inset 0 3px 0 var(--teal-700)}.ds-page .ds-dont{box-shadow:inset 0 3px 0 var(--red-700)}
+.ds-page .ds-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-8)}.ds-page .ds-stack .ds-head{margin-bottom:var(--sp-4)}
+.ds-page .ds-block>*+*{margin-top:var(--sp-4)}.ds-page .ds-block .grid{margin-top:var(--sp-4)}
+.ds-page .ds-demo{display:flex;gap:var(--sp-3);flex-wrap:wrap;align-items:center;padding:var(--sp-5);border:1px solid var(--line);border-radius:var(--r-lg);background:#fff}
+.ds-page .ds-demo-paper{background:var(--paper)}.ds-page .ds-demo-dark{background:var(--navy-950);border-color:var(--navy-950)}
+.ds-page .ds-demo-col{display:grid;gap:var(--sp-3);align-items:start}
+.ds-page .ds-focus{outline:2px solid var(--focus);outline-offset:3px}
+.ds-page .ds-usage{margin:var(--sp-4) 0 0;padding-left:1.2em;display:grid;gap:4px}
+.ds-page .ds-col{display:grid;gap:6px;min-width:0;flex:1}.ds-page .member-card h3{font-size:var(--fs-base)}.ds-page .ds-push{margin-left:auto}
+.ds-page .ds-swatches{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.swatch{border-radius:var(--r-md);overflow:hidden;border:1px solid var(--line);background:#fff}.swatch div:first-child{height:84px}.swatch div:last-child{padding:10px 12px;font-size:var(--fs-sm)}
+.ds-page .swatch code{background:none;padding:0}
+.ds-page .ds-art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--sp-4)}
+.ds-page .ds-art-grid figure{margin:0;padding:var(--sp-4);border:1px solid var(--line);border-radius:var(--r-lg);background:var(--paper)}
+.ds-page .ds-art-grid figure.is-dark{background:var(--navy-950);border-color:var(--navy-950)}.ds-page .ds-art-grid figure.is-dark figcaption{color:var(--on-dark-muted)}
+.ds-page .ds-art-grid img{width:100%;height:auto;aspect-ratio:360/280;object-fit:contain}.ds-page .ds-art-grid figcaption{margin-top:8px;font:500 var(--fs-xs)/1.4 var(--font-mono);color:var(--slate-600)}
+.ds-page .ds-lattice{height:140px;border-radius:var(--r-lg);border:1px solid var(--line)}
+.ds-page .ds-cut{height:140px;background:var(--navy-800);border-radius:var(--r-xl) var(--r-xl) 0 var(--r-xl)}
+.ds-page .ds-icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:var(--sp-2)}
+.ds-page .ds-icons figure{margin:0;display:grid;justify-items:center;gap:6px;padding:var(--sp-3) var(--sp-2);border:1px solid var(--line);border-radius:var(--r-md);background:#fff;color:var(--navy-800)}
+.ds-page .ds-icons svg{width:24px;height:24px}.ds-page .ds-icons figcaption{font:500 .6875rem/1.3 var(--font-mono);color:var(--slate-600)}
+.ds-page td .badge{white-space:nowrap}
+.ds-page .ds-mark-row .ds-m64{height:64px;width:auto}.ds-page .ds-mark-row .ds-m32{height:32px;width:auto}.ds-page .ds-mark-row .ds-m16{height:16px;width:auto}
+@media(max-width:860px){.ds-page .ds-logo-grid{grid-template-columns:minmax(0,1fr)}.ds-page .ds-type-row{grid-template-columns:minmax(0,1fr);gap:var(--sp-1)}}
+@media(max-width:640px){.ds-page .ds-dodont{grid-template-columns:minmax(0,1fr)}.ds-page .ds-tile{padding:var(--sp-5);min-height:0}.ds-page .member-card{flex-wrap:wrap}.ds-page .ds-hero-links .btn{min-height:var(--target-min)}}

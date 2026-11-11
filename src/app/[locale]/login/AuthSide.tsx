@@ -10,7 +10,7 @@ export async function AuthSide({ variant = "login" }: { variant?: "login" | "sig
       <div className="auth-side-inner">
         <h2>{t(`${p}Title`)}</h2>
         <p className="auth-side-lead">{t(`${p}Lead`)}</p>
-        <ul className="checks" style={{ color: "#dbe4f0" }}>
+        <ul className="checks">
           {(["b1", "b2", "b3", "b4"] as const).map((b) => <li key={b}>{t(`${p}_${b}`)}</li>)}
         </ul>
       </div>

@@ -2,6 +2,8 @@
 import { useActionState, useEffect, useRef, startTransition, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { sendContact, type ContactField, type ContactState } from "./actions";
+import { Icon } from "@/components/ui/Icon";
+import { FocusOnLoad } from "@/components/ui/FocusOnLoad";
 
 const TOPICS = ["membership", "enterprise", "events", "chapters", "community", "volunteering", "media", "privacy", "account", "other"] as const;
 
@@ -11,7 +13,7 @@ export function ContactForm({ locale, initialTopic, defaults }: { locale: string
   // Submit through a transition so a validation error keeps what the visitor typed (React 19 resets form fields after an action).
   const submit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => action(fd)); };
   const statusRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { if ((state.error && !pending) || state.ok) statusRef.current?.focus(); }, [state, pending]);
+  useEffect(() => { if (state.error && !pending) statusRef.current?.focus(); }, [state, pending]); // success: <FocusOnLoad> (D7)
   const topic = (TOPICS as readonly string[]).includes(initialTopic ?? "") ? initialTopic : "";
   // Field-level errors: the server names the field; mark it invalid and tie the message to it (A1-14).
   const bad = (f: ContactField) => state.field === f;
@@ -22,9 +24,13 @@ export function ContactForm({ locale, initialTopic, defaults }: { locale: string
 
   if (state.ok) {
     return (
-      <div className="alert alert-success contact-sent" role="status" tabIndex={-1} ref={statusRef}>
-        <div><b>{t("sentTitle")}</b>{t("sentBody")}</div>
-      </div>
+      <FocusOnLoad>
+        <div className="contact-sent" role="status">
+          <span className="sent-mark" aria-hidden="true"><Icon name="check-circle" size={28} /></span>
+          <h2>{t("sentTitle").trim()}</h2>
+          <p>{t("sentBody")}</p>
+        </div>
+      </FocusOnLoad>
     );
   }
   return (
@@ -33,12 +39,12 @@ export function ContactForm({ locale, initialTopic, defaults }: { locale: string
       <h2 id="cf-h">{t("formTitle")}</h2>
       <p className="muted">{t("formLead")}</p>
       {/* Hidden while sending, so the alert mounts again with the result and a repeated error is announced again. */}
-      {state.error && !pending && <div className="alert alert-danger" role="alert" tabIndex={-1} ref={statusRef}><div>{state.field ? <a href={`#${fieldId[state.field]}`}>{state.error}</a> : state.error}</div></div>}
-      <div className="grid g2 contact-row">
+      {state.error && !pending && <div className="alert alert-danger" role="alert" tabIndex={-1} ref={statusRef}><Icon name="x-circle" /><div>{state.field ? <a href={`#${fieldId[state.field]}`}>{state.error}</a> : state.error}</div></div>}
+      <div className="form-grid contact-row">
         <div className={fcls("name")}><label htmlFor="cf-name">{t("name")}</label><input id="cf-name" name="name" type="text" required maxLength={100} autoComplete="name" defaultValue={defaults.name} aria-invalid={bad("name") || undefined} aria-describedby={desc("name")} />{fieldErr("name")}</div>
         <div className={fcls("email")}><label htmlFor="cf-email">{t("email")}</label><input id="cf-email" name="email" type="email" required maxLength={254} autoComplete="email" defaultValue={defaults.email} aria-invalid={bad("email") || undefined} aria-describedby={desc("email")} />{fieldErr("email")}</div>
       </div>
-      <div className="grid g2 contact-row">
+      <div className="form-grid contact-row">
         <div className={fcls("organization")}><label htmlFor="cf-org">{t("organization")} <span className="muted">{t("optional")}</span></label><input id="cf-org" name="organization" type="text" maxLength={150} autoComplete="organization" defaultValue={defaults.org} aria-invalid={bad("organization") || undefined} aria-describedby={desc("organization")} />{fieldErr("organization")}</div>
         <div className={fcls("topic")}><label htmlFor="cf-topic">{t("topic")}</label>
           <select id="cf-topic" name="topic" required defaultValue={topic} aria-invalid={bad("topic") || undefined} aria-describedby={desc("topic")}>

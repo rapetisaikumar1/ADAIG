@@ -1,12 +1,16 @@
 /**
  * Direct database access for setup, assertions and cleanup (node-postgres, the driver the app itself uses).
- * Rows created here use the e2e markers (ids "e2e-…", emails "e2e+<run>-<n>@example.test", event slugs "e2e-…"),
- * so the global teardown (and `npm run test:e2e:cleanup`) can always find them.
+ * Rows created here use the e2e markers (ids "e2e-…", emails "e2e+<run>-<n>@example.test", event slugs "e2e-…", admin role
+ * names "E2E …"), so the global teardown, `npm run test:e2e:cleanup` and the pre-run purge can always find them.
+ * Rules for spec authors: README → Testing.
  */
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import pg from "pg";
 import { databaseUrl } from "./env";
+import { FULL_PERMISSIONS, SUPER_ADMIN_NAME, SUPER_ADMIN_ROLE_ID, type Action, type Module } from "../../../src/lib/permissions";
+
+export { SUPER_ADMIN_NAME, SUPER_ADMIN_ROLE_ID };
 
 let pool: pg.Pool | null = null;
 export function getPool(): pg.Pool {
@@ -42,18 +46,103 @@ export const uniquePassword = () => `E2e-pass-${crypto.randomBytes(6).toString("
 
 /* ── factories ─────────────────────────────────────────────────────────────────── */
 
-export type UserRow = { id: string; email: string; name: string; role: string; passwordHash: string; sessionVersion: number; organisation: string | null; jobTitle: string | null; country: string; province: string | null; locale: string; directoryOptIn: boolean; marketingOptIn: boolean; deletedAt: Date | null };
+export type UserRow = { id: string; email: string; name: string; role: string; passwordHash: string; sessionVersion: number; organisation: string | null; jobTitle: string | null; country: string; province: string | null; locale: string; directoryOptIn: boolean; marketingOptIn: boolean; deletedAt: Date | null; active: boolean; adminRoleId: string | null };
 export type TestUser = { id: string; email: string; name: string; password: string };
 
-/** Insert a user directly (bcrypt cost 4: fast, and still verified by the app's bcrypt.compare). */
-export async function createUser(opts: { role?: "guest" | "member" | "admin"; name?: string; email?: string; password?: string; directoryOptIn?: boolean; organisation?: string; jobTitle?: string; locale?: string } = {}): Promise<TestUser> {
+export type CreateUserOpts = {
+  role?: "guest" | "member" | "admin"; name?: string; email?: string; password?: string; directoryOptIn?: boolean; organisation?: string; jobTitle?: string; locale?: string;
+  /** Admin Portal role. Default: SUPER_ADMIN_ROLE_ID for role "admin", null otherwise. null = an admin with no role (no permissions). */
+  adminRoleId?: string | null;
+  /** Convenience: "Super Admin" or a role id (adminRoleId wins when both are given). */
+  adminRole?: string;
+  /** Default true. */
+  active?: boolean;
+};
+
+/**
+ * Insert a user directly (bcrypt cost 4: fast, and still verified by the app's bcrypt.compare). `role: "admin"` = Super Admin unless told otherwise.
+ * createdAt is set 2 hours back: the app caps new accounts at 100 per hour across all visitors (rateLimit.ts, allowAccountCreation,
+ * counted from User.createdAt), and the suite inserts well over 100 fixture users in one run. Fixture rows are not sign-ups, so
+ * they stay out of that window; otherwise the sign-up and join specs would get "too many sign-up attempts" depending on test order.
+ */
+export async function createUser(opts: CreateUserOpts = {}): Promise<TestUser> {
   const id = e2eId(); const email = opts.email ?? uniqueEmail(); const name = opts.name ?? uniqueName(); const password = opts.password ?? uniquePassword();
+  const role = opts.role ?? "guest";
+  const fromName = opts.adminRole === undefined ? undefined : opts.adminRole === SUPER_ADMIN_NAME ? SUPER_ADMIN_ROLE_ID : opts.adminRole;
+  const adminRoleId = opts.adminRoleId !== undefined ? opts.adminRoleId : fromName ?? (role === "admin" ? SUPER_ADMIN_ROLE_ID : null);
   await q(
-    `INSERT INTO "User" (id, email, name, "passwordHash", role, organisation, "jobTitle", country, province, locale, "directoryOptIn", "marketingOptIn")
-     VALUES ($1,$2,$3,$4,$5,$6,$7,'United States','NY',$8,$9,false)`,
-    [id, email, name, bcrypt.hashSync(password, 4), opts.role ?? "guest", opts.organisation ?? "E2E Testing Org", opts.jobTitle ?? null, opts.locale ?? "en", opts.directoryOptIn ?? false],
+    `INSERT INTO "User" (id, email, name, "passwordHash", role, organisation, "jobTitle", country, province, locale, "directoryOptIn", "marketingOptIn", active, "adminRoleId", "createdAt")
+     VALUES ($1,$2,$3,$4,$5,$6,$7,'United States','NY',$8,$9,false,$10,$11, now() - interval '2 hours')`,
+    [id, email, name, bcrypt.hashSync(password, 4), role, opts.organisation ?? "E2E Testing Org", opts.jobTitle ?? null, opts.locale ?? "en", opts.directoryOptIn ?? false, opts.active ?? true, adminRoleId],
   );
   return { id, email, name, password };
+}
+
+/* ── admin roles (RBAC) ──────────────────────────────────────────────────────────── */
+
+/** Permission JSON as stored in AdminRole.permissions. */
+export type RolePermissions = Partial<Record<Module, readonly Action[]>>;
+type AnyPermissions = RolePermissions | Record<string, readonly string[]>;
+export type TestRole = { id: string; name: string };
+export type TestAdmin = TestUser & { roleId: string; roleName: string };
+export type RoleRow = { id: string; name: string; description: string | null; permissions: Record<string, string[]>; isSystem: boolean; createdAt: Date; updatedAt: Date };
+
+const ALL: readonly Action[] = ["view", "create", "edit", "delete"];
+/** Permission sets mirroring prisma/seed.ts. Create your own roles from them; don't rely on the seeded example roles. */
+export const ROLE_PRESETS = {
+  full: FULL_PERMISSIONS,
+  memberManager: { members: ALL, events: ["view"], messages: ["view"] },
+  eventManager: { members: ["view"], events: ALL, messages: ["view"] },
+  viewer: { members: ["view"], events: ["view"], messages: ["view"] },
+  eventsOnly: { events: ALL },
+  none: {},
+} as const satisfies Record<string, RolePermissions>;
+
+/** Insert an Admin Portal role (id "e2e-…", name "E2E Role …" by default). The JSON is stored as given (not normalised). */
+export async function createAdminRole(opts: { permissions: AnyPermissions; name?: string; description?: string }): Promise<TestRole> {
+  const id = e2eId(); const name = opts.name ?? uniqueName("Role");
+  await q(
+    `INSERT INTO "AdminRole" (id, name, description, permissions, "isSystem", "createdAt", "updatedAt") VALUES ($1,$2,$3,$4::jsonb,false,now(),now())`,
+    [id, name, opts.description ?? null, JSON.stringify(opts.permissions)],
+  );
+  return { id, name };
+}
+/** Alias of createAdminRole. */
+export const createRole = createAdminRole;
+
+/** A role with `permissions` and an active admin user holding it. */
+export async function createAdmin(
+  permissions: AnyPermissions,
+  opts: Omit<CreateUserOpts, "role" | "adminRoleId" | "adminRole"> & { roleName?: string; description?: string } = {},
+): Promise<TestAdmin> {
+  const { roleName, description, ...userOpts } = opts;
+  const r = await createAdminRole({ permissions, name: roleName, description });
+  const u = await createUser({ ...userOpts, role: "admin", adminRoleId: r.id });
+  return { ...u, roleId: r.id, roleName: r.name };
+}
+
+export const roleById = (id: string) => one<RoleRow>(`SELECT * FROM "AdminRole" WHERE id = $1`, [id]);
+export const roleByName = (name: string) => one<RoleRow>(`SELECT * FROM "AdminRole" WHERE name = $1`, [name]);
+export const countUsersWithRole = (roleId: string) => count(`SELECT count(*) AS n FROM "User" WHERE "adminRoleId" = $1`, [roleId]);
+
+/** DB-only state changes: no audit row, no sessionVersion bump (the app's own checks must do the work). */
+export async function setActive(userId: string, active: boolean) { await q(`UPDATE "User" SET active = $2 WHERE id = $1`, [userId, active]); }
+export async function setAdminRole(userId: string, roleId: string | null) { await q(`UPDATE "User" SET "adminRoleId" = $2 WHERE id = $1`, [userId, roleId]); }
+export async function setRolePermissions(roleId: string, permissions: AnyPermissions) {
+  await q(`UPDATE "AdminRole" SET permissions = $2::jsonb, "updatedAt" = now() WHERE id = $1`, [roleId, JSON.stringify(permissions)]);
+}
+
+/**
+ * Deactivate every active Super Admin except `keepUserId`; returns a function that reactivates exactly those rows.
+ * Always call it in `finally` (the seed admins' signed-in sessions depend on it).
+ */
+export async function deactivateOtherSuperAdmins(keepUserId: string): Promise<() => Promise<void>> {
+  const rows = await q<{ id: string }>(
+    `UPDATE "User" SET active = false WHERE role = 'admin' AND active AND "adminRoleId" = $1 AND id <> $2 RETURNING id`,
+    [SUPER_ADMIN_ROLE_ID, keepUserId],
+  );
+  const ids = rows.map((r) => r.id);
+  return async () => { if (ids.length) await q(`UPDATE "User" SET active = true WHERE id = ANY($1)`, [ids]); };
 }
 
 /** An open/closed membership row (no payment). Open statuses hold the activeSlot like the app does. */
@@ -70,7 +159,7 @@ export async function createMembership(userId: string, opts: { tierId?: string; 
 }
 
 /** Active member (role member + active professional membership). */
-export async function createMember(opts: Parameters<typeof createUser>[0] = {}) {
+export async function createMember(opts: CreateUserOpts = {}) {
   const u = await createUser({ ...opts, role: opts.role ?? "member" });
   const membershipId = await createMembership(u.id);
   return { ...u, membershipId };

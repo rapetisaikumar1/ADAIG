@@ -12,6 +12,11 @@ export const dayMonth = (d: Date, locale: string) => ({
   day: d.toLocaleString(dateLocale(locale), { day: "2-digit", timeZone: eventTimeZone }),
   month: d.toLocaleString(dateLocale(locale), { month: "short", timeZone: eventTimeZone }).replace(".", ""),
 });
+/** Day number of a date's calendar day in Eastern time, so differences count calendar days (Nov 11 → Dec 8 = 27), not 24h blocks. */
+export const etDayNumber = (d: Date) => {
+  const [y, m, day] = new Intl.DateTimeFormat("en-CA", { timeZone: eventTimeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d).split("-").map(Number);
+  return Math.round(Date.UTC(y!, m! - 1, day!) / 864e5);
+};
 export const initials = (name: string) =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("") || "?";
 /**

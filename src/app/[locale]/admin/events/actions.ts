@@ -1,15 +1,16 @@
 "use server";
 import { redirect } from "next/navigation";
-import { currentAdmin } from "@/auth";
+import { assertAdminPermission } from "@/lib/rbac";
+import type { Action } from "@/lib/permissions";
 import { db } from "@/lib/db";
-import { isUniqueViolation, safeLocale, idParam } from "@/lib/validation";
+import { isUniqueViolation, idParam } from "@/lib/validation";
 import { stripStatus } from "@/components/EventCard";
 import { parseEventForm, slugify, SLUG_RE, cpeTitle } from "./eventForm";
 import { regView, cleanQuery } from "./views";
 
 /** Create an event. It is saved as a draft unless "publish now" is ticked; invalid input returns to the form with a notice. */
 export async function createEvent(fd: FormData) {
-  const locale = safeLocale(fd.get("locale")); const admin = await currentAdmin(); if (!admin) redirect(`/${locale}/login`);
+  const { locale, ctx: { user: admin } } = await assertAdminPermission(fd, "events", "create");
   const f = parseEventForm(fd);
   if (!f) redirect(`/${locale}/admin/events?msg=invalid`);
   const slug = slugify(stripStatus(f.title)); // without the "(proposed)" suffix, so the address stays the same once confirmed
@@ -20,7 +21,7 @@ export async function createEvent(fd: FormData) {
 }
 /** Publish / unpublish from the list. A cancelled event can't be published again until it is restored (detail page). */
 export async function togglePublish(fd: FormData) {
-  const locale = safeLocale(fd.get("locale")); const admin = await currentAdmin(); if (!admin) redirect(`/${locale}/login`);
+  const { locale, ctx: { user: admin } } = await assertAdminPermission(fd, "events", "edit");
   const e = await db.event.findUnique({ where: { id: idParam(fd.get("id")) } });
   if (e) {
     // Conditional: only flips the state the admin saw, and never publishes a cancelled event (concurrent cancel).
@@ -43,8 +44,9 @@ function back(locale: string, id: string, fd: FormData, msg: string, anchor = ""
   p.set("msg", msg);
   redirect(`/${locale}/admin/events/${encodeURIComponent(id)}?${p}${anchor}`);
 }
-async function guard(fd: FormData) {
-  const locale = safeLocale(fd.get("locale")); const admin = await currentAdmin(); if (!admin) redirect(`/${locale}/login`);
+/** Permission first (§3.2: events.edit, or events.delete for deleteEvent), then the event re-read from the DB. */
+async function guard(fd: FormData, a: Action) {
+  const { locale, ctx: { user: admin } } = await assertAdminPermission(fd, "events", a);
   const id = eventId(fd); const e = id ? await db.event.findUnique({ where: { id } }) : null;
   if (!e) redirect(`/${locale}/admin/events?msg=notFound`);
   return { locale, admin, e };
@@ -52,7 +54,7 @@ async function guard(fd: FormData) {
 
 /** Save every field of an event. The slug can change only while the event has no registrations (links and receipts use it). */
 export async function updateEvent(fd: FormData) {
-  const { locale, admin, e } = await guard(fd);
+  const { locale, admin, e } = await guard(fd, "edit");
   const f = parseEventForm(fd);
   if (!f) back(locale, e.id, fd, "invalid", "#edit");
   const slugIn = String(fd.get("slug") ?? e.slug).trim().toLowerCase();
@@ -85,7 +87,7 @@ export async function updateEvent(fd: FormData) {
 
 /** Delete an event that never had a registration (any status). Otherwise staff cancel it instead, which keeps the history. */
 export async function deleteEvent(fd: FormData) {
-  const { locale, admin, e } = await guard(fd);
+  const { locale, admin, e } = await guard(fd, "delete");
   const r = await db.event.deleteMany({ where: { id: e.id, registrations: { none: {} } } });
   if (!r.count) back(locale, e.id, fd, "hasRegistrations", "#danger");
   await db.auditLog.create({ data: { actor: admin.id, action: "event.deleted", target: e.id } });
@@ -98,7 +100,7 @@ export async function deleteEvent(fd: FormData) {
  * the record of who was registered (export the list to notify them); paid tickets are refunded manually in Stripe.
  */
 export async function cancelEvent(fd: FormData) {
-  const { locale, admin, e } = await guard(fd);
+  const { locale, admin, e } = await guard(fd, "edit");
   const now = new Date();
   const [r, unpaid] = await db.$transaction([
     db.event.updateMany({ where: { id: e.id, cancelledAt: null }, data: { cancelledAt: now, published: false } }),
@@ -113,7 +115,7 @@ export async function cancelEvent(fd: FormData) {
 }
 /** Undo a cancellation. The event comes back as a draft; publish it when ready. Cancelled unpaid tickets stay cancelled. */
 export async function restoreEvent(fd: FormData) {
-  const { locale, admin, e } = await guard(fd);
+  const { locale, admin, e } = await guard(fd, "edit");
   const r = await db.event.updateMany({ where: { id: e.id, cancelledAt: { not: null } }, data: { cancelledAt: null } });
   if (r.count) await db.auditLog.create({ data: { actor: admin.id, action: "event.restored", target: e.id } });
   back(locale, e.id, fd, r.count ? "restored" : "notCancelled");
@@ -125,7 +127,7 @@ export async function restoreEvent(fd: FormData) {
  * un-marking removes that automatic entry. Each row is one conditional update + CPE change in a transaction.
  */
 export async function setAttendance(fd: FormData) {
-  const { locale, admin, e } = await guard(fd);
+  const { locale, admin, e } = await guard(fd, "edit");
   const to = String(fd.get("to")) === "1";
   const ids = [...new Set([...fd.getAll("ids"), ...fd.getAll("r")].map((x) => String(x).slice(0, 64)).filter(Boolean))].slice(0, 2000);
   if (!ids.length) back(locale, e.id, fd, "noneSelected", "#registrations");
@@ -160,7 +162,7 @@ export async function setAttendance(fd: FormData) {
  * not cancelled here. Any CPE credited for it is removed with it.
  */
 export async function cancelRegistration(fd: FormData) {
-  const { locale, admin, e } = await guard(fd);
+  const { locale, admin, e } = await guard(fd, "edit");
   const id = idParam(fd.get("r"));
   const ok = await db.$transaction(async (tx) => {
     const r = await tx.registration.findFirst({ where: { id, eventId: e.id } });

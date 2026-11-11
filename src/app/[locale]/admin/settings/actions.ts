@@ -1,10 +1,10 @@
 "use server";
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
-import { currentAdmin } from "@/auth";
+import { assertAdminPermission } from "@/lib/rbac";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { cleanText, emailOk, normEmail, safeLocale, isUniqueViolation } from "@/lib/validation";
+import { cleanText, emailOk, normEmail, isUniqueViolation } from "@/lib/validation";
 import { tiers as defaultTiers } from "@/config/site";
 import {
   SETTINGS_TAG, SITE_KEY, OPS_KEY, tierKey, resolveTiers, tierOverrideSchema, opsSchema,
@@ -40,9 +40,10 @@ async function done(actor: string, action: string, target: string) {
   await db.auditLog.create({ data: { actor, action, target } });
   updateTag(SETTINGS_TAG); // pages read the new values on their next request (no redeploy)
 }
+/** Every settings action: Settings are the "system" module; saving or resetting needs system.edit (§3.2). */
 async function admin(fd: FormData) {
-  const locale = safeLocale(fd.get("locale")); const a = await currentAdmin(); if (!a) redirect(`/${locale}/login`);
-  return { locale, a };
+  const { locale, ctx } = await assertAdminPermission(fd, "system", "edit");
+  return { locale, a: ctx.user };
 }
 
 /** Lines of a textarea: control characters stripped, whitespace collapsed, blank lines dropped. null if any line is too long. */

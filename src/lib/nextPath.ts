@@ -1,5 +1,5 @@
-// "Return to the requested page after sign-in" (`?next=`) — shared contract between src/lib/session.ts (requireUser/requireAdmin
-// add it to the login redirect) and the login/signup pages + actions (they honor it). Pure module: safe in server and client code.
+// "Return to the requested page after sign-in" (`?next=`) — shared contract between src/lib/session.ts requireUser and
+// src/lib/rbac.ts requireAdminContext (they add it to the login redirect) and the login/signup pages + actions (they honor it). Pure module: safe in server and client code.
 import { locales } from "@/config/site";
 
 /** Longest `next` value accepted (path + query). Longer values are dropped, not truncated. */

@@ -45,6 +45,16 @@ export function databaseUrl(): string {
 }
 
 /**
+ * Stricter guard for the pre-run purge of earlier runs' e2e leftovers (global setup): the E2E database must be on this
+ * machine, with NO override (ALLOW_REMOTE_DB=1 does not apply). Returns the URL.
+ */
+export function strictlyLocalDatabaseUrl(): string {
+  const url = databaseUrl();
+  if (!isLocalUrl(url)) throw new Error(`[e2e] Refusing to purge e2e leftovers on the non-local database host "${urlHost(url) || "(unparsable URL)"}" (ALLOW_REMOTE_DB does not apply to the purge). Use a local E2E_DATABASE_URL.`);
+  return url;
+}
+
+/**
  * Called by playwright.config.ts before anything runs: the app under test (E2E_BASE_URL) must be on this machine unless
  * E2E_ALLOW_REMOTE=1 (the tests create accounts, events and messages through the UI), and E2E_DATABASE_URL must be set and local.
  */

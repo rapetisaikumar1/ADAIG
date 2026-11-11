@@ -1,0 +1,216 @@
+/* shell.css — DESIGN (round 5; spec SP/r5/DESIGN_R5.md §8). The app shell shared by the member portal (/my/*) and the admin
+   portal (/admin/*): cool canvas, white sidebar with the facet marker, page header anatomy, KPI tiles, panels, portal tables,
+   table toolbar + bulk bar, settings sections + save bar, membership card, admin header/footer, phone tab bar and admin menu.
+   Markup classes kept from round 4: .app .sidenav .app-main .app-head .kpi .adm-sidenav .adm-mnav .admin-header* .admin-footer*. */
+
+/* ── Portal scope: portal neutrals (hover, hairlines) for components inside the portals ───────────────────────────────── */
+.app,.admin-header,.admin-footer{--mist:var(--portal-hover);--line:var(--line-cool);--line-strong:var(--portal-line-strong);--c-border:var(--line-cool);--c-border-card:var(--line-cool);--c-border-strong:var(--portal-line-strong);--c-surface:var(--portal-hover)}
+body:has(.app){background:var(--canvas)}
+
+/* ── Grid: 248px white sidebar + canvas. The sidebar column (and its rule) runs the full height of the shell ──────────── */
+.app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:calc(100vh - var(--header-h));background:linear-gradient(90deg,#fff 0 247px,var(--line-cool) 247px 248px,var(--canvas) 248px)}
+.app>*{min-width:0}
+.sidenav{background:#fff;border-right:1px solid var(--line-cool);padding:var(--sp-5) var(--sp-3);position:sticky;top:var(--header-h);align-self:start;height:auto;
+ max-height:calc(100vh - var(--header-h));max-height:calc(100dvh - var(--header-h));overflow-y:auto}
+.sidenav h2{font:500 .6875rem/1.4 var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--slate-600);margin:var(--sp-5) 12px var(--sp-2)}
+.sidenav h2:first-child,.sidenav>div:first-child>h2:first-child{margin-top:var(--sp-1)}
+.sidenav a{position:relative;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:var(--r-sm);color:var(--slate-700);text-decoration:none;font-weight:500;font-size:.9375rem;min-height:40px;
+ transition:background-color var(--dur-1),color var(--dur-1)}
+.sidenav a svg{width:18px;height:18px;flex:none;color:var(--slate-500)}
+/* long labels (FR "Répertoire des membres", "Profil et confidentialité") wrap onto a second line with a tight leading,
+   the icon stays on the first line and the facet marker spans the item — never truncated */
+.sidenav a{line-height:1.3;padding-block:9px;text-wrap:balance;overflow-wrap:break-word;hyphens:manual}.sidenav a svg{align-self:flex-start;margin-top:1px}
+.sidenav a:hover{background:var(--portal-hover);color:var(--navy-800)}
+/* current item: teal tint + the facet marker (a 30°-cut bar, the cube's edge) on the left */
+.sidenav a[aria-current=page]{background:var(--teal-50);color:var(--teal-800);font-weight:600}
+.sidenav a[aria-current=page]::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;background:var(--teal-700);clip-path:polygon(0 2px,100% 0,100% 100%,0 calc(100% - 2px))}
+.sidenav a[aria-current=page] svg{color:var(--teal-700)}
+.sidenav .sidenav-ext{margin-left:auto;color:var(--slate-500);font-size:.9em;line-height:1}
+.sidenav .nav-tag{margin-left:auto}
+.sidenav .sidenav-signout{margin:var(--sp-4) 0 0;padding-top:var(--sp-3);border-top:1px solid var(--line-cool)}
+.sidenav .sidenav-signout button{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:10px 12px;border:0;border-radius:var(--r-sm);background:transparent;color:var(--slate-600);
+ font:500 .9375rem var(--font-body);text-align:left;cursor:pointer;transition:background-color var(--dur-1),color var(--dur-1)}
+.sidenav .sidenav-signout button:hover{background:var(--portal-hover);color:var(--navy-800)}
+.sidenav .sidenav-signout button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* Member shell (public footer after it) — fix pass 3 (VPo-1, QA-PORTALS-2-2, 3-3, 3-4). A sticky sidebar cannot leave its grid
+   area: at the end of the page the public footer pushes it up. It is only fully visible there when
+   viewport height ≥ header (72) + sidebar (≤410 FR) + footer (≈550 at ≥1024px wide, ≈850 at 901–1023px).
+   So the member sidebar is sticky ONLY on viewports tall enough for that (with ~20px to spare); everywhere else it stays in normal
+   flow and scrolls with the page like any other content — never cut, never covered, never shrunk, same look as the admin sidebar
+   (no compact mode). No animation is involved, so motion settings make no difference. Measured in SP/r5/design/fix3/. */
+@media(min-width:901px){
+ .app>.mbr-sidenav{position:static;max-height:none;overflow:visible}
+}
+@media(min-width:1024px) and (min-height:1100px),(min-width:901px) and (max-width:1023.98px) and (min-height:1360px){
+ .app>.mbr-sidenav{position:sticky;top:var(--header-h);max-height:calc(100vh - var(--header-h));overflow-y:auto}
+}
+
+/* ── Main column + page header anatomy: [eyebrow] · title · one-line description | ≤1 primary action ─────────────────── */
+.app-main{padding:var(--sp-6) clamp(16px,3vw,48px) var(--sp-8);min-width:0;background:var(--canvas);font-size:var(--fs-ui);line-height:1.55}
+.app-main>*{max-width:1200px}
+.app-main .lead{font-size:var(--fs-ui)}
+.app-head{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--sp-4) var(--sp-5);flex-wrap:wrap;margin-bottom:var(--sp-6);padding-bottom:var(--sp-5);border-bottom:1px solid var(--line-cool)}
+.app-head h1{font:500 clamp(1.625rem,1.4rem + .8vw,2rem)/1.15 var(--font-display);letter-spacing:-.02em;color:var(--navy-800);margin:0}
+.app-head .lead,.app-head .page-desc{font-size:var(--fs-ui);color:var(--slate-600);margin:6px 0 0;max-width:70ch}
+.app-head .page-actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center}
+/* portals: the eyebrow is a quiet context label (no marker, no teal) — some carry information, e.g. the content editor's language */
+.app-main .app-head .eyebrow{color:var(--slate-600);margin-bottom:6px}.app-main .app-head .eyebrow::before{display:none}
+.app-head+.page-tabs,.app-head:has(+.tabs){margin-bottom:0;border-bottom:0}
+.page-tabs{margin:0 0 var(--sp-5)}
+
+/* ── Panels & headings: flat white, r12, 1px hairline, Inter section titles ──────────────────────────────────────────── */
+.app .card,.app .panel{border-radius:var(--r-panel);box-shadow:none}
+.panel{background:#fff;border:1px solid var(--line-cool);border-radius:var(--r-panel);padding:var(--sp-5);display:grid;gap:var(--sp-3);align-content:start}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);flex-wrap:wrap}.panel-head h2{margin:0}
+.app-main h2{font:600 1.0625rem/1.3 var(--font-body);letter-spacing:-.005em;color:var(--navy-800)}
+/* portal section titles are navy, except a danger zone's title (components.css .danger-zone) — same specificity as the rule above */
+.app-main .danger-zone>h2,.app-main .danger-zone>header h2{color:var(--red-700)}
+.app h3{font-size:1rem}
+.app .card p{font-size:var(--fs-ui)}
+
+/* ── KPI tiles: real counts only, no decorative icons; a 2px top rule in the face colour of the category ────────────── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-4);margin-bottom:var(--sp-5)}
+.kpi{position:relative;display:flex;flex-direction:column;gap:2px;min-width:0;background:#fff;border:1px solid var(--line-cool);border-radius:var(--r-panel);padding:18px 20px 16px;box-shadow:none;overflow:hidden;
+ color:inherit;text-decoration:none;transition:transform var(--dur-2) var(--ease-out),box-shadow var(--dur-2),border-color var(--dur-2)}
+.kpi::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--kpi-rule,var(--face-top))}
+.kpi.is-blue{--kpi-rule:var(--face-right)}.kpi.is-navy{--kpi-rule:var(--face-left)}.kpi.kpi-attn,.kpi.is-amber{--kpi-rule:var(--amber-400)}
+.kpi .k{font-size:.8125rem;font-weight:500;color:var(--slate-600)}
+.kpi .v{font:600 1.75rem/1.2 var(--font-body);letter-spacing:-.02em;color:var(--navy-800);font-variant-numeric:lining-nums tabular-nums}
+.kpi .d{font-size:.8125rem;color:var(--slate-600)}
+
+/* ── Portal tables: 52px rows, sentence-case 12.5px headers, numbers right-aligned, status = the status component ────── */
+.app .table-wrap{border-radius:var(--r-panel);border-color:var(--line-cool);box-shadow:none}
+.app :is(thead th,th[scope=col]){background:var(--portal-head);font-size:.78125rem;font-weight:600;letter-spacing:0;text-transform:none;color:var(--slate-600);padding-top:11px;padding-bottom:11px}
+.app td{color:var(--slate-700);font-size:.90625rem;padding-top:14px;padding-bottom:14px}
+.app tbody tr:hover>td,.app tbody tr:hover>th[scope=row]{background:var(--portal-head)}
+/* the row's name link (first column) reads as the row title: navy 600, underline on hover */
+.app tbody :is(td:first-child>a:not(.btn):first-child,th[scope=row]>a:not(.btn),.adm-person>a:first-child,.adm-person>b>a){color:var(--navy-800);font-weight:600;text-decoration:none}
+.app tbody :is(td:first-child>a:not(.btn):first-child,th[scope=row]>a:not(.btn),.adm-person>a:first-child,.adm-person>b>a):hover{color:var(--teal-700);text-decoration:underline}
+/* toolbar above a table: tabs/chips left, search + actions right; bulk bar replaces it while rows are selected */
+.table-toolbar{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin-bottom:var(--sp-4)}
+.table-toolbar .search-bar{flex:1;min-width:240px;max-width:440px}
+.table-toolbar .toolbar-actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;margin-left:auto}
+.bulk-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 16px;border-radius:var(--r-panel);background:var(--navy-900);color:#fff;margin-bottom:var(--sp-3)}
+.bulk-bar .btn-secondary{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}.bulk-bar .btn-secondary:hover{background:rgba(255,255,255,.1);border-color:#fff;color:#fff}
+.table-foot{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);flex-wrap:wrap;margin-top:var(--sp-3);font-size:var(--fs-sm);color:var(--slate-600)}
+
+/* ── Settings-style forms: section title + description left (4/12), fields right (8/12); sticky save bar ─────────────── */
+.settings-section{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:var(--sp-5) var(--sp-7);padding:var(--sp-6) 0;border-top:1px solid var(--line-cool)}
+.settings-section:first-of-type{border-top:0;padding-top:0}
+.settings-section>header h2{margin:0 0 6px}.settings-section>header p:not(.danger-zone-label){margin:0;color:var(--slate-600);font-size:var(--fs-sm)}/* the danger label keeps its own red mono look */
+.savebar{position:sticky;bottom:0;z-index:5;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--sp-2);align-items:center;margin-top:var(--sp-5);padding:12px var(--sp-5);
+ background:#fff;border:1px solid var(--line-cool);border-radius:var(--r-panel);box-shadow:var(--shadow-pop)}/* solid: no blurred text behind it (QA-PORTALS-22) */
+.savebar .savebar-note{margin-right:auto;font-size:var(--fs-sm);color:var(--slate-600)}
+@media(max-width:900px){.settings-section{grid-template-columns:minmax(0,1fr);gap:var(--sp-4)}}
+
+/* ── Membership card (member home): the one navy panel of the portal, facet cut, cube emblem ─────────────────────────── */
+.mcard{position:relative;isolation:isolate;overflow:hidden;display:grid;gap:var(--sp-4);padding:var(--sp-6);border-radius:var(--r-lg);color:var(--on-dark);
+ background:var(--lattice-dark) 0 0/var(--lattice-size),linear-gradient(150deg,var(--navy-800),var(--navy-950));
+ clip-path:polygon(0 0,100% 0,100% calc(100% - 28px),calc(100% - 48px) 100%,0 100%)}
+.mcard::after{content:"";position:absolute;z-index:-1;right:-30px;top:-24px;width:200px;aspect-ratio:280/220;background:url("/assets/illustrations/corner-dark.svg") center/contain no-repeat;opacity:.85}
+.mcard .mcard-tier{font:500 clamp(1.625rem,1.4rem + .8vw,2rem)/1.15 var(--font-display);color:#fff;letter-spacing:-.015em;margin:0}
+.mcard .eyebrow{color:var(--teal-300)}
+.mcard dl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--sp-3) var(--sp-5);padding-top:var(--sp-4);border-top:1px solid rgba(255,255,255,.14)}
+.mcard dt{font:500 .6875rem/1.4 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--on-dark-muted)}
+.mcard dd{margin:2px 0 0;font-weight:600;color:#fff;font-variant-numeric:tabular-nums}
+.mcard :is(.badge,.status){background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.3);color:#fff}
+.mcard a:not(.btn){color:var(--teal-300)}
+
+/* ── Phones/tablets (≤900px): the member sidebar becomes a horizontally scrolling tab bar ─────────────────────────────── */
+@media(max-width:900px){
+ .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr;background:var(--canvas)}
+ .sidenav{position:relative;top:auto;height:auto;max-height:none;border-right:0;border-bottom:1px solid var(--line-cool);display:flex;align-items:stretch;overflow-x:auto;gap:2px;padding:0 32px 0 var(--sp-2);max-width:100vw;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);scrollbar-width:none}
+ .sidenav::-webkit-scrollbar{display:none}.sidenav h2{display:none}
+ .sidenav a{white-space:nowrap;min-height:48px;flex:none;border-radius:0;padding:8px 12px}.sidenav a:hover{background:transparent;color:var(--navy-800)}
+ .sidenav a[aria-current=page]{background:transparent;color:var(--teal-800);box-shadow:inset 0 -2px 0 var(--teal-700)}.sidenav a[aria-current=page]::before{display:none}
+ .sidenav form{margin-top:0!important;flex:none;align-self:center}
+ .sidenav .sidenav-ext{margin-left:4px}
+ .sidenav .sidenav-signout{margin:0 0 0 4px;padding:0 0 0 8px;border-top:0;border-left:1px solid var(--line-cool)}
+ .sidenav .sidenav-signout button{white-space:nowrap;min-height:44px;width:auto}
+ .app-main{padding:var(--sp-5) var(--sp-4) var(--sp-7)}
+}
+@media(max-width:640px){.app-head{align-items:flex-start}.app-head .page-actions,.app-head .page-actions .btn{width:100%}.mcard{padding:var(--sp-5)}}
+
+/* ── Admin portal header (64px, full-bleed white): logo → admin home, "Admin" tag (profile menu: sidebar) ─────────────────────── */
+.admin-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);-webkit-backdrop-filter:saturate(1.6) blur(12px);backdrop-filter:saturate(1.6) blur(12px);border-bottom:1px solid var(--line-cool)}
+.admin-header__inner{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);min-height:64px;padding:0 var(--sp-5)}
+.admin-header__brand{display:flex;align-items:center;gap:14px;text-decoration:none}.admin-header .admin-header__brand img{height:40px;width:auto}
+.admin-header__tag{font:500 .6875rem/1 var(--font-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--navy-800);background:var(--navy-50);border:1px solid var(--line-navy);border-radius:var(--r-pill);padding:5px 10px}
+@media(max-width:640px){.admin-header__inner{padding:0 var(--sp-4);min-height:60px}.admin-header__brand{gap:10px}.admin-header .admin-header__brand img{height:36px}}
+
+/* ── Admin sidebar column (≥901px): a classic app sidebar ─────────────────────────────────────────────────────────────────
+   Fixed to the left edge, from under the 64px admin bar to the bottom of the window, on every page and at every scroll position:
+   navigation on top (it scrolls inside the column when the window is very short), the admin's profile menu pinned to the very
+   bottom. Being out of flow, the main column is placed in grid column 2 explicitly and the slim admin footer starts after the
+   sidebar (never under it). The .app gradient still paints the same white column + rule behind it. ≤900px: hidden (Admin menu). */
+.adm-side{display:flex;flex-direction:column;background:#fff;border-right:1px solid var(--line-cool)}
+@media(min-width:901px){
+ .app.adm>.adm-side{position:fixed;z-index:30;top:var(--header-h);bottom:0;left:0;width:248px}
+ .app.adm>:not(.adm-side){grid-column:2}
+ body:has(.app.adm) .admin-footer{margin-left:248px}
+}
+.adm-side>.adm-sidenav{position:static;align-self:stretch;flex:1 1 auto;min-height:0;max-height:none;height:auto;border-right:0;background:none;overflow-y:auto}
+.adm-side-foot{flex:none;padding:10px var(--sp-3);border-top:1px solid var(--line-cool);background:#fff}
+/* the profile row (58px): avatar · name (bold) over the e-mail (muted), both cut with an ellipsis · chevron (up = the menu opens
+   upwards; it turns down while open) */
+details.adm-profile{position:relative;border:0;padding:0;background:none;margin:0}
+.adm-profile>summary{display:flex;align-items:center;gap:12px;min-height:58px;padding:8px 34px 8px 10px;border-radius:var(--r-sm);border:1px solid transparent;color:var(--navy-800);cursor:pointer;transition:background-color var(--dur-1),border-color var(--dur-1)}
+.adm-profile>summary:hover,.adm-profile[open]>summary{background:var(--portal-hover);border-color:var(--line-cool);color:var(--navy-800)}
+details.adm-profile>summary:not(.btn)::after{right:14px;width:7px;height:7px;margin-top:-2px;border-color:var(--slate-500);transform:rotate(-135deg)}
+details.adm-profile[open]>summary:not(.btn)::after{transform:translateY(-4px) rotate(45deg)}
+details.adm-profile>summary:not(.btn):hover::after{border-color:var(--navy-800)}
+.adm-profile>summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.adm-profile .avatar,.adm-mnav-me .avatar{--av:36px;flex:none}
+.adm-profile-name{font-weight:600;font-size:var(--fs-sm);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm-profile-id{display:grid;flex:1 1 auto;min-width:0;gap:1px;line-height:1.3}
+.adm-profile .adm-profile-name{color:var(--navy-800)}
+.adm-profile-email{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8125rem;font-weight:400;color:var(--slate-600)}
+/* the menu opens upwards, over the navigation, across the sidebar (inside its 12px gutters); never taller than the window allows */
+.adm-profile-menu{position:absolute;left:0;right:0;bottom:calc(100% + 8px);z-index:60;display:grid;gap:2px;padding:6px;background:#fff;border-radius:var(--r-panel);box-shadow:var(--shadow-pop);
+ max-height:calc(100vh - var(--header-h) - 96px);max-height:calc(100dvh - var(--header-h) - 96px);overflow-y:auto}
+.adm-profile-menu a,.adm-profile-menu .sidenav-signout button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 12px;border:0;border-radius:8px;background:transparent;color:var(--slate-700);
+ font:500 .9375rem var(--font-body);text-decoration:none;text-align:left;cursor:pointer;transition:background-color var(--dur-1),color var(--dur-1)}
+.adm-profile-menu a svg,.adm-profile-menu .sidenav-signout button svg{color:var(--slate-500);flex:none}
+.adm-profile-menu a:hover,.adm-profile-menu .sidenav-signout button:hover{background:var(--portal-hover);color:var(--navy-800)}
+.adm-profile-menu a:focus-visible,.adm-profile-menu .sidenav-signout button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.adm-profile-menu .sidenav-signout{margin:4px 0 0;padding-top:4px;border-top:1px solid var(--line-cool)}
+/* phones/tablets: the profile sits at the bottom of the "Admin menu" panel (only shown there) */
+.adm-mnav-profile{display:none}
+/* the admin shell sits under the 64px admin bar (not the 72px public header) */
+body:has(.admin-header){--header-h:64px}
+@media(max-width:640px){body:has(.admin-header){--header-h:60px}}
+.admin-footer{border-top:1px solid var(--line-cool);background:var(--canvas);color:var(--slate-600);font-size:.8125rem}
+.admin-footer__inner{display:flex;align-items:center;min-height:44px;padding:var(--sp-2) var(--sp-5)}
+
+/* ── Admin menu on phones/tablets (≤900px): one "Admin menu" disclosure under the header ──────────────────────────────── */
+.adm .adm-mnav-wrap{display:none}
+@media(max-width:900px){
+ .adm .adm-sidenav,.adm .adm-side{display:none}
+ .adm .adm-mnav .adm-mnav-profile{display:grid;gap:2px;margin:0 12px 12px;padding-top:8px;border-top:1px solid var(--line-cool)}
+ .adm .adm-mnav .adm-mnav-profile .sidenav-signout{margin:0;padding:0;border-top:0}
+ .adm .adm-mnav .adm-mnav-me{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 12px;color:var(--navy-800);min-width:0}
+ .adm .adm-mnav-wrap{display:block}
+ .adm .adm-mnav{display:block;background:#fff;border:0;border-bottom:1px solid var(--line-cool);border-radius:0;padding:0;margin:0}
+ .adm .adm-mnav>summary{display:flex;align-items:center;gap:8px;min-height:52px;padding:8px 44px 8px 16px;font-weight:600;color:var(--navy-800)}
+ .adm .adm-mnav .adm-mnav-here{font-weight:500;color:var(--slate-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .adm .adm-mnav .adm-mnav-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;padding:0 12px 12px}
+ .adm .adm-mnav-group{display:grid;gap:2px;align-content:start}
+ .adm .adm-mnav-group h2{font:500 var(--fs-xs) var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--slate-600);margin:8px 12px 4px}
+ .adm .adm-mnav a{position:relative;display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border-radius:8px;color:var(--ink);text-decoration:none;font-weight:500}
+ .adm .adm-mnav a svg{width:18px;height:18px;flex:none;color:var(--slate-500)}
+ .adm .adm-mnav a:hover{background:var(--portal-hover);color:var(--navy-800)}
+ /* current item: identical to the desktop sidebar — teal tint + the facet marker */
+ .adm .adm-mnav a[aria-current=page]{background:var(--teal-50);color:var(--teal-800);font-weight:600;box-shadow:none}
+ .adm .adm-mnav a[aria-current=page]::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:3px;background:var(--teal-700);clip-path:polygon(0 2px,100% 0,100% 100%,0 calc(100% - 2px))}
+ .adm .adm-mnav a[aria-current=page] svg{color:var(--teal-700)}
+ .adm .adm-mnav .nav-tag{margin-left:auto;padding:1px 8px;font-size:.7rem}
+ .adm .adm-mnav .sidenav-signout{grid-column:1/-1;margin:4px 0 0;padding-top:8px;border-top:1px solid var(--line-cool)}
+ .adm .adm-mnav .sidenav-signout button{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 12px;border:0;background:transparent;color:var(--slate-600);font:500 .9375rem var(--font-body);cursor:pointer}
+ /* the panel's profile block: "Profile & privacy" and "Sign out" are matching full-width rows — same size, colour, icon and hover */
+ .adm .adm-mnav .adm-mnav-profile :is(a,.sidenav-signout button){width:100%;gap:10px;min-height:44px;padding:8px 12px;border-radius:8px;font:500 .9375rem/1.3 var(--font-body);color:var(--slate-700);text-align:left}
+ .adm .adm-mnav .adm-mnav-profile :is(a,.sidenav-signout button):hover{background:var(--portal-hover);color:var(--navy-800)}
+ .adm .adm-mnav .adm-mnav-profile :is(a,.sidenav-signout button) svg{width:18px;height:18px;flex:none;color:var(--slate-500)}
+}
+@media(max-width:420px){.adm .adm-mnav .adm-mnav-links{grid-template-columns:minmax(0,1fr)}}

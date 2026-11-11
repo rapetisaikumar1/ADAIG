@@ -1,0 +1,631 @@
+/* admin.css — admin portal /admin/* (ADMIN, round 5; spec SP/r5/DESIGN_R5.md §10.1, §10.3, §10.4, §14).
+   The shell (64px admin header, sidebar, footer, phone "Admin menu") lives in shell.css; this file only adds the admin pages on
+   top of it, scoped to .adm (the app wrapper on every admin page and on /my/profile for admins). Tokens only — no raw hex.
+   Order: shell refinements · page header · notices · tabs + toolbar · tables (+ phone stacking) · confirms · panels & sheets ·
+   forms · per page (members, events, messages, content, dashboard/tools, settings, audit, system, previews, 404). */
+
+/* ── Shell refinements ───────────────────────────────────────────────────────────────────────────────────────────── */
+.adm .sidenav a .nav-tag{margin-left:auto;padding:1px 7px;font-size:.6875rem}
+/* one group only ("Staff admin"): kept for screen readers, not shown (DESIGN §10.1, C-27) */
+.adm .adm-nav-group>h2,.adm .adm-mnav-group>h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;margin:0}
+.adm .adm-sidenav .adm-nav-group{display:grid;gap:2px}
+/* phone/tablet "Admin menu": same current-item recipe as the desktop sidebar (teal-50 + facet marker), icons like the sidebar (VPo-12) */
+@media(max-width:900px){
+ .adm .adm-mnav>summary svg{color:var(--slate-500);flex:none}
+ .adm .adm-mnav[open]>summary{border-bottom:1px solid var(--line-cool);margin-bottom:8px}
+ .adm .adm-mnav .adm-mnav-links{padding-top:4px}
+ .adm .adm-mnav a{color:var(--slate-700);gap:10px}
+ .adm .adm-mnav a svg{width:18px;height:18px;flex:none;color:var(--slate-500)}
+ .adm .adm-mnav a:hover{background:var(--mist);color:var(--navy-800)}
+ .adm .adm-mnav a[aria-current=page]{background:var(--teal-50);color:var(--teal-800);font-weight:600;box-shadow:none}
+ .adm .adm-mnav a[aria-current=page]::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:3px;background:var(--teal-700);clip-path:polygon(0 2px,100% 0,100% 100%,0 calc(100% - 2px))}
+ .adm .adm-mnav a[aria-current=page] svg{color:var(--teal-700)}
+ .adm .adm-mnav .sidenav-signout button svg{color:var(--slate-500)}
+}
+.adm .app-main .app-head .eyebrow{display:none}
+
+/* ── Page header: back link · title (+ meta chips) · one-line description | actions on the title line ───────────────── */
+.adm .adm-back{display:inline-flex;align-items:center;gap:6px;min-height:32px;margin:-6px 0 var(--sp-2);color:var(--slate-600);font-size:var(--fs-sm);font-weight:500;text-decoration:none}
+.adm .adm-back:hover{color:var(--teal-800)}.adm .adm-back:hover svg{transform:translateX(-2px)}.adm .adm-back svg{transition:transform var(--dur-2) var(--ease-out)}
+.adm .app-head{align-items:flex-start;position:relative}
+.adm .adm-head-text{min-width:0;flex:1 1 420px}
+.adm .app-head h1{overflow-wrap:anywhere}
+.adm .adm-head-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:10px;color:var(--slate-600);font-size:var(--fs-sm)}
+.adm .adm-head-meta .adm-sep{color:var(--slate-400)}
+.adm .app-head .page-actions{padding-top:2px}
+.adm .page-actions .btn svg,.adm .adm-actions .btn svg,.adm .adm-new>summary svg{flex:none}
+.adm .btn-sm{gap:6px}
+
+/* ── Notices ─────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.adm .adm-notice{margin-bottom:var(--sp-4)}
+.adm .alert ul{margin:6px 0 0;padding-left:1.2em}
+/* "needs action" strip (real count + existing labels), e.g. applications awaiting review above the members list */
+.adm a.adm-attn{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 var(--sp-5);padding:10px 16px;border:1px solid var(--amber-100);border-left:3px solid var(--amber-400);border-radius:var(--r-panel);
+ background:var(--amber-50);color:var(--amber-800);font-weight:500;text-decoration:none;transition:border-color var(--dur-1)}
+.adm a.adm-attn:hover{border-color:var(--amber-300)}
+.adm .adm-attn-n{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 7px;border-radius:var(--r-pill);background:var(--amber-400);color:var(--navy-950);font:700 .75rem/1 var(--font-body);font-variant-numeric:tabular-nums}
+.adm .adm-attn-go{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--amber-800)}
+.adm a.adm-attn:hover .adm-attn-go{text-decoration:underline}
+
+/* ── Tabs (views of one list) + toolbar ──────────────────────────────────────────────────────────────────────────── */
+.adm .adm-tabs{gap:0 22px;border-bottom:1px solid var(--line-cool);margin:0 0 var(--sp-4)}
+.adm .adm-tabs a{padding:10px 1px 11px;min-height:46px;font-size:.9375rem}
+.adm .adm-tabs .tab-n{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 7px;border-radius:var(--r-pill);background:var(--slate-100);color:var(--slate-600);
+ font:500 .75rem/1 var(--font-mono);font-variant-numeric:tabular-nums}
+.adm .adm-tabs a[aria-current=page] .tab-n{background:var(--teal-50);color:var(--teal-800)}
+.adm .app-head:has(~.adm-tabs){margin-bottom:var(--sp-5)}
+.adm .table-toolbar{margin-bottom:var(--sp-4)}
+.adm .adm-search{flex:1 1 320px;max-width:540px;flex-wrap:nowrap}
+.adm .adm-search input{min-width:0;min-height:40px;padding-top:8px;padding-bottom:8px;font-size:.9375rem}
+.adm .adm-search .btn{min-height:40px;flex:none}@media(max-width:640px){.adm .adm-search .btn,.adm .adm-search input{min-height:44px}}
+.adm .adm-count{margin:0}.adm .adm-count:empty{display:none}
+
+/* ── Tables: portal density (shell.css) + admin cells ────────────────────────────────────────────────────────────── */
+.adm .table-wrap{background:#fff}
+.adm .adm-table{min-width:880px}.adm .adm-table-ev{min-width:860px}
+.adm .adm-table td{vertical-align:middle}
+.adm .adm-table td.adm-top,.adm .adm-table-members td{vertical-align:top}
+.adm .adm-who{display:flex;align-items:flex-start;gap:12px;min-width:0}.adm .adm-who .avatar{margin-top:1px}
+.adm .adm-person{display:grid;gap:1px;min-width:0}
+.adm .adm-person>a{font-weight:600;color:var(--navy-800);text-decoration:none}.adm .adm-person>a:hover{color:var(--teal-700);text-decoration:underline}
+.adm .adm-person .small{overflow-wrap:anywhere;color:var(--slate-600)}
+.adm .adm-person .small.adm-email{color:var(--slate-700)}
+.adm .adm-you{display:inline-block;margin-left:8px;padding:1px 6px;border-radius:var(--r-xs);background:var(--teal-50);color:var(--teal-800);font:500 .6875rem/1.5 var(--font-mono);letter-spacing:.06em;text-transform:uppercase;vertical-align:1px}
+.adm .adm-table tr.is-pending>td{background:var(--amber-50)}
+.adm .adm-table tr.is-pending>td:first-child{box-shadow:inset 3px 0 0 var(--amber-400)}
+.adm .adm-table tbody tr.is-pending:hover>td{background:color-mix(in srgb,var(--amber-50) 70%,var(--amber-100))}
+.adm .adm-col-actions{text-align:right}
+.adm td.adm-col-actions .adm-actions{justify-content:flex-end}
+.adm .adm-review{display:grid;gap:8px;max-width:340px}
+.adm .adm-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.adm .adm-actions form{margin:0}
+.adm td .adm-actions{flex-wrap:nowrap}
+.adm td .adm-actions:has(details[open]){flex-wrap:wrap}
+.adm .nowrap{white-space:nowrap}
+.adm td .status{white-space:nowrap}
+.adm .adm-code{font-family:var(--font-mono);font-size:.85em;overflow-wrap:anywhere;word-break:break-word}
+.adm th[scope=row]{background:#fff;color:var(--ink);font-weight:500}
+.adm .table-foot{margin-top:var(--sp-4)}
+.adm .adm-pager{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);flex-wrap:wrap;margin-top:var(--sp-4)}
+
+/* ── Inline confirms: details.confirm > summary.btn + .confirm-box (components.css), compact in tables ──────────── */
+.adm details.confirm,.adm details.adm-confirm{border:0;padding:0;background:none;margin:0;min-width:0}
+.adm details:is(.confirm,.adm-confirm)>summary{list-style:none}
+.adm details:is(.confirm,.adm-confirm)>summary::-webkit-details-marker{display:none}
+.adm details:is(.confirm,.adm-confirm)>summary::after{content:none;display:none}
+.adm details:is(.confirm,.adm-confirm)[open]>summary{background:var(--mist);border-color:var(--slate-400)}
+.adm details:is(.confirm,.adm-confirm)[open]{flex-basis:100%}
+.adm .confirm-box{gap:10px;margin-top:8px;padding:14px 16px;text-align:left;max-width:380px;border-color:var(--line-strong);white-space:normal}
+.adm td .confirm-box{contain:inline-size;width:100%;max-width:340px;margin-left:auto}
+.adm .confirm-box p{margin:0;font-size:var(--fs-sm);color:var(--slate-700);line-height:1.5}
+.adm .confirm-box .field{margin:0}.adm .confirm-box label:not(.check){font-size:.8125rem}
+.adm .confirm-box input:not([type=checkbox]),.adm .confirm-box select{min-height:40px;font-size:.9375rem}
+.adm .confirm-box .confirm-actions{margin-top:2px;justify-content:flex-start}
+.adm .confirm-box .check{font-size:var(--fs-sm)}
+
+/* ── Panels, sheets, settings sections ───────────────────────────────────────────────────────────────────────────── */
+.adm .panel{padding:var(--sp-5);gap:var(--sp-4)}
+.adm .panel-head{align-items:baseline}
+.adm .panel-head h2{margin:0}
+.adm .panel-head .small{color:var(--slate-600)}
+.adm .adm-section{margin-bottom:var(--sp-5)}
+.adm .adm-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-5);align-items:start;margin-bottom:var(--sp-5)}
+.adm .adm-sheet{background:#fff;border:1px solid var(--line-cool);border-radius:var(--r-panel);padding:var(--sp-2) var(--sp-6);margin-bottom:var(--sp-5)}
+.adm .adm-sheet>.settings-section{padding:var(--sp-6) 0}
+.adm .adm-sheet>.settings-section:first-child{border-top:0}
+.adm .settings-section{grid-template-columns:minmax(0,1fr) minmax(0,2.4fr);gap:var(--sp-4) var(--sp-7)}
+.adm .settings-section>header :is(h2,h3){margin:0 0 6px;font:600 1.0625rem/1.3 var(--font-body);color:var(--navy-800);letter-spacing:-.005em}
+.adm .settings-section>header p{margin:0 0 6px;font-size:var(--fs-sm);color:var(--slate-600);line-height:1.5;max-width:42ch}
+.adm .settings-section.is-wide{grid-template-columns:minmax(0,1fr);gap:var(--sp-4)}
+.adm .settings-section.is-wide>header{display:flex;justify-content:space-between;align-items:baseline;gap:var(--sp-3);flex-wrap:wrap}
+.adm .settings-section.is-wide>header p{max-width:none}
+.adm .settings-section>.adm-fields{min-width:0;display:grid;gap:var(--sp-4);align-content:start}
+.adm .adm-sub{display:grid;gap:8px;padding-top:var(--sp-4);border-top:1px solid var(--line-cool)}
+.adm .adm-sub:first-child{padding-top:0;border-top:0}
+.adm .adm-sub>h3,.adm .adm-sub-h{margin:0;font:600 .9375rem/1.4 var(--font-body);color:var(--navy-800)}
+.adm .adm-sub p{margin:0}
+.adm .adm-empty-inline{margin:0;padding:var(--sp-4) var(--sp-5);border:1px dashed var(--line-strong);border-radius:var(--r-md);background:var(--mist);color:var(--slate-600);font-size:var(--fs-sm)}
+@media(max-width:1200px){.adm .settings-section{grid-template-columns:minmax(0,1fr);gap:var(--sp-3)}.adm .settings-section>header p{max-width:none}}
+
+/* ── Forms ───────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.adm .field{margin-bottom:0}
+.adm .adm-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-4) var(--sp-4);align-items:start}
+.adm .adm-form-grid.is-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.adm .adm-form-grid>.span-all{grid-column:1/-1}
+.adm .adm-checks{display:grid;gap:10px}
+.adm .savebar{margin-top:0}
+.adm .savebar .check{margin-right:auto}
+.adm .adm-inline{display:flex;gap:10px 12px;flex-wrap:wrap;align-items:flex-end}
+.adm .adm-inline .field{margin:0}.adm .adm-inline select{width:auto;min-width:170px}.adm .adm-inline .adm-grow{flex:1 1 220px}
+.adm td .adm-inline{flex-wrap:nowrap;align-items:center;gap:6px}
+/* Inline table forms (e.g. the CPE status "Update"): the button keeps its label on one line; the select gives way instead
+   (stacked cells set overflow-wrap:anywhere, which otherwise broke "Upd/ate" at 390px). */
+.adm td .adm-inline>.btn{flex:none;white-space:nowrap;overflow-wrap:normal}
+.adm td .adm-inline select{min-width:140px;min-height:36px;padding-top:5px;padding-bottom:5px;font-size:.875rem}
+.adm .adm-secret{display:inline-block;margin-top:6px;padding:4px 10px;border-radius:var(--r-md);background:#fff;border:1px solid var(--green-200);font:600 1rem var(--font-mono);color:var(--ink);user-select:all;overflow-wrap:anywhere}
+@media(max-width:640px){.adm .adm-form-grid,.adm .adm-form-grid.is-3{grid-template-columns:minmax(0,1fr)}.adm .adm-inline>*{flex-basis:100%}.adm .adm-inline select{width:100%}.adm td .adm-inline>*{flex-basis:auto}}
+
+/* ── Danger zones + save rows: shared components (components.css .danger-zone/.danger-row, .save-row — DESIGN fix 1) ──── */
+.adm .panel.danger-zone{margin-bottom:var(--sp-5)}
+.adm .danger-zone>h2{margin:0 0 var(--sp-1)}
+.adm .danger-row details.confirm[open]{flex-basis:auto}
+.adm .danger-row .confirm-box{margin-left:auto}
+.adm .save-row>details.confirm{margin-right:auto}
+.adm .save-row>details.confirm[open]{flex-basis:auto;max-width:420px}
+@media(max-width:640px){.adm .danger-row details.confirm,.adm .danger-row details.confirm>summary{width:100%}.adm .save-row>details.confirm{margin-right:0}}
+
+/* ── Designed empty states (facet art + title + one sentence + one action) ───────────────────────────────────────── */
+.adm .adm-empty-state .empty-state{padding:var(--sp-7) var(--sp-5)}/* the shared mist fill + dashed frame, same as the member portal ([17]) */
+.adm .adm-empty-state .empty-state :is(h2,h3,h4){font:600 1.0625rem/1.35 var(--font-body);color:var(--navy-800)}
+.adm .adm-empty-state .empty-art{width:112px}
+.adm .adm-empty-state q{font-weight:600;color:var(--ink);overflow-wrap:anywhere}
+.adm .adm-empty{padding:var(--sp-4) var(--sp-5)}.adm .adm-empty p{margin:0;color:var(--c-muted)}.adm .adm-empty b{color:var(--ink)}
+
+/* ── KPI tiles (shell .kpis/.kpi; real counts only). .adm-kpis kept for the planned-tool preview pages ────────────── */
+.adm .kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.adm .adm-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:var(--sp-4);margin-bottom:var(--sp-5)}
+.adm .kpi .d a{color:var(--teal-700);font-weight:600;text-decoration:none}.adm .kpi .d a:hover{text-decoration:underline}
+.adm a.kpi:hover{border-color:var(--slate-300);box-shadow:var(--shadow-hover)}
+.adm a.kpi:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+.adm .kpi.kpi-attn{background:var(--amber-50);border-color:var(--amber-100)}.adm .kpi.kpi-attn .d{color:var(--amber-800);font-weight:600}
+.adm .kpi .v{overflow-wrap:anywhere}
+
+/* ── Members ─────────────────────────────────────────────────────────────────────────────────────────────────────── */
+@media(min-width:641px){
+ .adm .adm-table-members th.adm-col-actions{width:1%;white-space:nowrap}
+ .adm .adm-table-members td:first-child{min-width:260px}
+ .adm .adm-table-ev td:nth-child(2){width:40%}
+ .adm .adm-table-regs td:first-child{min-width:220px}
+ .adm .adm-table-audit td:first-child{width:1%}
+}
+/* member account page: identity block in the header */
+.adm .adm-id{display:flex;align-items:center;gap:var(--sp-4);min-width:0}
+.adm .adm-id .avatar{--av:56px}
+.adm .adm-id h1{margin:0}
+.adm .adm-mbr-dl{margin:0;display:grid;gap:2px;font-size:var(--fs-sm)}.adm .adm-mbr-dl div{display:flex;gap:6px;flex-wrap:wrap}.adm .adm-mbr-dl dt{color:var(--slate-600)}.adm .adm-mbr-dl dd{margin:0;font-variant-numeric:tabular-nums}
+.adm .adm-mbr-table{min-width:880px}.adm .adm-mbr-cpe{min-width:760px}
+.adm .adm-mbr-table td,.adm .adm-mbr-cpe td{vertical-align:top}
+.adm .adm-grant{display:grid;gap:10px;padding:var(--sp-4) var(--sp-5);border:1px solid var(--line-cool);border-radius:var(--r-md);background:var(--mist)}
+.adm .adm-grant .adm-sub-h{margin:0}.adm .adm-grant p{margin:0}
+.adm .adm-grant input:not([type=checkbox]),.adm .adm-grant select{background-color:#fff}
+.adm .adm-log{list-style:none;padding:0;margin:0;display:grid}
+.adm .adm-log li{display:flex;justify-content:space-between;align-items:baseline;gap:4px 16px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line-cool)}
+.adm .adm-log li:last-child{border-bottom:0}.adm .adm-log time{white-space:nowrap;font-variant-numeric:tabular-nums}
+.adm .adm-log code{font-size:var(--fs-sm)}
+
+/* ── Events ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
+.adm .adm-date{display:grid;gap:1px;white-space:nowrap}.adm .adm-date b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}.adm .adm-date span{font-size:.8125rem;color:var(--slate-600)}
+.adm .adm-table-ev .tags{flex-wrap:wrap}
+/* "+ New event": a disclosure whose summary is the page's primary action; the form opens under the header (VPo-9) */
+.adm details.adm-new{border:0;padding:0;background:none;margin:0;flex:0 0 auto}
+.adm details.adm-new>summary{list-style:none;padding-right:16px}
+.adm details.adm-new>summary::-webkit-details-marker{display:none}
+.adm details.adm-new>summary::after{content:none}
+.adm details.adm-new .when-open{display:none}.adm details.adm-new[open] .when-open{display:inline}.adm details.adm-new[open] .when-closed{display:none}
+.adm details.adm-new[open]>summary{background:#fff;color:var(--navy-800);border-color:color-mix(in srgb,var(--navy-800) 22%,transparent)}
+.adm details.adm-new[open]>summary:hover{background:var(--navy-50)}
+.adm .adm-new-form{margin-top:var(--sp-5)}
+@media(min-width:641px){
+ .adm .app-head:has(>details.adm-new) .adm-head-text{padding-right:180px}
+ .adm details.adm-new>summary{position:absolute;top:2px;right:0}
+ .adm details.adm-new[open]{flex-basis:100%}
+}
+@media(max-width:640px){.adm details.adm-new{flex-basis:100%}.adm details.adm-new>summary{width:100%;justify-content:center}}
+.adm .adm-new-form>header{display:grid;gap:4px;padding-bottom:var(--sp-2)}
+.adm .adm-new-form>header h2{margin:0}.adm .adm-new-form>header p{margin:0;font-size:var(--fs-sm);color:var(--slate-600);max-width:90ch}
+.adm .adm-new-form .settings-section{padding:var(--sp-5) 0}
+.adm .adm-new-form .save-row{margin-top:0}
+/* event page */
+.adm .adm-regs .adm-tabs{margin-bottom:0}
+.adm .adm-ev-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 14px;border:1px solid var(--line-cool);border-radius:var(--r-md);background:var(--mist)}
+.adm .adm-ev-bulk .check{margin:0;align-items:center;font-weight:500}
+.adm .adm-ev-hint{flex-basis:100%;margin:0}
+.adm .adm-ev-person{display:flex;gap:12px;align-items:flex-start}.adm .adm-ev-person input[type=checkbox]{margin-top:2px}
+.adm .adm-ev-nocheck{flex:none;width:20px}
+.adm .adm-table-regs{min-width:980px}
+.adm .adm-ev-slug{max-width:520px}.adm .adm-ev-slug input[readonly]{color:var(--slate-600);cursor:not-allowed}
+.adm .adm-regs{display:grid;gap:var(--sp-4)}
+.adm .adm-regs .table-toolbar{margin:0}
+.adm .adm-regs .alert{margin:0}
+
+/* ── Messages inbox ──────────────────────────────────────────────────────────────────────────────────────────────── */
+.adm .inbox-list{list-style:none;padding:0;margin:0;display:grid;gap:var(--sp-3)}
+.adm .inbox-item{position:relative;display:grid;gap:var(--sp-3);padding:var(--sp-5);background:#fff;border:1px solid var(--line-cool);border-radius:var(--r-panel)}
+.adm .inbox-item.is-new{box-shadow:inset 3px 0 0 var(--amber-400)}
+.adm .inbox-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px 16px;flex-wrap:wrap}
+.adm .inbox-who{display:flex;gap:12px;align-items:flex-start;min-width:0}
+.adm .inbox-from{margin:0;font:600 1rem/1.35 var(--font-body);color:var(--navy-800)}
+.adm .inbox-from .muted{font-weight:400}
+.adm .inbox-who a{font-size:var(--fs-sm);overflow-wrap:anywhere}
+.adm .inbox-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;justify-content:flex-end}
+.adm .inbox-meta time{font-size:.8125rem;color:var(--slate-600);font-variant-numeric:tabular-nums}
+.adm .inbox-body{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--mist);border-radius:var(--r-md);padding:var(--sp-4);color:var(--ink);line-height:1.6;max-width:none}
+.adm .inbox-actions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-3)}.adm .inbox-actions form{margin:0}
+.adm .inbox-actions .small{margin-left:auto}
+
+/* ── Overview (dashboard) + admin tools ──────────────────────────────────────────────────────────────────────────── */
+.adm .adm-tools-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:var(--sp-3)}
+.adm .adm-tools-grid a{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;align-items:start;height:100%;padding:14px 16px;border:1px solid var(--line-cool);border-radius:var(--r-md);text-decoration:none;color:inherit;background:#fff;
+ transition:border-color var(--dur-1),box-shadow var(--dur-2)}
+.adm .adm-tools-grid a:hover{border-color:var(--slate-300);box-shadow:var(--shadow-hover)}
+.adm .adm-tools-grid .adm-tool-ic{grid-row:span 2;display:grid;place-items:center;width:36px;height:36px;border-radius:var(--r-md);background:var(--teal-50);color:var(--teal-800)}
+.adm .adm-tools-grid b{color:var(--navy-800);font-weight:600}.adm .adm-tools-grid a:hover b{color:var(--teal-700)}
+.adm .adm-tools-grid .small{color:var(--slate-600)}
+.adm .adm-tools-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:var(--sp-4);border-top:1px solid var(--line-cool)}
+.adm .adm-tools-row>.adm-tools-label{margin-right:6px;font-weight:600;font-size:var(--fs-sm);color:var(--navy-800);display:inline-flex;gap:8px;align-items:center}
+.adm .adm-tools-row .small.muted{flex-basis:100%}
+/* hidden "planned tool" previews: one disabled look for every control */
+.adm .adm-preview .btn[disabled],.adm .adm-preview input[disabled],.adm .adm-preview textarea[disabled],.adm .adm-preview select[disabled]{opacity:.55;cursor:not-allowed;box-shadow:none;transform:none}
+.adm .adm-preview input[disabled],.adm .adm-preview textarea[disabled]{background:var(--mist)}
+.adm .adm-preview .btn-primary[disabled]:hover{background:var(--navy-800)}.adm .adm-preview .btn-accent[disabled]:hover{background:var(--teal-700)}.adm .adm-preview .btn-secondary[disabled]:hover{background:#fff}
+.adm .adm-preview>.alert{margin-bottom:var(--sp-5)}
+.adm .adm-preview .card{border-radius:var(--r-panel)}
+
+/* ── Settings (hidden page) ──────────────────────────────────────────────────────────────────────────────────────── */
+.adm .adm-set-jump{margin-bottom:var(--sp-5)}
+.adm .adm-set-group{margin-bottom:var(--sp-7)}
+.adm .adm-set-group>header{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--sp-3);flex-wrap:wrap;margin-bottom:var(--sp-4)}
+.adm .adm-set-group>header h2{margin:0 0 4px;font:600 1.125rem/1.3 var(--font-body);color:var(--navy-800)}
+.adm .adm-set-group>header p{margin:0;max-width:80ch;color:var(--slate-600);font-size:var(--fs-sm)}
+.adm .adm-set-group>header details.confirm[open]{flex-basis:auto}
+.adm .adm-set-list{display:grid;gap:var(--sp-4)}
+.adm .adm-set-card{scroll-margin-top:calc(var(--header-h) + var(--sp-4))}
+.adm .adm-set-card .alert{margin:0}
+.adm .adm-set-card textarea{width:100%;resize:vertical}
+.adm .adm-set-id{font:500 .75rem var(--font-mono);color:var(--slate-600);margin-left:8px;letter-spacing:.02em}
+.adm .adm-set-checks{display:grid;gap:8px;align-content:start;padding-top:26px}.adm .adm-set-checks .hint{margin:-4px 0 4px 30px}
+.adm .adm-set-legacy{padding:12px 16px;border:1px dashed var(--slate-300);border-radius:var(--r-md);background:var(--mist)}.adm .adm-set-legacy>summary{color:var(--slate-700)}
+.adm .adm-set-legacy[open]>summary{margin-bottom:var(--sp-3)}
+@media(max-width:640px){.adm .adm-set-checks{padding-top:0}.adm .adm-set-checks .hint{margin-left:0}}
+
+/* ── Audit log (hidden page) ─────────────────────────────────────────────────────────────────────────────────────── */
+.adm .adm-filterbar{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(2,minmax(0,1fr)) repeat(2,minmax(0,.8fr)) auto;gap:var(--sp-3);align-items:end;margin-bottom:var(--sp-4);padding:var(--sp-4) var(--sp-5)}
+.adm .adm-filterbar .field{margin:0}.adm .adm-filterbar :is(select,input){width:100%;min-width:0;min-height:40px;padding-top:7px;padding-bottom:7px;font-size:.9375rem}
+.adm .adm-filterbar input[type=search]{padding-left:38px}
+.adm .adm-filterbar-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;min-height:40px}
+.adm .adm-table-audit{min-width:820px}
+@media(max-width:1200px){.adm .adm-filterbar{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ── System (hidden page) ────────────────────────────────────────────────────────────────────────────────────────── */
+.adm .adm-sys-summary{margin-bottom:var(--sp-5)}
+.adm .adm-sys-table th[scope=row]{font-weight:500}.adm .adm-sys-table td.num{white-space:nowrap}
+.adm .adm-sys-chips{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.adm .adm-sys-chips li{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-cool);border-radius:var(--r-md);padding:4px 6px 4px 10px;background:#fff}
+.adm details.adm-sys-tech{padding:0;border:1px solid var(--line-cool);border-radius:var(--r-panel);background:#fff}
+.adm details.adm-sys-tech>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:var(--sp-4) 48px var(--sp-4) var(--sp-5);min-height:56px}
+.adm details.adm-sys-tech>summary h2{margin:0}
+.adm .adm-sys-tech-body{display:grid;gap:var(--sp-6);padding:var(--sp-2) var(--sp-5) var(--sp-5);border-top:1px solid var(--line-cool)}
+.adm .adm-sys-sub{display:grid;gap:var(--sp-3);padding-top:var(--sp-4)}
+.adm .adm-sys-sub h3{margin:0;font:600 1rem/1.3 var(--font-body);color:var(--navy-800)}
+.adm .adm-sys-mig code{overflow-wrap:anywhere}
+.adm .adm-job{display:grid;gap:2px}
+
+/* ── Admin 404 ───────────────────────────────────────────────────────────────────────────────────────────────────── */
+.adm .adm-404{max-width:640px;margin:var(--sp-6) auto 0}
+
+/* ── No access (round 7): calm centred panel in the admin shell — hex lock tile · title · one sentence · role chip · one action ── */
+.adm .adm-noaccess{display:grid;justify-items:center;gap:var(--sp-3);max-width:600px;margin:var(--sp-7) auto 0;padding:var(--sp-8) var(--sp-6) var(--sp-7);
+ text-align:center;background:#fff;border:1px solid var(--line-cool);border-radius:var(--r-lg);box-shadow:var(--shadow-1)}
+.adm .adm-noaccess .adm-noaccess-ic{width:56px;height:63px;margin-bottom:var(--sp-2)}.adm .adm-noaccess .adm-noaccess-ic svg{width:24px;height:24px}
+.adm .adm-noaccess h1{margin:0;max-width:22ch;font:500 clamp(1.625rem,1.4rem + .8vw,2rem)/1.15 var(--font-display);letter-spacing:-.02em;color:var(--navy-800);text-wrap:balance}
+.adm .adm-noaccess-body{margin:0;max-width:46ch;color:var(--slate-600);font-size:var(--fs-lead);line-height:1.55;text-wrap:pretty}
+.adm .adm-noaccess-role{display:inline-flex;align-items:center;gap:8px;margin:var(--sp-1) 0 0;padding:5px 14px;border-radius:var(--r-pill);background:var(--mist);color:var(--slate-700);font-size:var(--fs-sm);font-weight:500;overflow-wrap:anywhere}
+.adm .adm-noaccess-role svg{flex:none;color:var(--slate-500)}
+.adm .adm-noaccess-actions{display:flex;justify-content:center;margin-top:var(--sp-4)}
+@media(max-width:640px){.adm .adm-noaccess{margin-top:var(--sp-3);padding:var(--sp-7) var(--sp-5) var(--sp-6)}.adm .adm-noaccess-actions,.adm .adm-noaccess-actions .btn{width:100%}}
+/* sidebar / phone menu for a role with no viewable module (SPEC_R7 §4.9): a quiet note where the links would be */
+.adm .adm-nav-empty{margin:4px 0 0;padding:10px 12px;border:1px dashed var(--line-strong);border-radius:var(--r-sm);background:var(--mist);color:var(--slate-600);font-size:var(--fs-sm);line-height:1.45}
+@media(max-width:900px){.adm .adm-mnav .adm-nav-empty{margin:4px 12px 8px}}
+
+/* ── Responsive ──────────────────────────────────────────────────────────────────────────────────────────────────── */
+@media(max-width:1100px){.adm .adm-grid-2{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:900px){.adm .sidenav a .nav-tag{margin-left:6px}.adm .adm-sheet{padding:0 var(--sp-5)}}
+@media(max-width:640px){
+ .adm .app-main{padding-top:var(--sp-5)}
+ .adm .app-head{gap:var(--sp-3)}
+ .adm .adm-head-text{flex-basis:100%}
+ .adm .app-head .page-actions{width:100%;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+ .adm .app-head .page-actions .btn{width:100%}
+ .adm .adm-id .avatar{--av:44px}
+ .adm .adm-tabs{margin-left:calc(-1 * var(--sp-4));margin-right:calc(-1 * var(--sp-4));padding:0 var(--sp-4);gap:0 18px;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+ .adm .adm-tabs a:last-child{margin-right:24px}
+ .adm .table-toolbar{gap:var(--sp-2)}
+ .adm .adm-search{flex-basis:100%;max-width:none}
+ .adm .adm-sheet{padding:0 var(--sp-5)}
+ .adm .adm-sheet>.settings-section{padding:var(--sp-5) 0}
+ .adm .panel{padding:var(--sp-4)}
+ .adm .kpis,.adm .adm-kpis{grid-template-columns:1fr 1fr;gap:var(--sp-3)}.adm .kpi{padding:14px 16px 12px}.adm .kpi .v{font-size:1.5rem}
+ .adm .kpis>:last-child:nth-child(odd),.adm .adm-kpis>:last-child:nth-child(odd){grid-column:1/-1}
+ .adm a.adm-attn .adm-attn-go{margin-left:0}
+ .adm .inbox-item{padding:var(--sp-4)}.adm .inbox-meta{justify-content:flex-start}.adm .inbox-actions .small{margin-left:0;flex-basis:100%}.adm .inbox-actions .btn{flex:1}
+ .adm .adm-filterbar{grid-template-columns:1fr 1fr;padding:var(--sp-4)}.adm .adm-filterbar .adm-filter-wide,.adm .adm-filterbar .field:first-child,.adm .adm-filterbar-actions{grid-column:1/-1}
+ .adm .adm-tools-grid{grid-template-columns:1fr}
+ /* stacked table rows: one card-like block per row, labels in mono caps, full-width cells for people/actions */
+ .adm .table-wrap:has(.adm-stack){border-radius:var(--r-panel)}
+ .adm .adm-stack{min-width:0}
+ .adm .adm-stack thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+ .adm .adm-stack tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 16px;padding:16px;border-bottom:1px solid var(--line-cool)}
+ .adm .adm-stack tr:last-child{border-bottom:0}
+ .adm .adm-stack tbody tr:hover>td{background:transparent}
+ .adm .adm-stack tr.is-pending{background:var(--amber-50);box-shadow:inset 3px 0 0 var(--amber-400)}
+ .adm .adm-stack tr.is-pending>td,.adm .adm-stack tr.is-pending>td:first-child{background:transparent;box-shadow:none}
+ .adm .adm-stack tbody tr.is-pending:hover>td{background:transparent}
+ .adm .adm-stack td,.adm .adm-stack th[scope=row]{display:block;border:0;padding:0;text-align:left;overflow-wrap:anywhere;min-width:0;width:auto}
+ .adm .adm-stack td[data-label]::before{content:attr(data-label);display:block;margin-bottom:3px;font:500 .6875rem/1.4 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--slate-600)}
+ .adm .adm-stack td:first-child,.adm .adm-stack td:last-child,.adm .adm-stack td.span-all,.adm .adm-stack td[colspan]{grid-column:1/-1}
+ .adm .adm-stack td.adm-cell-person::before,.adm .adm-stack td.adm-col-actions::before{display:none}
+ .adm .adm-stack td.adm-cell-empty{display:none}
+ .adm .adm-stack td.adm-col-actions .adm-actions{justify-content:flex-start;flex-wrap:wrap}
+ .adm .adm-stack td .adm-actions{flex-wrap:wrap}
+ .adm .adm-stack td .confirm-box{margin-left:0;max-width:none}
+ .adm .adm-stack td.num{text-align:left}
+ .adm .adm-stack caption{padding:var(--sp-3) var(--sp-4)}
+ .adm .adm-stack-2 td:nth-child(n+2){grid-column:auto}
+ .adm .adm-review{max-width:none}
+ .adm .adm-table-ev td:nth-child(2){grid-column:1/-1;order:-1}
+ .adm .adm-table-ev td:first-child{grid-column:auto}
+ .adm .adm-table-regs td:nth-child(6){grid-column:1/-1}
+ .adm .adm-mbr-table td:nth-child(3){grid-column:1/-1}
+ .adm .adm-mbr-cpe td:nth-child(4){grid-column:1/-1}
+ .adm .adm-table-audit td:nth-child(2){grid-column:1/-1}
+ .adm .adm-sys-table td.nowrap{white-space:normal;grid-column:1/-1}.adm .adm-sys-table code{overflow-wrap:anywhere}
+ .adm .adm-ev-bulk .btn,.adm .adm-ev-bulk .adm-actions{width:100%}
+}
+/* sheet heading (a form made of settings sections: event details, member account) */
+.adm .adm-sheet-head{display:grid;gap:4px;padding:var(--sp-5) 0 var(--sp-4)}
+.adm .adm-sheet-head h2{margin:0}.adm .adm-sheet-head p{margin:0;font-size:var(--fs-sm);color:var(--slate-600);max-width:90ch}
+.adm .adm-sheet>.savebar{margin:0 calc(-1 * var(--sp-6)) 0;border-radius:0 0 var(--r-panel) var(--r-panel);border-width:1px 0 0;box-shadow:0 -10px 24px -18px rgba(11,37,69,.35)}
+/* the header hairline is replaced by the tabs' rule whenever a page has list tabs (even with a notice in between) */
+.adm .app-head:has(~.adm-tabs){border-bottom:0;padding-bottom:0}
+.adm td .btn-ghost{color:var(--navy-800)}
+@media(max-width:640px){.adm .adm-stack td.adm-col-actions:has(.adm-actions>.adm-dash:only-child){display:none}}
+/* member account: temporary password block, red ghost for "Remove…" in the CPE table, new-account sheet */
+.adm .adm-pw{display:grid;gap:8px}
+.adm .adm-pw>h3{margin:0;font:600 .9375rem/1.4 var(--font-body);color:var(--navy-800)}
+.adm .adm-pw .hint,.adm .adm-sub .hint{margin:0}
+.adm .adm-pw input{max-width:360px}
+.adm .adm-pw .alert{margin:0}
+.adm .btn-ghost.adm-danger-ghost{color:var(--red-700)}.adm .btn-ghost.adm-danger-ghost:hover{background:var(--red-50)}
+.adm .adm-form-error{margin:var(--sp-5) 0 0}
+.adm .adm-sheet-foot{margin:0;padding:var(--sp-4) 0 var(--sp-5)}
+.adm .adm-fields>.save-row{margin-top:0}
+.adm .adm-created{display:grid;gap:var(--sp-4);padding:var(--sp-5) var(--sp-6)}
+.adm .adm-created .alert{margin:0}
+.adm .settings-section>header .optional{font:400 .875rem var(--font-body);color:var(--slate-600)}
+.adm .adm-actions-wrap{flex-wrap:wrap}
+@media(min-width:641px){.adm td .adm-actions.adm-actions-wrap{flex-wrap:wrap;justify-content:flex-end;max-width:420px;margin-left:auto}}
+/* overview: five KPI tiles in one row on wide screens; compact tables inside panels */
+@media(min-width:1201px){.adm .kpis.adm-kpis-5{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.adm a.kpi .d{color:var(--teal-700);font-weight:600}.adm a.kpi.kpi-attn .d{color:var(--amber-800)}
+.adm .panel .table-wrap{border-radius:var(--r-md)}
+.adm .adm-table-compact{min-width:0}
+.adm .adm-table-compact td{padding-top:11px;padding-bottom:11px}
+.adm .panel .adm-log li:first-child{padding-top:0}
+.adm .adm-404 .empty-state{padding:var(--sp-8) var(--sp-5)}.adm .adm-404 .empty-state h1{margin:var(--sp-3) 0 0;font:500 clamp(1.625rem,1.4rem + .8vw,2rem)/1.15 var(--font-display);letter-spacing:-.02em}.adm .adm-404 .empty-art{width:120px}
+.adm .adm-set-card .panel-head h3{margin:0;font:600 1rem/1.35 var(--font-body);color:var(--navy-800)}
+.adm .adm-set-sub{margin:4px 0 0;max-width:80ch}
+.adm .adm-set-hint{margin:-6px 0 0}
+.adm .adm-set-jump .chip{text-decoration:none}
+@media(min-width:1201px){.adm .kpis.adm-kpis-5 .kpi .k{min-height:2.75em}}
+.adm .adm-tools-grid a{align-content:start;grid-template-rows:auto 1fr}
+.adm .adm-audit .adm-count{margin:0 0 var(--sp-2)}
+.adm input:is([type=datetime-local],[type=date]){min-width:0;max-width:100%}
+/* inline copies used when a column folds into the first cell (641–1200) */
+.adm .adm-type-inline{display:none}
+/* tablets/small laptops (641–1200, sidebar still visible): tables fit their frame instead of hiding columns behind a scroll —
+   members fold "Role" into the person cell, events fold "Type" into the title cell, the dense account tables become row cards */
+@media(min-width:641px) and (max-width:1200px){
+ .adm .adm-table-members,.adm .adm-table-ev{min-width:0}
+ .adm :is(.adm-table-members,.adm-table-ev) :is(th,td){padding-left:12px;padding-right:12px}
+ .adm .adm-col-type,.adm .adm-col-md-hide{display:none}
+ .adm .adm-type-inline{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:6px}
+ .adm .adm-table-members th.adm-col-actions{width:auto}
+ .adm .adm-table-members td:first-child{min-width:190px}
+ .adm .adm-table-ev td:nth-child(2){width:auto;min-width:170px}
+ .adm :is(.adm-table-members,.adm-table-ev) td .adm-actions{flex-wrap:wrap}
+ .adm .adm-table-ev td.adm-col-actions .adm-actions{flex-wrap:nowrap}
+ .adm .adm-stack-md{min-width:0}
+ .adm .adm-stack-md thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+ .adm .adm-stack-md tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 20px;padding:16px 18px;border-bottom:1px solid var(--line-cool)}
+ .adm .adm-stack-md tr:last-child{border-bottom:0}
+ .adm .adm-stack-md tbody tr:hover>td{background:transparent}
+ .adm .adm-stack-md tr.is-pending{background:var(--amber-50);box-shadow:inset 3px 0 0 var(--amber-400)}
+ .adm .adm-stack-md tr.is-pending>td{background:transparent;box-shadow:none}
+ .adm .adm-stack-md td{display:block;border:0;padding:0;text-align:left;min-width:0;width:auto;overflow-wrap:anywhere}
+ .adm .adm-stack-md td[data-label]::before{content:attr(data-label);display:block;margin-bottom:3px;font:500 .6875rem/1.4 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--slate-600)}
+ .adm .adm-stack-md td:first-child,.adm .adm-stack-md td:last-child{grid-column:1/-1}
+ .adm .adm-stack-md td.adm-cell-person::before,.adm .adm-stack-md td.adm-col-actions::before{display:none}
+ .adm .adm-stack-md td.num{text-align:left}
+ .adm .adm-stack-md td.adm-col-actions .adm-actions{justify-content:flex-start;max-width:none;margin-left:0}
+ .adm .adm-stack-md td .confirm-box{margin-left:0}
+ .adm .adm-mbr-table.adm-stack-md td:first-child{grid-column:span 2}
+ .adm .adm-mbr-cpe.adm-stack-md td:nth-child(4){grid-column:span 2}
+}
+@media(min-width:641px) and (max-width:1200px){
+ .adm .kpis:not(.adm-kpis-5){grid-template-columns:repeat(2,minmax(0,1fr))}
+ .adm .adm-stack-md td.nowrap{white-space:normal}
+}
+@media(max-width:640px){.adm .adm-stack td .status{white-space:normal;text-align:left;height:auto;border-radius:12px}}
+@media(max-width:900px){.adm .adm-mnav>summary .adm-mnav-label{white-space:nowrap;flex:none}.adm .adm-mnav>summary .adm-mnav-here{min-width:0}.adm .adm-mnav>summary .nav-tag{margin-left:auto;flex:none}}
+@media(min-width:641px) and (max-width:1200px){
+ .adm .adm-table-audit{min-width:0}
+ .adm .adm-table-audit td:first-child{white-space:normal;min-width:120px}
+}
+@media(max-width:640px){.adm .adm-stack td.nowrap,.adm .adm-stack td .nowrap{white-space:normal}}
+@media(max-width:640px){.adm .adm-log li{flex-direction:column;align-items:flex-start;gap:2px}}
+.adm .adm-new-form>.alert{margin:0 0 var(--sp-2)}
+@media(min-width:421px) and (max-width:900px){.adm .adm-mnav-group{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px}}
+.adm .inbox-who .adm-person>a{font-weight:400;color:var(--teal-700);text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 45%,transparent);text-underline-offset:3px}
+.adm .inbox-who .adm-person>a:hover{color:var(--teal-800);text-decoration-color:currentColor}
+.adm .error-msg[hidden]{display:none}
+/* members: name + role chip on one line, "email · organization" on the next (QA-PORTALS-6/7/26); emails wrap only after @ or . */
+.adm .adm-name-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
+.adm .adm-name-line>a{font-weight:600;color:var(--navy-800);text-decoration:none}.adm .adm-name-line>a:hover{color:var(--teal-700);text-decoration:underline}
+.adm .adm-role{min-height:20px;padding:0 8px;font-size:.75rem}
+.adm .adm-name-line .adm-you{margin-left:0}
+.adm .adm-person .small.adm-email{overflow-wrap:break-word}
+.adm td.adm-col-actions .btn{white-space:nowrap}
+@media(min-width:641px){.adm .adm-table-members td.adm-col-actions .btn{white-space:nowrap;text-align:center;max-width:none}}
+@media(min-width:641px) and (max-width:1200px){.adm .adm-table-members td.adm-col-actions .btn{white-space:normal;max-width:11rem;line-height:1.25}}
+/* FR phones (QA-PORTALS-9): "Menu · Membres" instead of a truncated "Menu d'administration · Memb…" (full label kept for screen readers);
+   button labels and status pills don't break inside */
+.adm .adm-mnav-short{display:none}
+@media(max-width:640px){
+ .adm .adm-mnav .adm-mnav-long{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+ .adm .adm-mnav .adm-mnav-short{display:inline}
+ .adm .app-head .page-actions{grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr))}
+ .adm .app-head .page-actions .btn{white-space:nowrap}
+ .adm .adm-stack td .status:not(.cm-fallback){white-space:nowrap;border-radius:var(--r-pill)}
+}
+/* phones (QA-PORTALS-14, FA-3): row title links and standalone small links get a 44px hit area without changing the layout */
+@media(max-width:640px){
+ .adm :is(.adm-person>a,.adm-name-line>a,.panel-head a.small,.settings-section>header a.small,.adm-log a){display:inline-block;padding:11px 0;margin:-11px 0}
+ .adm .adm-back{min-height:44px;margin-top:-10px}
+}
+/* 320px (FA-2): the admin header fits — smaller logo, tighter gaps, compact profile button */
+@media(max-width:360px){
+ .admin-header__inner{padding:0 12px;gap:8px}
+ .admin-header .admin-header__brand{gap:8px;min-width:0}
+ .admin-header .admin-header__brand img{height:30px}
+ .admin-header__tag{padding:4px 7px;letter-spacing:.06em}
+}
+/* head media (member avatar) sits beside the title, outside the h1 (triage note) */
+.adm .adm-head-media{flex:none;align-self:flex-start;margin-top:-4px}
+.adm .adm-head-media .avatar{--av:52px}
+.adm .app-head:has(>.adm-head-media) .adm-head-text{flex-basis:300px}
+@media(max-width:640px){.adm .adm-head-media .avatar{--av:44px}.adm .app-head:has(>.adm-head-media){flex-wrap:nowrap;flex-direction:row}.adm .app-head:has(>.adm-head-media) .adm-head-text{flex:1 1 auto;min-width:0}}
+
+/* ══ Fix pass 2 ([2-1] MAJOR): admin tables always fit their frame, in EN and FR, at every width ≥641px ══════════════════════
+   No table carries a fixed min-width; the browser's auto layout gives each column what it needs and only then wraps.
+   Row actions are whole framed buttons that never wrap inside; when the column is narrow they stack (right-aligned, equal width),
+   and between 641 and 1200px very long labels may wrap inside the button rather than be cut off. */
+@media(min-width:641px){
+ .adm .table-wrap :is(table.adm-table,table.adm-mbr-table,table.adm-mbr-cpe,table.adm-table-audit,table.adm-table-regs){min-width:0}
+ .adm .table-wrap .adm-table-members td:first-child{min-width:200px}
+ .adm .table-wrap td.adm-col-actions .adm-actions{flex-wrap:wrap;justify-content:flex-end}
+ .adm .table-wrap td.adm-col-actions .btn{white-space:nowrap}
+ .adm .table-wrap td.adm-col-actions .adm-actions:has(>*+*){display:inline-grid;grid-auto-flow:row;justify-items:stretch;gap:6px}
+ .adm .table-wrap td.adm-col-actions .adm-actions>*{min-width:0}
+ .adm .table-wrap td.adm-col-actions .adm-actions .btn{width:100%;justify-content:center}
+ .adm .table-wrap td.adm-col-actions:has(.adm-actions:only-child){white-space:normal}
+}
+@media(min-width:1201px){.adm .table-wrap td.adm-col-actions .adm-actions:has(>*+*){display:flex;flex-wrap:wrap}.adm .table-wrap td.adm-col-actions .adm-actions .btn{width:auto}}
+@media(min-width:641px) and (max-width:1200px){
+ .adm .table-wrap td.adm-col-actions .btn{white-space:normal;line-height:1.25;text-align:center}
+ .adm .table-wrap .adm-table-members td:first-child{min-width:160px}
+ .adm .table-wrap .adm-table-members td .status{white-space:normal;border-radius:12px}
+}
+
+/* ── Fix pass 2: inline confirms open as an anchored popover in tables (no row reflow, [20]); room for the reason field ───── */
+@media(min-width:641px){
+ .adm td details.confirm,.adm td details.adm-confirm{position:relative}
+ .adm td details:is(.confirm,.adm-confirm)[open]{flex-basis:auto}
+ .adm td details:is(.confirm,.adm-confirm)>.confirm-box{position:absolute;z-index:30;top:calc(100% + 6px);right:0;width:340px;max-width:none;margin:0;contain:none}
+ .adm .adm-stack-md td details:is(.confirm,.adm-confirm)>.confirm-box{right:auto;left:0}
+ .adm .table-wrap:has(details:is(.confirm,.adm-confirm)[open]){overflow:visible}
+ .adm .table-wrap:has(details[open]) thead th:first-child{border-top-left-radius:var(--r-panel)}
+ .adm .table-wrap:has(details[open]) thead th:last-child{border-top-right-radius:var(--r-panel)}
+}
+/* member account → Memberships actions: a tidy 2-column grid instead of a ragged wrap with an orphan ([8]) */
+@media(min-width:1201px){
+ .adm .table-wrap .adm-mbr-table td.adm-col-actions .adm-actions{display:grid;grid-template-columns:repeat(2,max-content);justify-content:end;gap:6px;max-width:none}
+ .adm .table-wrap .adm-mbr-table td.adm-col-actions .adm-actions .btn{width:100%}
+}
+/* danger zones: the member recipe (DESIGN_R5 §10.5): label + title left on the settings grid, text and action right ([11]) */
+.adm .panel.danger-zone{display:block;padding:0 var(--sp-6)}/* the 3px rule is absolutely positioned: same padding as the sheets above */
+.adm .danger-zone>.settings-section{padding:var(--sp-6) 0;border-top:0}
+.adm .danger-zone .danger-zone-label{margin:0 0 var(--sp-2)}
+.adm .danger-zone .settings-section>header h2{color:var(--red-700)}
+.adm .danger-zone .adm-fields>p{margin:0;color:var(--slate-700)}
+.adm .danger-zone .adm-fields>.danger-row:first-child{padding-top:0}
+.adm .danger-zone .save-row{margin-top:0}
+@media(max-width:640px){.adm .panel.danger-zone{padding:0 var(--sp-5)}.adm .danger-zone>.settings-section{padding:var(--sp-5) 0}}
+/* overview ([13]): equal label height so every value sits on one line; arrows are icons */
+@media(min-width:641px){.adm .kpis.adm-kpis-5 .kpi .k{min-height:2.75em}}
+.adm a.kpi .d{display:inline-flex;align-items:center;gap:4px}
+.adm .adm-grid-2{align-items:stretch}
+/* FR 320 ([2-4]): the count stays on the first line with the start of the label */
+@media(max-width:640px){.adm a.adm-attn{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:10px;row-gap:4px}.adm a.adm-attn .adm-attn-go{grid-column:2}}
+/* phones: 44px hit areas (FA2-5) and a visible focus ring on the Menu summary under the sticky header (FA2-6) */
+.adm .adm-hit{display:inline-grid;place-items:center;margin:-12px;padding:12px;cursor:pointer}
+.adm .adm-mnav>summary:focus-visible{outline:2px solid var(--focus);outline-offset:-4px}
+/* registrations (≥1201, laptop widths): the registered date may take two lines so the row actions stay inside the panel */
+@media(min-width:1201px){.adm .table-wrap .adm-table-regs td.nowrap{white-space:normal;min-width:7.5rem}.adm .table-wrap .adm-table-regs td{padding-left:12px;padding-right:12px}}
+@media(min-width:1201px) and (max-width:1366px){.adm .table-wrap .adm-table-regs td.adm-col-actions .adm-actions:has(>*+*){display:inline-grid}.adm .table-wrap .adm-table-regs td.adm-col-actions .adm-actions .btn{width:100%}}
+@media(min-width:1201px) and (max-width:1366px){.adm .table-wrap .adm-table-regs td:first-child{min-width:170px}}
+/* ≥1201: actions sit inline when they fit; when they wrap, each one takes the full column width (equal, aligned stack) */
+@media(min-width:1201px){
+ .adm .table-wrap td.adm-col-actions .adm-actions:has(>*+*)>*{flex:1 1 auto}
+ .adm .table-wrap td.adm-col-actions .adm-actions:has(>*+*) :is(.btn,form,details){width:100%}
+ .adm .table-wrap td.adm-col-actions .adm-actions:has(>*+*)>.status{flex:0 0 auto;width:auto;margin-left:auto}
+}
+@media(max-width:360px){.adm .adm-search{flex-wrap:wrap}.adm .adm-search input{flex:1 1 100%}.adm .adm-search .btn{flex:1 1 100%}}
+/* panels never grow past their column because of a wide child (event registrations at 641–1200) */
+.adm .panel>*{min-width:0}
+@media(min-width:641px) and (max-width:1200px){.adm .adm-stack-md{display:block;width:100%}.adm .adm-stack-md tbody{display:block}}
+/* a closed confirm's popover must not take part in layout (it would extend the page sideways) */
+.adm details:is(.confirm,.adm-confirm):not([open])>.confirm-box{display:none}
+/* desktop tabs don't scroll (components.css, so focus rings aren't clipped): long FR sets wrap onto a second row instead of
+   pushing the page sideways (event registrations: six FR tabs in a 665px panel) */
+@media(min-width:901px){.adm .adm-tabs{flex-wrap:wrap}}
+
+/* ══ Fix pass 3 ([3-1], [3-2]): the action-column sizing rules apply to the row's own buttons only — never to a confirm's popover
+   (which keeps its 340px anchored box), and they no longer force items onto separate lines (inline whenever they fit) ═══ */
+@media(min-width:641px){
+ .adm .table-wrap td.adm-col-actions .confirm-box{width:340px;justify-items:start}
+ .adm .table-wrap td.adm-col-actions .confirm-box :is(form,.btn,p){width:auto}
+ .adm .table-wrap td.adm-col-actions .confirm-box .confirm-actions{justify-content:flex-start}
+}
+@media(min-width:1201px){
+ .adm .table-wrap td.adm-col-actions .adm-actions:has(>*+*) :is(.btn,form,details){width:auto}
+ .adm .table-wrap td.adm-col-actions .adm-actions:has(>*+*)>:is(form,details,.btn){flex:1 1 auto}
+ .adm .table-wrap td.adm-col-actions .adm-actions:has(>*+*)>:is(form,details)>.btn,
+ .adm .table-wrap td.adm-col-actions .adm-actions:has(>*+*)>details>summary.btn{width:100%}
+ .adm .table-wrap .adm-table-ev td.adm-col-actions{white-space:nowrap}
+ .adm .table-wrap .adm-table-ev td.adm-col-actions .adm-actions{flex-wrap:nowrap}
+}
+@media(min-width:641px){
+ .adm .table-wrap td.adm-col-actions .adm-actions details>.confirm-box.confirm-box{width:340px;white-space:normal}
+ .adm .table-wrap td.adm-col-actions .adm-actions details>.confirm-box :is(p,.btn).btn,.adm .table-wrap td.adm-col-actions .adm-actions details>.confirm-box .confirm-actions .btn{width:auto}
+ .adm .table-wrap .adm-table-ev td.adm-col-actions .adm-actions{display:flex;flex-wrap:nowrap}
+ .adm .table-wrap .adm-table-ev td.adm-col-actions .adm-actions>*{flex:0 0 auto}
+}
+/* [3-5]: the person column keeps a readable width at laptop sizes; membership/review text wraps first */
+@media(min-width:1201px){.adm .table-wrap .adm-table-members td:first-child{min-width:230px}}
+/* [3-6]: the system tables fit phones (FR row labels wrap instead of scrolling the region) */
+@media(max-width:640px){.adm .adm-sys-table{min-width:0;table-layout:fixed;width:100%}.adm .adm-sys-table :is(th,td){white-space:normal;overflow-wrap:anywhere;padding-left:12px;padding-right:12px}.adm .adm-sys-table td.num{width:5.5rem}}
+@media(min-width:1201px) and (max-width:1366px){
+ /* events: Type, CPE and Registrations fold into the title cell (as at tablet width) so both actions stay inline */
+ .adm .adm-table-ev .adm-col-type,.adm .adm-table-ev .adm-col-md-hide{display:none}
+ .adm .adm-table-ev .adm-type-inline{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:6px}
+ .adm .table-wrap .adm-table-members td:first-child{min-width:200px}
+}
+@media(min-width:641px) and (max-width:1200px){.adm .table-wrap .adm-table-ev td.adm-col-actions .adm-actions{gap:4px}.adm .table-wrap .adm-table-ev td{padding-left:10px;padding-right:10px}}
+@media(min-width:1201px) and (max-width:1366px){.adm .table-wrap .adm-table-members td.adm-col-actions .btn{white-space:normal;line-height:1.25;text-align:center}}
+@media(min-width:641px) and (max-width:999px){.adm .table-wrap .adm-table-ev td.adm-col-actions .adm-actions{flex-wrap:wrap;justify-content:flex-end}}
+
+/* ── Read-only views (round 7 fix FX-RO, VIS m4–m7) ─────────────────────────────────────────────────────────────────
+   One "View only" notice (.adm-ro-note: alert-info + lock icon) and one read-only details list (.adm-ro-dl: label over value,
+   two columns from 641px, one on phones; "Not set" muted). Used by Members, Events, Messages, Settings and Roles. */
+.adm .adm-ro-note>svg{color:var(--face-right)}
+.adm .adm-ro-dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-4) var(--sp-5);margin:0}
+.adm .adm-ro-dl>div{min-width:0}
+.adm .adm-ro-dl>div.is-wide{grid-column:1/-1}
+.adm .adm-ro-dl dt{margin:0;font-size:var(--fs-sm);font-weight:500;color:var(--slate-600);line-height:1.4}
+.adm .adm-ro-dl dd{margin:3px 0 0;color:var(--ink);line-height:1.5;overflow-wrap:anywhere}
+.adm .adm-ro-dl dd.is-empty{color:var(--slate-500);font-style:italic}
+.adm .adm-ro-dl .adm-ro-pre{white-space:pre-line}
+.adm .adm-ro-dl ul{margin:0;padding-left:1.15em;display:grid;gap:2px}
+.adm .adm-ro-dl code{font:500 .8125rem/1.4 var(--font-mono);color:var(--slate-700);background:var(--mist);border:1px solid var(--line-cool);border-radius:var(--r-sm);padding:1px 6px}
+@media(max-width:640px){.adm .adm-ro-dl{grid-template-columns:minmax(0,1fr);gap:var(--sp-3)}}
+/* event detail (no events.edit): the event's own details, before the registrations */
+.adm .adm-ev-ro{margin-bottom:var(--sp-5)}
+/* member page: forms and sections alternate in the sheet; keep the hairline between every pair (VIS p15) */
+.adm .adm-mbr-sheet>.settings-section:not(:first-child){border-top:1px solid var(--line-cool)}
+.adm .adm-mbr-dl dd{white-space:nowrap}
+/* Settings without system.edit: compact cards, two tiers per row on wide screens */
+.adm .adm-set-list.is-ro{grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));align-items:start}
+.adm .adm-set-card.is-ro{display:grid;gap:var(--sp-3)}
+.adm .adm-set-card.is-ro .panel-head{margin:0}
+.adm .adm-set-ro-sub{margin:var(--sp-2) 0 0;font:600 .875rem/1.4 var(--font-body);color:var(--slate-700)}
+/* ── end read-only views ── */

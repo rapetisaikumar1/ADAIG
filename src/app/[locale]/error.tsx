@@ -14,17 +14,17 @@ export default function ErrorPage({ error, retry }: { error: unknown; retry: () 
   const d = error instanceof Error ? (error as Error & { digest?: unknown }).digest : undefined;
   const digest = typeof d === "string" ? d : null;
   return (
-    <main id="main">
-      <section className="page-hero"><div className="container">
+    <main id="main" tabIndex={-1} className="nf-page">
+      <section className="page-hero art-404 nf-hero"><div className="container">
         <span className="eyebrow">{t("errorEyebrow")}</span>
         <h1>{t("errorTitle")}</h1>
         <p className="lead">{t("errorBody")}</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 24 }}>
-          <button type="button" className="btn btn-on-dark" onClick={() => retry()}>{t("retry")}</button>
-          <a className="btn btn-outline-light" href={`/${locale}`}>{t("home")}</a>
-          <a className="btn btn-outline-light" href={`/${locale}/contact`}>{t("contact")}</a>
+        <div className="btn-row">
+          <button type="button" className="btn btn-primary" onClick={() => retry()}>{t("retry")}</button>
+          <a className="btn btn-secondary" href={`/${locale}`}>{t("home")}</a>
+          <a className="btn btn-secondary" href={`/${locale}/contact`}>{t("contact")}</a>
         </div>
-        {digest && <p className="small" style={{ marginTop: 24, color: "#aebdd1" }}>{t("ref", { digest })}</p>}
+        {digest && <p className="small muted nf-ref">{t("ref", { digest })}</p>}
       </div></section>
     </main>
   );

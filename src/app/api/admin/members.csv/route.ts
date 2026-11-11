@@ -1,19 +1,20 @@
-import { currentAdmin } from "@/auth";
+import { apiAdminPermission } from "@/lib/rbac";
 import { db } from "@/lib/db";
 import { csvRow } from "@/lib/csv";
 import { etCsvStamp } from "@/lib/audit";
 import { memberFilter, memberQuery, memberSearchWhere, memberTabWhere } from "@/app/[locale]/admin/members/_shared";
 /**
- * Accounts (except deleted) with their latest membership as CSV. Same tab and search as Admin → Members (?f=pending|active|other,
- * ?q=name, email or organization), so the file contains what staff see. Admins only (role read from the DB). Times: ISO (UTC) + ET.
+ * Association accounts (guest/member only: never admin or deleted, §7) with their latest membership as CSV. Same tab and search as Admin → Members (?f=pending|active|other,
+ * ?q=name, email or organization), so the file contains what staff see. Needs members.view (role and permissions read from the DB). Times: ISO (UTC) + ET.
  */
 export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
-  const admin = await currentAdmin(); if (!admin) return new Response("forbidden", { status: 403 });
+  const ctx = await apiAdminPermission("members", "view"); if (ctx instanceof Response) return ctx; // 403 unless members.view (§3.2)
+  const admin = ctx.user;
   const sp = new URL(req.url).searchParams;
   const f = memberFilter(sp.get("f")), q = memberQuery(sp.get("q"));
   const users = await db.user.findMany({
-    where: { AND: [memberSearchWhere(q), memberTabWhere(f)] }, orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    where: { AND: [memberSearchWhere(q), memberTabWhere(f), { role: { notIn: ["deleted", "admin"] } }] }, orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     select: {
       name: true, email: true, role: true, organisation: true, jobTitle: true, country: true, province: true, directoryOptIn: true, marketingOptIn: true, createdAt: true,
       memberships: { orderBy: { createdAt: "desc" }, take: 1, select: { tierId: true, status: true, currency: true, createdAt: true, verifiedAt: true, renewsAt: true, rejectionReason: true } },

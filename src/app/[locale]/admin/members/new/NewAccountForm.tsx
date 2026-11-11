@@ -12,15 +12,14 @@ export function NewAccountForm({ locale, tiers, minDay, directoryDefault }: { lo
   const submit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => action(fd)); };
   const statusRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (state.error || state.created) statusRef.current?.focus(); }, [state]);
-  const legend = { font: "700 var(--fs-xs) var(--font-body)", textTransform: "uppercase", letterSpacing: ".1em", color: "var(--slate-500)", margin: "8px 0 12px" } as const;
 
   if (state.created) {
     const c = state.created;
     return (
-      <div className="card adm-form">
+      <div className="adm-sheet adm-created">
         <div className="alert alert-success" role="status" tabIndex={-1} ref={statusRef}>
           <div><b>{t("createdTitle", { name: c.name })}</b>{c.email}
-            {c.password && <>{" · "}{t("pwOnce")}<code className="adm-mbr-secret">{c.password}</code></>}</div>
+            {c.password && <>{" · "}{t("pwOnce")}<code className="adm-secret">{c.password}</code></>}</div>
         </div>
         {c.membershipError && <div className="alert alert-danger" role="alert"><div>{c.membershipError}</div></div>}
         <div className="adm-actions"><a className="btn btn-primary btn-sm" href={`/${locale}/admin/members/${c.id}`}>{t("openAccount")}</a><a className="btn btn-secondary btn-sm" href={`/${locale}/admin/members/new`}>{t("createAnother")}</a></div>
@@ -28,26 +27,24 @@ export function NewAccountForm({ locale, tiers, minDay, directoryDefault }: { lo
     );
   }
   return (
-    <form action={action} onSubmit={submit} className="card adm-form" aria-label={t("newAccount")}>
+    <form action={action} onSubmit={submit} className="adm-sheet" aria-label={t("newAccount")}>
       <input type="hidden" name="locale" value={locale} />
-      <p className="small muted" style={{ margin: 0 }}>{t("newHint")}</p>
-      {state.error && <div className="alert alert-danger" role="alert" tabIndex={-1} ref={statusRef}><div>{state.error}</div></div>}
-      <h2 style={legend}>{t("profileTitle")}</h2>
-      <ProfileFields t={(k) => t(k as "f_name")} locale={locale} idp="n" d={{ locale, directoryOptIn: directoryDefault }} />
-      <h2 style={legend}>{t("accessTitle")}</h2>
-      <div className="grid g2" style={{ gap: "0 16px" }}>
-        <div className="field"><label htmlFor="n-role">{ta("role")}</label><select id="n-role" name="role" defaultValue="guest" aria-describedby="n-role-h">{(["guest", "admin"] as const).map((r) => <option key={r} value={r}>{ta(r === "guest" ? "roleNewGuest" : "role_admin")}</option>)}</select><span className="hint" id="n-role-h">{t("roleHintNew")}</span></div>
-        <div className="field"><label htmlFor="n-pw">{t("pwLabelNew")} <span className="hint">({t("optional")})</span></label><input id="n-pw" name="password" type="text" autoComplete="off" spellCheck={false} maxLength={128} aria-describedby="n-pw-h" /><span className="hint" id="n-pw-h">{t("pwFieldHint")}</span></div>
-      </div>
-      <h2 style={legend}>{t("grantTitle")} <span className="hint" style={{ textTransform: "none", letterSpacing: 0, fontWeight: 400 }}>({t("optional")})</span></h2>
-      <div className="grid g2" style={{ gap: "0 16px" }}>
-        <div className="field"><label htmlFor="n-tier">{ta("tier")}</label><select id="n-tier" name="tier" defaultValue=""><option value="">{t("noMembershipOpt")}</option><TierOptions list={tiers} /></select></div>
-        <div className="field"><label htmlFor="n-renew">{t("renewsOn")} <span className="hint">({t("defaultOneYear")})</span></label><input id="n-renew" name="renewsOn" type="date" min={minDay} /></div>
-      </div>
-      <p className="small muted" style={{ margin: 0 }}>{t("grantHint")}</p>
-      <div className="adm-form-foot">
-        <a className="small" href={`/${locale}/admin/members`}>← {ta("membersTitle")}</a>
-        <button className="btn btn-accent" disabled={pending}>{pending ? t("working") : t("createButton")}</button>
+      {state.error && <div className="alert alert-danger adm-form-error" role="alert" tabIndex={-1} ref={statusRef}><div>{state.error}</div></div>}
+      <div className="settings-section"><header><h2>{t("profileTitle")}</h2><p>{t("profileNewHint")}</p></header>
+        <div className="adm-fields"><ProfileFields t={(k) => t(k as "f_name")} locale={locale} idp="n" d={{ locale, directoryOptIn: directoryDefault }} /></div></div>
+      {/* No role choice (round 7, D1): the account is a guest, and a member once the membership below is added. */}
+      <div className="settings-section"><header><h2>{t("accessTitle")}</h2></header>
+        <div className="adm-fields"><div className="adm-form-grid">
+          <div className="field"><label htmlFor="n-pw">{t("pwLabelNew")} <span className="optional">({t("optional")})</span></label><input id="n-pw" name="password" type="text" autoComplete="off" spellCheck={false} maxLength={128} aria-describedby="n-pw-h" /><span className="hint" id="n-pw-h">{t("pwFieldHint")}</span></div>
+        </div></div></div>
+      <div className="settings-section"><header><h2>{t("grantTitle")} <span className="optional">({t("optional")})</span></h2><p>{t("grantHint")}</p></header>
+        <div className="adm-fields"><div className="adm-form-grid">
+          <div className="field"><label htmlFor="n-tier">{ta("tier")}</label><select id="n-tier" name="tier" defaultValue=""><option value="">{t("noMembershipOpt")}</option><TierOptions list={tiers} /></select></div>
+          <div className="field"><label htmlFor="n-renew">{t("renewsOn")} <span className="optional">({t("defaultOneYear")})</span></label><input id="n-renew" name="renewsOn" type="date" min={minDay} /></div>
+        </div></div></div>
+      <div className="save-row adm-sheet-foot">
+        <a className="btn btn-ghost" href={`/${locale}/admin/members`}>{t("cancel")}</a>
+        <button className="btn btn-accent" disabled={pending} aria-busy={pending || undefined}>{pending ? t("working") : t("createButton")}</button>
       </div>
     </form>
   );

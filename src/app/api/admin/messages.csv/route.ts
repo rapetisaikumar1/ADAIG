@@ -1,11 +1,12 @@
-import { currentAdmin } from "@/auth";
+import { apiAdminPermission } from "@/lib/rbac";
 import { db } from "@/lib/db";
 import { csvRow } from "@/lib/csv";
 import { etCsvStamp } from "@/lib/audit";
-/** Contact-form messages as CSV (?f=new|handled, default all). Admins only (role read from the DB). Times: ISO (UTC) + ET columns. */
+/** Contact-form messages as CSV (?f=new|handled, default all). Needs messages.view (permissions read from the DB). Times: ISO (UTC) + ET columns. */
 export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
-  const admin = await currentAdmin(); if (!admin) return new Response("forbidden", { status: 403 });
+  const ctx = await apiAdminPermission("messages", "view"); if (ctx instanceof Response) return ctx; // 403 unless messages.view (§3.2)
+  const admin = ctx.user;
   const f = new URL(req.url).searchParams.get("f");
   const status = f === "new" || f === "handled" ? f : undefined;
   const rows = await db.contactMessage.findMany({ where: status ? { status } : {}, orderBy: { createdAt: "desc" } });

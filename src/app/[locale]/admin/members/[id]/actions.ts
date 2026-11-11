@@ -2,35 +2,40 @@
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { currentAdmin } from "@/auth";
 import { db } from "@/lib/db";
 import { cleanText, safeLocale, checkPassword, isUniqueViolation, idParam } from "@/lib/validation";
 import { deleteUserAccount, changeRole } from "@/lib/account";
+import { assertAdminPermission, checkAdminPermission } from "@/lib/rbac";
+import type { Action } from "@/lib/permissions";
 import { staffChangeTier, staffCancel, staffMarkLapsed, staffSetRenewal, staffReactivate, staffGrant, parseRenewalDay, type StaffResult } from "@/lib/membership";
 import { parseProfile, tempPassword } from "../_validate";
+import { isMembersTarget } from "../_shared";
 
 /**
- * Admin → Members → account page. Every action re-checks the admin role from the DB (currentAdmin), validates its input,
- * writes an AuditLog entry and redirects back to the account page with a notice (?msg=<adminMembers.msg_* key>).
+ * Admin → Members → account page. Every action checks the actor's Admin Portal permission from the DB (members.<action>,
+ * SPEC_R7 §3.2), validates its input, writes an AuditLog entry and redirects back to the account page with a notice
+ * (?msg=<adminMembers.msg_* key>). D1 separation (§7): Admin Portal accounts (role "admin") are never Members targets; they
+ * are treated exactly like a missing account, so no Members action can touch an admin (no password reset, email change,
+ * deletion… of a more powerful user, §3.4).
  */
-async function guard(fd: FormData) {
-  const locale = safeLocale(fd.get("locale")); const admin = await currentAdmin(); if (!admin) redirect(`/${locale}/login`);
-  return { locale, admin };
+async function guard(fd: FormData, a: Action) {
+  const { locale, ctx } = await assertAdminPermission(fd, "members", a);
+  return { locale, admin: ctx.user };
 }
 /** Back to the account page. The id always comes from the DB, never straight from the form. */
 function back(locale: string, userId: string, msg: string, anchor = ""): never {
   redirect(`/${locale}/admin/members/${encodeURIComponent(userId)}?msg=${msg}${anchor ? `#${anchor}` : ""}`);
 }
-/** Target user from the form's uid (must exist and not be deleted), else back to the list. */
+/** Target user from the form's uid (must exist, not be deleted and not be an admin account), else back to the list. */
 async function targetUser(fd: FormData, locale: string) {
   const u = await db.user.findUnique({ where: { id: idParam(fd.get("uid")) } });
-  if (!u || u.role === "deleted") redirect(`/${locale}/admin/members?msg=notFound`);
+  if (!u || !isMembersTarget(u.role)) redirect(`/${locale}/admin/members?msg=notFound`);
   return u;
 }
 
 /* ── profile ── */
 export async function updateProfile(fd: FormData) {
-  const { locale, admin } = await guard(fd); const u = await targetUser(fd, locale);
+  const { locale, admin } = await guard(fd, "edit"); const u = await targetUser(fd, locale);
   const r = parseProfile(fd); if ("error" in r) back(locale, u.id, r.error, "profile");
   const d = r.data; const emailChanged = d.email !== u.email;
   if (emailChanged && (await db.user.findUnique({ where: { email: d.email } }))) back(locale, u.id, "err_emailTaken", "profile");
@@ -49,22 +54,20 @@ export async function updateProfile(fd: FormData) {
 }
 
 /* ── account: role, password ── */
-const ROLES = ["guest", "member", "admin"] as const;
+const ROLES = ["guest", "member"] as const;
 /**
- * Staff grant or remove admin access. Guest/member is not chosen by hand: it follows the memberships (an active membership →
- * member, none → guest), so the only non-admin role accepted is the one the memberships give.
+ * Guest ↔ member sync only. The role is not chosen by hand: it follows the memberships (an active membership → member,
+ * none → guest), so the only role accepted is the one the memberships give. Admin Portal access is managed in Users (D1):
+ * "admin" is rejected here as invalid.
  */
 export async function setUserRole(fd: FormData) {
-  const { locale, admin } = await guard(fd); const u = await targetUser(fd, locale);
+  const { locale, admin } = await guard(fd, "edit"); const u = await targetUser(fd, locale);
   const role = String(fd.get("role")); if (!(ROLES as readonly string[]).includes(role)) back(locale, u.id, "err_invalid", "account");
-  if (u.id === admin.id) back(locale, u.id, "err_selfRole", "account");
-  if (role !== "admin") {
-    const derived = (await db.membership.count({ where: { userId: u.id, status: "active" } })) ? "member" : "guest";
-    if (role !== derived) back(locale, u.id, derived === "member" ? "err_roleHasMembership" : "err_roleNeedsMembership", "account");
-  }
-  const r = await changeRole(u.id, role as (typeof ROLES)[number]);
-  if (r === "lastAdmin") { await db.auditLog.create({ data: { actor: admin.id, action: "admin.demote_blocked_last_admin", target: u.id } }); back(locale, u.id, "err_lastAdmin", "account"); }
-  if (r === "changed") await db.auditLog.create({ data: { actor: admin.id, action: role === "admin" ? "admin.role_promoted" : u.role === "admin" ? "admin.role_demoted" : "admin.role_changed", target: u.id } });
+  const derived = (await db.membership.count({ where: { userId: u.id, status: "active" } })) ? "member" : "guest";
+  if (role !== derived) back(locale, u.id, derived === "member" ? "err_roleHasMembership" : "err_roleNeedsMembership", "account");
+  const r = await changeRole(u.id, role as (typeof ROLES)[number]); // refuses admin and deleted rows inside its row lock
+  if (r === "notFound") redirect(`/${locale}/admin/members?msg=notFound`);
+  if (r === "changed") await db.auditLog.create({ data: { actor: admin.id, action: "admin.role_changed", target: u.id } });
   back(locale, u.id, r === "changed" ? "msg_roleChanged" : "msg_noChange", "account");
 }
 
@@ -75,15 +78,19 @@ export type PasswordState = { password?: string; error?: string };
  * is incremented, and the session callback in src/auth.ts rejects tokens issued with an older version.
  */
 export async function resetPassword(_: PasswordState, fd: FormData): Promise<PasswordState> {
-  const { locale, admin } = await guard(fd);
+  const locale = safeLocale(fd.get("locale"));
   const t = await getTranslations({ locale, namespace: "adminMembers" });
+  const g = await checkAdminPermission("members", "edit");
+  if (!g.ok) return { error: t(g.reason === "signedOut" ? "err_notAdmin" : "err_forbidden") };
+  const admin = g.ctx.user;
   const u = await db.user.findUnique({ where: { id: idParam(fd.get("uid")) } });
-  if (!u || u.role === "deleted") return { error: t("err_notFound") };
+  // D1/§3.4: never an admin account (that would let a Members editor take over a more powerful user), same answer as missing.
+  if (!u || !isMembersTarget(u.role)) return { error: t("err_notFound") };
   const typed = String(fd.get("password") ?? "");
   const password = typed ? typed : tempPassword();
   const pwErr = checkPassword(password, u.email); if (pwErr) return { error: t(`err_pw_${pwErr}`) };
   const hash = await bcrypt.hash(password, 10);
-  const r = await db.user.updateMany({ where: { id: u.id, role: { not: "deleted" } }, data: { passwordHash: hash, sessionVersion: { increment: 1 } } });
+  const r = await db.user.updateMany({ where: { id: u.id, role: { notIn: ["deleted", "admin"] } }, data: { passwordHash: hash, sessionVersion: { increment: 1 } } });
   if (!r.count) return { error: t("err_notFound") };
   await db.auditLog.create({ data: { actor: admin.id, action: "admin.password_reset", target: u.id } });
   return { password };
@@ -91,11 +98,11 @@ export async function resetPassword(_: PasswordState, fd: FormData): Promise<Pas
 
 /* ── delete / anonymize (same logic as Profile → Delete my account) ── */
 export async function deleteUser(fd: FormData) {
-  const { locale, admin } = await guard(fd); const u = await targetUser(fd, locale);
+  const { locale, admin } = await guard(fd, "delete"); const u = await targetUser(fd, locale); // never self or an admin (targetUser)
   if (fd.get("confirm") !== "on") back(locale, u.id, "err_confirmDelete", "delete");
-  if (u.id === admin.id) back(locale, u.id, "err_selfDelete", "delete");
-  const r = await deleteUserAccount(u.id, { actor: admin.id, action: "account.deleted_by_admin" });
-  if (r === "lastAdmin") { await db.auditLog.create({ data: { actor: admin.id, action: "admin.delete_blocked_last_admin", target: u.id } }); back(locale, u.id, "err_lastAdmin", "delete"); }
+  // targetUser refused admin rows, so deleteUserAccount's last-Super-Admin branch can't apply; it re-reads the row in its own
+  // transaction, and an account deleted meanwhile is simply gone.
+  await deleteUserAccount(u.id, { actor: admin.id, action: "account.deleted_by_admin" });
   redirect(`/${locale}/admin/members?msg=accountDeleted`);
 }
 
@@ -103,12 +110,12 @@ export async function deleteUser(fd: FormData) {
 const STAFF_MSG: Record<StaffResult, string> = { ok: "msg_membershipSaved", stale: "err_stale", openExists: "err_openExists", invalid: "err_invalid" };
 async function membershipOf(fd: FormData, locale: string) {
   const m = await db.membership.findUnique({ where: { id: idParam(fd.get("id")) }, include: { user: { select: { role: true } } } });
-  if (!m) redirect(`/${locale}/admin/members?msg=notFound`);
+  if (!m || m.user.role === "admin") redirect(`/${locale}/admin/members?msg=notFound`); // D1: an admin's membership is not managed here
   if (m.user.role === "deleted") back(locale, m.userId, "err_deleted", "memberships");
   return m;
 }
 export async function membershipAction(fd: FormData) {
-  const { locale, admin } = await guard(fd); const m = await membershipOf(fd, locale);
+  const { locale, admin } = await guard(fd, "edit"); const m = await membershipOf(fd, locale);
   const op = String(fd.get("op"));
   let r: StaffResult = "invalid";
   if (op === "tier") r = await staffChangeTier(m.id, String(fd.get("tier") ?? ""), admin.id);
@@ -123,7 +130,7 @@ export async function membershipAction(fd: FormData) {
   back(locale, m.userId, STAFF_MSG[r], "memberships");
 }
 export async function grantMembership(fd: FormData) {
-  const { locale, admin } = await guard(fd); const u = await targetUser(fd, locale);
+  const { locale, admin } = await guard(fd, "edit"); const u = await targetUser(fd, locale);
   const raw = String(fd.get("renewsOn") ?? "").trim(); const d = raw ? parseRenewalDay(raw) : null;
   if (raw && !d) back(locale, u.id, "err_date", "memberships");
   const r = await staffGrant(u.id, String(fd.get("tier") ?? ""), d, admin.id);
@@ -134,7 +141,7 @@ export async function grantMembership(fd: FormData) {
 const CPE_STATUSES = ["submitted", "approved", "audit"];
 const hoursOf = (v: FormDataEntryValue | null) => { const n = Number(String(v ?? "").replace(",", ".")); return Number.isFinite(n) && n > 0 && n <= 100 ? Math.round(n * 100) / 100 : null; };
 export async function addCpe(fd: FormData) {
-  const { locale, admin } = await guard(fd); const u = await targetUser(fd, locale);
+  const { locale, admin } = await guard(fd, "edit"); const u = await targetUser(fd, locale);
   const title = cleanText(fd.get("title"), 200), hours = hoursOf(fd.get("hours")), status = String(fd.get("status"));
   if (!title || hours === null || !CPE_STATUSES.includes(status)) back(locale, u.id, "err_cpe", "cpe");
   await db.cpeEntry.create({ data: { userId: u.id, title, hours, status, createdBy: admin.id } });
@@ -142,9 +149,9 @@ export async function addCpe(fd: FormData) {
   back(locale, u.id, "msg_cpeAdded", "cpe");
 }
 export async function updateCpe(fd: FormData) {
-  const { locale, admin } = await guard(fd);
-  const e = await db.cpeEntry.findUnique({ where: { id: idParam(fd.get("id")) } });
-  if (!e) redirect(`/${locale}/admin/members?msg=notFound`);
+  const { locale, admin } = await guard(fd, "edit");
+  const e = await db.cpeEntry.findUnique({ where: { id: idParam(fd.get("id")) }, include: { user: { select: { role: true } } } });
+  if (!e || e.user.role === "admin") redirect(`/${locale}/admin/members?msg=notFound`); // D1: an admin's CPE is not managed here
   if (fd.get("op") === "remove") {
     if ((await db.cpeEntry.deleteMany({ where: { id: e.id } })).count) await db.auditLog.create({ data: { actor: admin.id, action: "cpe.entry_removed", target: e.userId } });
     back(locale, e.userId, "msg_cpeRemoved", "cpe");

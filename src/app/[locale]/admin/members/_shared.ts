@@ -10,9 +10,17 @@ export const MEMBER_FILTERS = ["all", "pending", "active", "other"] as const;
 export type MemberFilter = (typeof MEMBER_FILTERS)[number];
 export const memberFilter = (v: unknown): MemberFilter => { const s = searchParam(v, 20); return (MEMBER_FILTERS as readonly string[]).includes(s) ? (s as MemberFilter) : "all"; };
 
-/** Case-insensitive, literal (% and _ escaped) search on name, email and organization, plus "not deleted". */
+/**
+ * D1 separation (SPEC_R7 §7): Members manages association accounts only (guest/member). Admin Portal accounts (role "admin")
+ * live in Users, and deleted (anonymised) rows are never listed. Every Members action treats an excluded target as "not found".
+ */
+export const NON_MEMBER_ROLES = ["deleted", "admin"] as const;
+/** True when Members may show or act on an account with this role (guest/member; never admin or deleted). */
+export const isMembersTarget = (role: string | null | undefined) => !!role && !(NON_MEMBER_ROLES as readonly string[]).includes(role);
+
+/** Case-insensitive, literal (% and _ escaped) search on name, email and organization, limited to guest/member accounts. */
 export function memberSearchWhere(q: string): Prisma.UserWhereInput {
-  const base: Prisma.UserWhereInput = { role: { not: "deleted" } };
+  const base: Prisma.UserWhereInput = { role: { notIn: [...NON_MEMBER_ROLES] } };
   if (!q) return base;
   const c = { contains: likeLiteral(q), mode: "insensitive" as const };
   return { ...base, OR: [{ name: c }, { email: c }, { organisation: c }] };
@@ -29,6 +37,9 @@ export const memberQuery = (q: unknown) => searchParam(q, 200);
 
 /** Badge colour for a membership status. */
 export const badgeFor = (s: string) => (s === "active" ? "badge-green" : s === "pending_verification" ? "badge-amber" : s === "rejected_verification" ? "badge-red" : "");
+/** Status tone (DESIGN fix 1, one tone per meaning): active = available, awaiting a decision = pending, rejected/lapsed/canceled = danger, other ends = neutral. */
+export const statusFor = (s: string) => (s === "active" ? "status-available" : s === "pending_verification" || s === "pending" ? "status-pending"
+  : s === "rejected_verification" || s === "lapsed" || s === "cancelled" ? "status-danger" : "status-neutral");
 
 /** Fields the list and the CSV read (never the password hash). */
 export const LIST_USER_SELECT = {

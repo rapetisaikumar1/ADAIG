@@ -1,6 +1,7 @@
 "use client";
 import { useActionState, useEffect, useRef, startTransition, type FormEvent } from "react";
 import { signup, type AuthState } from "../login/actions";
+import { Icon } from "@/components/ui/Icon";
 
 export type SignupLabels = { name: string; email: string; password: string; passwordHint: string; mkt: string; create: string };
 
@@ -23,7 +24,7 @@ export function SignupForm({ locale, next, labels }: { locale: string; next?: st
   const desc = (f: NonNullable<AuthState["field"]>, extra?: string) => [bad(f) ? "signup-err" : "", extra ?? ""].filter(Boolean).join(" ") || undefined;
   return (
     <>
-      {state.error && <div className="alert alert-danger" role="alert" id="signup-err" tabIndex={-1} ref={errRef}><div>{state.error}</div></div>}
+      {state.error && <div className="alert alert-danger" role="alert" id="signup-err" tabIndex={-1} ref={errRef}><Icon name="x-circle" /><div>{state.error}</div></div>}
       <form action={action} onSubmit={submit}>
         <input type="hidden" name="locale" value={locale} />
         {next && <input type="hidden" name="next" value={next} />}

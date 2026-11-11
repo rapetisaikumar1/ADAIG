@@ -1,7 +1,16 @@
-/* Tailwind utilities only (no preflight) so the prototype's site.css stays authoritative. */
+/* Tailwind utilities only (no preflight); the ADAIG design system below is unlayered, so it always wins over utilities. */
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
+/* Round-5 CSS architecture — cascade order matters. DESIGN: tokens → base → components → shell.
+   Areas (scoped selectors + tokens only): chrome + home (PUBLIC-HOME), pages (PUBLIC-PAGES), member (MEMBER), admin (ADMIN). */
 @import "../styles/tokens.css";
-@import "../styles/site.css";
-/* All component rules live in src/styles/site.css (layout-aside, .seg a, inputs, table-wrap, app shell, footer grid were consolidated there). */
+@import "../styles/base.css";
+@import "../styles/components.css";
+@import "../styles/shell.css";
+@import "../styles/chrome.css";
+@import "../styles/home.css";
+@import "../styles/pages.css";
+@import "../styles/member.css";
+@import "../styles/admin.css";
+@import "../styles/admin-access.css";

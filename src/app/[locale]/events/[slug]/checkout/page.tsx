@@ -8,6 +8,7 @@ import { idParam } from "@/lib/validation";
 import { completeMockTicket } from "../actions";
 import { confirmStripeTicket } from "@/lib/stripeReturn";
 import { eventView, eventTimeZone, dateLocale } from "@/components/EventCard";
+import { Icon } from "@/components/ui/Icon";
 export const dynamic = "force-dynamic";
 
 export default async function TicketCheckout({ params, searchParams }: { params: Promise<{ locale: string; slug: string }>; searchParams: Promise<{ r?: string | string[]; sid?: string | string[] }> }) {
@@ -24,7 +25,7 @@ export default async function TicketCheckout({ params, searchParams }: { params:
   const when = v.start.toLocaleDateString(dateLocale(locale), { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: eventTimeZone });
   const ticket = r.ticket === "member" ? t("member") : t("nonMember");
   return (
-    <main id="main" className="event-detail"><section className="section"><div className="container" style={{ maxWidth: 560 }}>
+    <main id="main" tabIndex={-1} className="event-detail"><section className="section"><div className="container ev-checkout-wrap">
       <div className="card ev-checkout">
         {!payErr && <><h1>{stripe ? t("waitStripe") : t("mockCheckout")}</h1>
         <p className="muted">{stripe ? t("waitStripeBody") : t("mockBody")}</p></>}
@@ -33,9 +34,9 @@ export default async function TicketCheckout({ params, searchParams }: { params:
           <li><div><b>{v.title}</b><br /><span className="small muted">{when} · {t("ticketType", { type: ticket.toLowerCase() })}</span></div><b>{fmt2(r.amountCents, cur, locale)}</b></li>
           <li className="ev-total"><span>{t("total")}</span><b>{fmt2(r.amountCents, cur, locale)}</b></li>
         </ul>
-        {payErr && <div className="alert alert-danger" role="alert"><div><b>{t("payUnavailable")}</b>{t("payUnavailableBody")}</div></div>}
+        {payErr && <div className="alert alert-danger" role="alert"><Icon name="x-circle" /><div><b>{t("payUnavailable")}</b>{t("payUnavailableBody")}</div></div>}
         {!stripe && mock && <form action={completeMockTicket}><input type="hidden" name="r" value={r.id} /><input type="hidden" name="locale" value={locale} /><button className="btn btn-accent btn-block">{t("payMock")} {fmt2(r.amountCents, cur, locale)}</button></form>}
-        <p className="small" style={{ marginTop: 16, marginBottom: 0 }}><a href={`/${locale}/events/${slug}`}>← {t("back")}</a></p>
+        <p className="small ev-back"><a className="link-tap" href={`/${locale}/events/${slug}`}>← {t("back")}</a></p>
       </div>
     </div></section></main>
   );

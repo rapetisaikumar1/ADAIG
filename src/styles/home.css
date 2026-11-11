@@ -1,0 +1,171 @@
+/* home.css — homepage (PUBLIC-HOME, round 5 "Facet Architecture"; spec SP/r5/DESIGN_R5.md §8).
+   Markup: src/content/<locale>/home.html (staff-editable) + src/app/[locale]/page.tsx (hero art at <!--HOME_HERO_ART-->, live events
+   at <!--HOME_EVENTS-->). Sections: hero (paper, governance stack) · find your path (sand, one two-part sheet) · mission (statement +
+   pillars sheet) · capabilities (white band, index rows) · toolkit (sand, roadmap) · upcoming events (paper) · founding cohort (navy inset).
+   Scoped to .home / .home-* classes; tokens only. Motion: .rise (hero copy), .facet-art.is-assembling (cubes), .reveal (sections) —
+   all declared in base/components inside prefers-reduced-motion: no-preference; the tags below follow the same rule. */
+
+/* ── 1. Hero ─────────────────────────────────────────────────────────────────────────────────────────────── */
+.home-hero{position:relative;isolation:isolate;overflow:hidden;background:var(--paper);border-bottom:1px solid var(--line);
+ padding:clamp(40px,1rem + 4.6vw,96px) 0 clamp(56px,1.5rem + 4.6vw,112px)}
+/* lattice behind the art only: fades in from the middle of the page toward the right edge, and out at top and bottom */
+.home-hero::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:var(--lattice) 0 0/var(--lattice-size);
+ -webkit-mask-image:radial-gradient(48% 78% at 76% 52%,#000 0%,rgba(0,0,0,.55) 45%,transparent 76%);mask-image:radial-gradient(48% 78% at 76% 52%,#000 0%,rgba(0,0,0,.55) 45%,transparent 76%)}
+.home-hero-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:clamp(32px,1rem + 3vw,72px);align-items:center}
+.home-hero-copy{min-width:0}
+.home-hero .eyebrow{margin-bottom:var(--sp-5);text-wrap:balance}
+.home-hero h1.display{font-size:clamp(2.625rem,1.55rem + 3.5vw,4.75rem);line-height:1.02;margin:0 0 var(--sp-5);max-width:11em}
+/* French headline (11 words): a smaller display size keeps it to three lines at 1440 and four on phones */
+:lang(fr) .home-hero h1.display{font-size:clamp(2.25rem,1.45rem + 2.6vw,3.75rem);line-height:1.04;max-width:none}
+.home-hero .lead{max-width:50ch;margin:0}
+.home-actions{display:flex;flex-wrap:wrap;gap:var(--sp-3);margin-top:var(--sp-6)}
+.home-facts{margin-top:clamp(36px,1.5rem + 1.5vw,56px)}
+/* two facts (the EN · FR fact was removed with the French option): two equal columns instead of three */
+.home-facts:not(:has(>li:nth-child(3))){--cols:2}
+.home-facts b{font-variant-numeric:lining-nums tabular-nums}
+/* the governance stack (inline FacetArt "hero-stack", 560×540) + three pinned labels (decorative, aria-hidden) */
+.home-hero-art{position:relative;justify-self:end;width:100%;max-width:540px;aspect-ratio:560/540}
+.home-hero-art .home-stack{position:absolute;inset:0}
+.home-tag{position:absolute;display:inline-flex;align-items:center;gap:8px;padding:6px 11px;border-radius:var(--r-pill);background:var(--white);border:1px solid var(--line-strong);
+ font:500 .6875rem/1.2 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--slate-700);white-space:nowrap;box-shadow:0 6px 16px -10px rgba(11,37,69,.28)}
+/* leader line: from the label's edge to the cube it names, ending in a small node */
+.home-tag::after{content:"";position:absolute;top:50%;height:1px;width:var(--lead,32px);background:color-mix(in srgb,var(--navy-800) 45%,transparent)}
+.home-tag::before{content:"";position:absolute;top:50%;width:7px;height:7px;margin-top:-3px;border-radius:50%;background:var(--white);box-shadow:inset 0 0 0 1.5px var(--navy-800)}
+/* AI governance → the top of the stack (right of it, level with the core) */
+.home-tag-1{left:66%;top:26.1%;translate:0 -50%;--lead:34px}.home-tag-1::after{right:100%}.home-tag-1::before{right:calc(100% + var(--lead) - 3px)}
+/* Data & privacy → the middle step (left of it) */
+.home-tag-2{right:66%;top:44%;translate:0 -50%;--lead:30px}.home-tag-2::after{left:100%}.home-tag-2::before{left:calc(100% + var(--lead) - 3px)}
+/* Records & IG → the base (left of it) */
+.home-tag-3{right:84.6%;top:78%;translate:0 -50%;--lead:24px}.home-tag-3::after{left:100%}.home-tag-3::before{left:calc(100% + var(--lead) - 3px)}
+@media(prefers-reduced-motion:no-preference){
+ .home-tag{animation:adaig-rise var(--dur-3) var(--ease-out) both}
+ .home-tag-3{animation-delay:520ms}.home-tag-2{animation-delay:620ms}.home-tag-1{animation-delay:720ms}
+}
+@media(max-width:1100px) and (min-width:961px){.home-hero-grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}.home-tag{font-size:.625rem;padding:5px 9px}}
+/* the labels need room beside the stack to point at their cubes: shown only where the art has its own column (≥961px) */
+@media(max-width:960px){.home-tag{display:none}}
+/* tablets (641–960px): the headline and lead span the width; the actions and facts sit beside a smaller stack, so the hero
+   stays about one screen tall instead of stacking ~450px of art under the text (QA-PUBLIC-8) */
+@media(min-width:641px) and (max-width:960px){
+ .home-hero-grid{grid-template-columns:minmax(0,1fr) clamp(220px,34vw,300px);column-gap:var(--sp-6);row-gap:0;align-items:end}
+ .home-hero-copy{display:contents}
+ .home-hero-copy>*{grid-column:1/-1}
+ .home-hero-copy>.home-actions,.home-hero-copy>.home-facts{grid-column:1}
+ .home-hero-art{grid-column:2;grid-row:4/span 2;align-self:end;justify-self:end;max-width:none;margin:0 0 -8px}
+ .home-hero::before{-webkit-mask-image:radial-gradient(45% 55% at 88% 82%,#000,transparent 75%);mask-image:radial-gradient(45% 55% at 88% 82%,#000,transparent 75%)}
+}
+@media(max-width:640px){
+ .home-hero::before{-webkit-mask-image:radial-gradient(70% 30% at 50% 88%,#000,transparent 75%);mask-image:radial-gradient(70% 30% at 50% 88%,#000,transparent 75%)}
+ .home-hero-grid{grid-template-columns:minmax(0,1fr)}
+ .home-hero .eyebrow{font-size:.6875rem;letter-spacing:.06em}
+ .home-actions .btn{flex:1 1 100%}
+ /* facts as stacked rows (DESIGN_R5 §11), each on one line: label | description */
+ .home-facts>li,.home-facts>li+li{grid-template-columns:96px minmax(0,1fr);column-gap:var(--sp-3);align-items:baseline;padding:var(--sp-3) 0}
+ .home-facts b{font-size:1.125rem}
+ /* the stack below the text at 280px (DESIGN_R5 §8: "390: art below at 280px") */
+ .home-hero-art{justify-self:center;width:100%;max-width:280px;margin:var(--sp-3) 0 calc(-1 * var(--sp-4))}
+}
+
+/* ── 2. Find your path — one white sheet in two parts (professionals | enterprises) ──────────────────────────── */
+.home-paths-sheet{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));background:var(--white);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.home-path{position:relative;display:flex;flex-direction:column;gap:var(--sp-3);padding:clamp(28px,1rem + 2.4vw,52px);min-width:0}
+.home-path+.home-path{border-left:1px solid var(--line)}
+.home-path::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--face-top);opacity:0;transition:opacity var(--dur-2)}
+.home-path+.home-path::before{background:var(--face-right)}
+.home-path:hover::before,.home-path:focus-within::before{opacity:1}
+.home-path .icon-tile{margin-bottom:var(--sp-2)}
+.home-path h3{font:var(--fw-h2) clamp(1.625rem,1.4rem + .7vw,2rem)/1.15 var(--font-display);letter-spacing:-.018em;margin:0}
+.home-path p{margin:0;color:var(--slate-600);max-width:56ch}
+/* audiences: quiet chips (no separators left dangling at line ends) */
+.home-aud{list-style:none;margin:var(--sp-2) 0 0;padding:var(--sp-4) 0 0;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px}
+.home-aud li{display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 9px;border-radius:var(--r-pill);background:var(--paper);border:1px solid var(--line);font-size:var(--fs-sm);line-height:1.35;color:var(--slate-700)}
+.home-aud li::before{content:"";flex:none;width:7px;height:5px;background:var(--face-top);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.home-path+.home-path .home-aud li::before{background:var(--face-right)}
+.home-path-foot{margin-top:auto;padding-top:var(--sp-4);display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-6)}
+.home-path-foot a{min-height:44px}
+@media(max-width:760px){.home-paths-sheet{grid-template-columns:minmax(0,1fr)}.home-path+.home-path{border-left:0;border-top:1px solid var(--line)}}
+@media(max-width:640px){
+ .home-path-foot{flex-direction:column;gap:0}
+ /* a wrapping link keeps its arrow after the last word (not pinned to the right edge) */
+ .home-path-foot a.link-arrow{display:block;padding:10px 0}.home-path-foot a.link-arrow::after{display:inline-block;vertical-align:-3px;margin-left:6px}
+ /* phones: the audiences become a quiet bulleted list (no pills wrapping onto two lines) */
+ .home-aud{display:grid;gap:6px}
+ .home-aud li{padding:0;border:0;background:none;border-radius:0;gap:10px;align-items:baseline}
+ .home-aud li::before{translate:0 -2px}
+}
+
+/* ── 3. Mission — statement + pillars sheet ─────────────────────────────────────────────────────────────────── */
+.home-mission-grid{align-items:center}
+.home-mission .statement{margin:var(--sp-2) 0 var(--sp-5)}
+.home-mission .statement em{font-style:italic;color:var(--face-right)}
+.home-mission .lead{margin:0;max-width:46ch}
+.home-founded{display:flex;align-items:baseline;gap:10px;margin:var(--sp-6) 0 0;padding-top:var(--sp-4);border-top:1px solid var(--line-strong);max-width:52ch;font-size:var(--fs-sm);color:var(--slate-600)}
+.home-founded::before{content:"";flex:none;width:9px;height:6px;translate:0 -1px;background:var(--face-right);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.home-pillars{position:relative;background:var(--white);border:1px solid var(--line);border-radius:var(--r-lg);padding:clamp(28px,1rem + 2.2vw,48px)}
+.home-pillars::before{content:"";position:absolute;left:-1px;right:-1px;top:-1px;height:3px;border-radius:var(--r-lg) var(--r-lg) 0 0;background:var(--grad-rule)}
+.home-pillars .eyebrow{margin-bottom:var(--sp-5)}
+.home-pillars .num-list{--cols:2;column-gap:clamp(24px,3vw,48px)}
+.home-pillars .num-list>li{padding:var(--sp-5) 0 var(--sp-6);gap:10px}
+.home-pillars .num-list>li:nth-last-child(-n+2){padding-bottom:0}
+.home-pillars .num-list h3{font-size:var(--fs-h3);letter-spacing:-.014em}
+.home-pillars .num-list p{font-size:1rem;line-height:1.55}
+@media(max-width:760px){.home-pillars .num-list>li:nth-last-child(2){padding-bottom:var(--sp-6)}}
+
+/* ── 4. Capabilities — index rows on a white band (one link per row, the whole row is the target) ──────────── */
+.home-caps-head{position:sticky;top:calc(var(--header-h) + var(--sp-6))}
+.home-caps-head h2{margin:0;max-width:14ch}
+.home-cap-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line-strong)}
+.home-cap{position:relative;display:grid;grid-template-columns:48px minmax(0,1fr) 28px;gap:var(--sp-5);align-items:start;padding:var(--sp-6) var(--sp-3) var(--sp-6) 0;border-bottom:1px solid var(--line);
+ border-radius:0;transition:background-color var(--dur-2)}
+.home-cap>div{display:grid;gap:var(--sp-2);justify-items:start}
+.home-cap h3{margin:0;font-size:var(--fs-h3)}
+.home-cap p{margin:0;color:var(--slate-600);max-width:60ch}
+.home-cap .status{margin-top:var(--sp-1)}
+.home-cap-link{color:var(--navy-800);text-decoration:none}
+.home-cap-link::after{content:"";position:absolute;inset:0}
+.home-cap-link:focus-visible{outline:none}
+.home-cap:has(.home-cap-link:focus-visible){outline:2px solid var(--focus);outline-offset:4px;border-radius:var(--r-panel)}
+/* trailing arrow (CSS mask, nudges 3px on hover like .link-arrow) */
+.home-cap::after{content:"";grid-column:3;grid-row:1;align-self:center;width:22px;height:22px;background:var(--slate-500);transition:background-color var(--dur-2),translate var(--dur-2) var(--ease-out);
+ -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E") center/contain no-repeat;
+ mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6'/%3E%3C/svg%3E") center/contain no-repeat}
+.home-cap:hover .home-cap-link{color:var(--teal-700)}
+.home-cap:hover::after{background:var(--teal-700);translate:3px 0}
+@media(max-width:960px){.home-caps-head{position:static}.home-caps-head h2{max-width:none}}
+@media(max-width:640px){.home-cap{grid-template-columns:44px minmax(0,1fr);gap:var(--sp-4);padding:var(--sp-5) 0}.home-cap::after{display:none}
+ .home-cap .icon-tile{width:44px;height:50px}.home-cap .icon-tile svg{width:20px;height:20px}}
+
+/* ── 5. Governance toolkit — text + roadmap sheet (rows 01–04, each "Coming soon") ─────────────────────────── */
+.home-toolkit-text h2{margin-bottom:var(--sp-4)}
+.home-toolkit-text .lead{margin:0 0 var(--sp-4);max-width:44ch}
+.home-toolkit-note{color:var(--slate-600);max-width:52ch;margin:0 0 var(--sp-6)}
+.home-roadmap{list-style:none;margin:0;padding:var(--sp-2) 0;background:var(--white);border:1px solid var(--line);border-radius:var(--r-lg)}
+.home-roadmap li{position:relative;display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:var(--sp-4);align-items:center;padding:var(--sp-5) clamp(20px,2.4vw,32px);transition:background-color var(--dur-2)}
+.home-roadmap li+li::before{content:"";position:absolute;top:0;left:clamp(20px,2.4vw,32px);right:clamp(20px,2.4vw,32px);border-top:1px solid var(--line)}
+.home-roadmap li:hover{background:color-mix(in srgb,var(--paper) 70%,var(--white))}
+.home-num{font:var(--fw-display) 1.75rem/1 var(--font-display);color:var(--face-right);letter-spacing:-.02em;font-variant-numeric:lining-nums tabular-nums}
+.home-roadmap li>div{display:grid;gap:2px;min-width:0}
+.home-roadmap a{font-weight:600;color:var(--navy-800);text-decoration:none;line-height:1.4}
+.home-roadmap a::after{content:"";position:absolute;inset:0}
+.home-roadmap a:hover,.home-roadmap li:hover a{color:var(--teal-700)}
+.home-roadmap a:focus-visible{outline:none}
+.home-roadmap li:has(a:focus-visible){outline:2px solid var(--focus);outline-offset:-2px;border-radius:var(--r-panel)}
+.home-roadmap li>div>span{font-size:var(--fs-sm);color:var(--slate-600);line-height:1.5}
+@media(max-width:640px){.home-roadmap li{grid-template-columns:40px minmax(0,1fr);row-gap:var(--sp-2);padding:var(--sp-4) var(--sp-4)}.home-roadmap li .status{grid-column:2;justify-self:start}
+ .home-roadmap li+li::before{left:var(--sp-4);right:var(--sp-4)}.home-num{font-size:1.5rem}}
+
+/* ── 6. Upcoming events (page.tsx) ──────────────────────────────────────────────────────────────────────────── */
+.home-events .section-head .link-arrow{margin-bottom:6px}
+
+/* ── 7. Join the founding cohort — the page's one navy panel (inset, facet cut, corner assembly) ───────────── */
+.home-cta-section{padding-top:0}
+.home-cta{padding:clamp(40px,1.5rem + 4vw,88px) clamp(24px,1rem + 4.5vw,88px)}
+.home-cta-inner{max-width:600px}
+.home-cta h2{margin-bottom:var(--sp-4)}
+.home-cta .lead{color:var(--on-dark);max-width:52ch;margin:0}
+.home-cta .home-actions{margin-top:var(--sp-6)}
+.home-cta-note{margin:var(--sp-5) 0 0;font-size:var(--fs-sm);color:var(--on-dark-muted)}
+.home-cta-note a{font-weight:600}
+/* the corner assembly sits in the free right half, vertically centred */
+.home-cta.bg-navy::after{width:clamp(300px,26vw,380px);right:clamp(32px,5vw,88px);bottom:50%;translate:0 50%}
+@media(max-width:640px){.home-cta{padding:var(--sp-7) var(--sp-5) var(--sp-8)}}

@@ -1,7 +1,9 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/session";
+import { requireAdminPermission, can } from "@/lib/rbac";
 import { AdminNav } from "@/components/AppShell";
+import { FocusOnLoad } from "@/components/ui/FocusOnLoad";
+import { AdminHead, AdminReadOnly, AdminDl } from "../_components/AdminUI";
 import { type Locale } from "@/config/site";
 import { eventTimeZone, dateLocale } from "@/lib/time";
 import {
@@ -9,6 +11,7 @@ import {
   REJECTED_POLICIES, PAID_TICKET_POLICIES, MEMBERSHIP_REFUND_POLICIES,
 } from "@/lib/settings";
 import { saveTier, resetTier, resetAllTiers, saveSite, saveOps, resetSite, resetOps } from "./actions";
+import { FrBenefits } from "./FrBenefits";
 export const dynamic = "force-dynamic";
 
 const MSGS: Record<string, "alert-success" | "alert-danger"> = {
@@ -19,8 +22,11 @@ const MSGS: Record<string, "alert-success" | "alert-danger"> = {
 /** Admin → Settings: membership tiers, public contact details, operational policies (Setting table; missing row = default). */
 export default async function AdminSettings({ params, searchParams }: { params: Promise<{ locale: Locale }>; searchParams: Promise<{ msg?: string; s?: string }> }) {
   const { locale } = await params; setRequestLocale(locale);
-  await requireAdmin(locale);
-  const t = await getTranslations("adminSettings"); const ta = await getTranslations("admin");
+  const ctx = await requireAdminPermission(locale, "system", "view");
+  // Without system.edit the page is read-only (§5.5): one notice at the top and the values as compact read-only lists
+  // (VIS m7: no disabled inputs, no edit hints, "Not set" for empty values), no forms.
+  const canEdit = can(ctx, "system", "edit");
+  const t = await getTranslations("adminSettings"); const ta = await getTranslations("admin"); const tm = await getTranslations("adminMembers");
   const { msg, s } = await searchParams;
   // Read fresh (uncached) so the concurrency tokens below match the database.
   const rows = await db.setting.findMany();
@@ -37,72 +43,100 @@ export default async function AdminSettings({ params, searchParams }: { params: 
     return r ? <span className="small muted">{t("changedBy", { date: stamp(r.updatedAt), name: (r.updatedBy && editors.get(r.updatedBy)) || "—" })}</span> : null;
   };
   const notice = (anchor: string) => msg && MSGS[msg] && s === anchor
-    ? <div className={`alert ${MSGS[msg]}`} role={MSGS[msg] === "alert-danger" ? "alert" : "status"}><div>{t(`msg_${msg}`)}</div></div> : null;
+    ? <FocusOnLoad><div className={`alert ${MSGS[msg]}`} role={MSGS[msg] === "alert-danger" ? "alert" : "status"}><div>{t(`msg_${msg}`)}</div></div></FocusOnLoad> : null;
   const hidden = (extra?: Record<string, string>) => (
     <><input type="hidden" name="locale" value={locale} />{Object.entries(extra ?? {}).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}</>
   );
-  const h2 = { fontSize: "var(--fs-xl)", margin: 0 } as const;
-  const h3 = { fontSize: "var(--fs-lg)", margin: 0 } as const;
   // "Default: keep the seat (anonymized)": the option label is lower-cased after the colon (no nested parentheses).
   const defaultLabel = (v: string) => t("useDefault", { value: v.charAt(0).toLocaleLowerCase(locale) + v.slice(1) });
-  /** Same height for an EN/FR pair of textareas: rough count of wrapped lines (≈44 characters per line) of the longer text. */
+  /** Textarea height from its text: rough count of wrapped lines (≈44 characters per line) of the longest text. */
   const pairRows = (texts: string[], min: number, max: number) => {
     const lines = (s: string) => s.split("\n").reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 44)), 0);
     return Math.min(max, Math.max(min, ...texts.map((x) => lines(x) + 1)));
   };
   /** "Reset" with a confirm step. The confirm button submits a separate reset form (forms can't be nested), placed after the card. */
   const resetConfirm = (formId: string, label: string, text: string) => (
-    <details className="adm-confirm adm-set-reset"><summary className="btn btn-ghost btn-sm">{label}…</summary>
-      <div className="adm-confirm-box"><p className="small" style={{ margin: 0 }}>{text}</p><button type="submit" form={formId} className="btn btn-danger btn-sm">{t("resetYes")}</button></div>
+    <details className="confirm adm-confirm adm-set-reset"><summary className="btn btn-ghost btn-sm">{label}…</summary>
+      <div className="confirm-box"><p>{text}</p><div className="confirm-actions"><button type="submit" form={formId} className="btn btn-danger btn-sm">{t("resetYes")}</button></div></div>
     </details>
   );
+  const yn = (b: boolean) => tm(b ? "ro_yes" : "ro_no");
+  const dirLabel = (on: boolean) => (on ? t("dirOn") : t("dirOff"));
   const legacyOpen = opsV.unpaidOrderTtlHours !== undefined || opsV.rejectedStudentPolicy !== undefined || opsV.deletedMembershipRefund !== undefined;
 
   return (
     <div className="app adm"><AdminNav locale={locale} current="/admin/settings" />
-      <main id="main" className="app-main adm-settings">
-        <div className="app-head"><div><span className="eyebrow">{ta("eyebrowOps")}</span><h1>{t("title")}</h1><p className="muted adm-set-lead">{t("lead")}</p></div></div>
-        <nav className="adm-set-jump small" aria-label={t("jump")}><a href="#tiers">{t("tiersTitle")}</a><a href="#site">{t("siteTitle")}</a><a href="#ops">{t("opsTitle")}</a></nav>
+      <main id="main" tabIndex={-1} className="app-main adm-settings">
+        <AdminHead title={t("title")} lead={t("lead")} />
+        {!canEdit && <AdminReadOnly text={ta("readOnly")} />}
+        <nav className="chips adm-set-jump" aria-label={t("jump")}><a className="chip" href="#tiers">{t("tiersTitle")}</a><a className="chip" href="#site">{t("siteTitle")}</a><a className="chip" href="#ops">{t("opsTitle")}</a></nav>
 
         {/* ── Membership tiers ───────────────────────────────────────────── */}
-        <section className="adm-section" id="tiers" aria-labelledby="tiers-h">
-          <div className="adm-card-head adm-set-head">
-            <div><h2 id="tiers-h" style={h2}>{t("tiersTitle")}</h2><p className="small muted adm-set-sub">{t("tiersLead")}</p></div>
-            {tiers.some((x) => x.overridden) && (
-              <details className="adm-confirm"><summary className="btn btn-danger-outline btn-sm">{t("resetAll")}…</summary>
-                <form action={resetAllTiers}>{hidden()}<p className="small" style={{ margin: 0 }}>{t("resetAllConfirm")}</p><button className="btn btn-danger btn-sm">{t("confirmYes")}</button></form>
+        <section className="adm-set-group" id="tiers" aria-labelledby="tiers-h">
+          <header>
+            <div><h2 id="tiers-h">{t("tiersTitle")}</h2><p>{t("tiersLead")}</p></div>
+            {canEdit && tiers.some((x) => x.overridden) && (
+              <details className="confirm adm-confirm"><summary className="btn btn-danger-outline btn-sm">{t("resetAll")}…</summary>
+                <form action={resetAllTiers} className="confirm-box">{hidden()}<p>{t("resetAllConfirm")}</p><div className="confirm-actions"><button className="btn btn-danger btn-sm">{t("confirmYes")}</button></div></form>
               </details>
             )}
-          </div>
+          </header>
           {notice("tiers")}
-          <div className="adm-set-list">
+          {!canEdit ? <div className="adm-set-list is-ro">
+            {tiers.map((tier) => {
+              const key = tierKey(tier.id); const p = `t-${tier.id}`;
+              return (
+                <section key={tier.id} className="panel adm-set-card is-ro" id={key.replace(/\./g, "-")} aria-labelledby={`${p}-h`}>
+                  <div className="panel-head">
+                    <h3 id={`${p}-h`}>{tier.name[locale]} <span className="adm-set-id">{t("tierId", { id: tier.id })}</span></h3>
+                    <div className="tags">
+                      {tier.overridden ? <span className="status status-dev">{t("customized")}</span> : <span className="status status-neutral">{t("notCustomized")}</span>}
+                      {!tier.visible && <span className="status status-danger">{t("hiddenBadge")}</span>}
+                      {tier.featured && <span className="status status-members">{t("featuredBadge")}</span>}
+                    </div>
+                  </div>
+                  {meta(key)}
+                  <AdminDl notSet={t("notSet")} items={[
+                    { key: "name", label: t("nameEn"), value: tier.name.en },
+                    { key: "order", label: t("order"), value: tier.order },
+                    { key: "desc", label: t("descEn"), value: tier.description.en, wide: true },
+                    { key: "benefits", label: t("benefitsEn"), value: tier.benefits.length ? <ul>{tier.benefits.map((b, i) => <li key={i}>{b.en}</li>)}</ul> : null, wide: true },
+                    { key: "visible", label: t("visible"), value: yn(tier.visible) },
+                    { key: "featured", label: t("featured"), value: yn(!!tier.featured) },
+                    { key: "verify", label: t("requiresVerification"), value: yn(!!tier.requiresVerification), wide: true },
+                  ]} />
+                </section>
+              );
+            })}
+          </div> : <div className="adm-set-list">
             {tiers.map((tier) => {
               const key = tierKey(tier.id); const anchor = key.replace(/\./g, "-"); const p = `t-${tier.id}`;
-              const benEn = tier.benefits.map((b) => b.en).join("\n"), benFr = tier.benefits.map((b) => b.fr).join("\n");
-              const descRows = pairRows([tier.description.en, tier.description.fr], 3, 8), benRows = pairRows([benEn, benFr], 5, 16);
+              const benEn = tier.benefits.map((b) => b.en).join("\n");
+              const descRows = pairRows([tier.description.en], 3, 8), benRows = pairRows([benEn], 5, 16);
               return (
-                [<form key={tier.id} action={saveTier} className="card adm-form adm-set-card" id={anchor} aria-labelledby={`${p}-h`}>
+                [<form key={tier.id} action={saveTier} className="panel adm-set-card" id={anchor} aria-labelledby={`${p}-h`}>
                   {hidden({ id: tier.id, v: ver(key) })}
-                  <div className="adm-card-head">
-                    <h3 id={`${p}-h`} style={h3}>{tier.name[locale]} <span className="adm-set-id">{t("tierId", { id: tier.id })}</span></h3>
-                    <div className="adm-actions">
-                      {tier.overridden ? <span className="badge badge-amber">{t("customized")}</span> : <span className="badge">{t("notCustomized")}</span>}
-                      {!tier.visible && <span className="badge badge-red">{t("hiddenBadge")}</span>}
-                      {tier.featured && <span className="badge badge-navy">{t("featuredBadge")}</span>}
+                  {/* French name/description/benefits are not offered (client, round 6b) but kept: the stored values are re-submitted
+                      unchanged, so saving never clears them and the action's EN+FR checks still pass (benefit lines: see FrBenefits). */}
+                  <input type="hidden" name="nameFr" value={tier.name.fr} /><input type="hidden" name="descFr" value={tier.description.fr} />
+                  <FrBenefits en={tier.benefits.map((b) => b.en)} fr={tier.benefits.map((b) => b.fr)} />
+                  <div className="panel-head">
+                    <h3 id={`${p}-h`}>{tier.name[locale]} <span className="adm-set-id">{t("tierId", { id: tier.id })}</span></h3>
+                    <div className="tags">
+                      {tier.overridden ? <span className="status status-dev">{t("customized")}</span> : <span className="status status-neutral">{t("notCustomized")}</span>}
+                      {!tier.visible && <span className="status status-danger">{t("hiddenBadge")}</span>}
+                      {tier.featured && <span className="status status-members">{t("featuredBadge")}</span>}
                     </div>
                   </div>
                   {meta(key)}
                   {notice(anchor)}
-                  <div className="grid g2" style={{ gap: "0 16px" }}>
+                                    <div className="adm-form-grid">
                     <div className="field"><label htmlFor={`${p}-ne`}>{t("nameEn")}</label><input id={`${p}-ne`} name="nameEn" type="text" required maxLength={60} defaultValue={tier.name.en} /></div>
-                    <div className="field"><label htmlFor={`${p}-nf`}>{t("nameFr")}</label><input id={`${p}-nf`} name="nameFr" type="text" required maxLength={60} defaultValue={tier.name.fr} lang="fr" /></div>
-                    <div className="field"><label htmlFor={`${p}-de`}>{t("descEn")}</label><textarea id={`${p}-de`} name="descEn" required rows={descRows} maxLength={300} defaultValue={tier.description.en} /></div>
-                    <div className="field"><label htmlFor={`${p}-df`}>{t("descFr")}</label><textarea id={`${p}-df`} name="descFr" required rows={descRows} maxLength={300} defaultValue={tier.description.fr} lang="fr" /></div>
-                    <div className="field"><label htmlFor={`${p}-be`}>{t("benefitsEn")}</label><textarea id={`${p}-be`} name="benefitsEn" required rows={benRows} defaultValue={benEn} aria-describedby={`${p}-bh`} /></div>
-                    <div className="field"><label htmlFor={`${p}-bf`}>{t("benefitsFr")}</label><textarea id={`${p}-bf`} name="benefitsFr" required rows={benRows} defaultValue={benFr} aria-describedby={`${p}-bh`} lang="fr" /></div>
+                    <div className="field span-all"><label htmlFor={`${p}-de`}>{t("descEn")}</label><textarea id={`${p}-de`} name="descEn" required rows={descRows} maxLength={300} defaultValue={tier.description.en} /></div>
+                    <div className="field span-all"><label htmlFor={`${p}-be`}>{t("benefitsEn")}</label><textarea id={`${p}-be`} name="benefitsEn" required rows={benRows} defaultValue={benEn} aria-describedby={`${p}-bh`} /></div>
                   </div>
-                  <p className="hint adm-set-hint" id={`${p}-bh`}>{t("benefitsHint")}</p>
-                  <div className="grid g2 adm-set-flags" style={{ gap: "0 16px" }}>
+                  <p className="hint adm-set-hint span-all" id={`${p}-bh`}>{t("benefitsHint")}</p>
+                  <div className="adm-form-grid adm-set-flags">
                     <div className="field"><label htmlFor={`${p}-o`}>{t("order")}</label><input id={`${p}-o`} name="order" type="number" min={1} max={99} step={1} required defaultValue={tier.order} aria-describedby={`${p}-oh`} /><span className="hint" id={`${p}-oh`}>{t("orderHint")}</span></div>
                     <div className="adm-set-checks">
                       <label className="check"><input type="checkbox" name="visible" defaultChecked={tier.visible} aria-describedby={`${p}-vh`} /> <span>{t("visible")}</span></label>
@@ -111,46 +145,66 @@ export default async function AdminSettings({ params, searchParams }: { params: 
                       <label className="check"><input type="checkbox" name="requiresVerification" defaultChecked={!!tier.requiresVerification} /> <span>{t("requiresVerification")}</span></label>
                     </div>
                   </div>
-                  <div className="adm-form-foot">
-                    {tier.overridden ? resetConfirm(`${anchor}-reset`, t("resetTier"), t("resetTierConfirm", { name: tier.name[locale] })) : <span />}
+                                    {canEdit && <div className="save-row">
+                    {tier.overridden && resetConfirm(`${anchor}-reset`, t("resetTier"), t("resetTierConfirm", { name: tier.name[locale] }))}
                     <button className="btn btn-accent">{t("saveTier")}</button>
-                  </div>
+                  </div>}
                 </form>,
-                tier.overridden && <form key={`${tier.id}-reset`} id={`${anchor}-reset`} action={resetTier} hidden>{hidden({ id: tier.id })}</form>,
+                canEdit && tier.overridden && <form key={`${tier.id}-reset`} id={`${anchor}-reset`} action={resetTier} hidden>{hidden({ id: tier.id })}</form>,
               ]);
             })}
-          </div>
+          </div>}
         </section>
 
         {/* ── Public contact details ─────────────────────────────────────── */}
-        <section className="adm-section" aria-labelledby="site-h">
-          <form action={saveSite} className="card adm-form adm-set-card" id="site">
+        <section className="adm-set-group" aria-labelledby="site-h">
+          {!canEdit ? <div className="panel adm-set-card is-ro" id="site">
+            <div className="panel-head"><div><h2 id="site-h">{t("siteTitle")}</h2></div>{byKey.has(SITE_KEY) ? <span className="status status-dev">{t("customized")}</span> : <span className="status status-neutral">{t("notSet")}</span>}</div>
+            {meta(SITE_KEY)}
+            <AdminDl notSet={t("notSet")} items={[
+              { key: "email", label: t("contactEmail"), value: siteV.contactEmail },
+              { key: "address", label: t("postalAddress"), value: siteV.postalAddress ? <span className="adm-ro-pre">{siteV.postalAddress}</span> : null },
+            ]} />
+          </div> : <form action={saveSite} className="panel adm-set-card" id="site">
             {hidden({ v: ver(SITE_KEY) })}
-            <div className="adm-card-head"><h2 id="site-h" style={h2}>{t("siteTitle")}</h2>{byKey.has(SITE_KEY) ? <span className="badge badge-amber">{t("customized")}</span> : <span className="badge">{t("notSet")}</span>}</div>
-            <p className="small muted adm-set-sub">{t("siteLead")}</p>
+            <div className="panel-head"><div><h2 id="site-h">{t("siteTitle")}</h2><p className="small muted adm-set-sub">{t("siteLead")}</p></div>{byKey.has(SITE_KEY) ? <span className="status status-dev">{t("customized")}</span> : <span className="status status-neutral">{t("notSet")}</span>}</div>
             {meta(SITE_KEY)}
             {notice("site")}
-            <div className="grid g2" style={{ gap: "0 16px" }}>
-              <div className="field"><label htmlFor="ce">{t("contactEmail")} <span className="hint">({ta("optional")})</span></label><input id="ce" name="contactEmail" type="email" maxLength={254} defaultValue={siteV.contactEmail} autoComplete="off" /></div>
-              <div className="field"><label htmlFor="pa">{t("postalAddress")} <span className="hint">({ta("optional")})</span></label><textarea id="pa" name="postalAddress" rows={4} maxLength={300} defaultValue={siteV.postalAddress} aria-describedby="pa-h" /><span className="hint" id="pa-h">{t("addressHint")}</span></div>
+                        <div className="adm-form-grid">
+              <div className="field"><label htmlFor="ce">{t("contactEmail")} <span className="optional">({ta("optional")})</span></label><input id="ce" name="contactEmail" type="email" maxLength={254} defaultValue={siteV.contactEmail} autoComplete="off" /></div>
+              <div className="field"><label htmlFor="pa">{t("postalAddress")} <span className="optional">({ta("optional")})</span></label><textarea id="pa" name="postalAddress" rows={4} maxLength={300} defaultValue={siteV.postalAddress} aria-describedby="pa-h" /><span className="hint" id="pa-h">{t("addressHint")}</span></div>
             </div>
-            <div className="adm-form-foot">
-              {byKey.has(SITE_KEY) ? resetConfirm("site-reset", t("resetSite"), t("resetSiteConfirm")) : <span />}
+                        {canEdit && <div className="save-row">
+              {byKey.has(SITE_KEY) && resetConfirm("site-reset", t("resetSite"), t("resetSiteConfirm"))}
               <button className="btn btn-accent">{t("saveSite")}</button>
-            </div>
-          </form>
-          {byKey.has(SITE_KEY) && <form id="site-reset" action={resetSite} hidden>{hidden()}</form>}
+            </div>}
+          </form>}
+          {canEdit && byKey.has(SITE_KEY) && <form id="site-reset" action={resetSite} hidden>{hidden()}</form>}
         </section>
 
         {/* ── Operational policies ───────────────────────────────────────── */}
-        <section className="adm-section" aria-labelledby="ops-h">
-          <form action={saveOps} className="card adm-form adm-set-card" id="ops">
+        <section className="adm-set-group" aria-labelledby="ops-h">
+          {!canEdit ? <div className="panel adm-set-card is-ro" id="ops">
+            <div className="panel-head"><div><h2 id="ops-h">{t("opsTitle")}</h2></div>{byKey.has(OPS_KEY) ? <span className="status status-dev">{t("customized")}</span> : <span className="status status-neutral">{t("notCustomized")}</span>}</div>
+            {meta(OPS_KEY)}
+            <AdminDl notSet={t("notSet")} items={[
+              { key: "dir", label: t("dirDefault"), value: opsV.directoryOptInDefault === undefined ? defaultLabel(dirLabel(def.directoryOptInDefault)) : dirLabel(opsV.directoryOptInDefault) },
+              { key: "tickets", label: t("paidTickets"), value: opsV.deletedUserPaidTickets ? t(`tick_${opsV.deletedUserPaidTickets}`) : defaultLabel(t(`tick_${def.deletedUserPaidTickets}`)) },
+            ]} />
+            <details className="adm-set-legacy" open={legacyOpen}>
+              <summary>{t("legacyTitle")}</summary>
+              <AdminDl notSet={t("notSet")} items={[
+                { key: "ttl", label: t("ttl"), value: opsV.unpaidOrderTtlHours ?? defaultLabel(String(def.unpaidOrderTtlHours)) },
+                { key: "rejected", label: t("rejected"), value: opsV.rejectedStudentPolicy ? t(`rej_${opsV.rejectedStudentPolicy}`) : defaultLabel(t(`rej_${def.rejectedStudentPolicy}`)) },
+                { key: "refund", label: t("membershipRefund"), value: opsV.deletedMembershipRefund ? t(`refund_${opsV.deletedMembershipRefund}`) : defaultLabel(t(`refund_${def.deletedMembershipRefund}`)) },
+              ]} />
+            </details>
+          </div> : <form action={saveOps} className="panel adm-set-card" id="ops">
             {hidden({ v: ver(OPS_KEY) })}
-            <div className="adm-card-head"><h2 id="ops-h" style={h2}>{t("opsTitle")}</h2>{byKey.has(OPS_KEY) ? <span className="badge badge-amber">{t("customized")}</span> : <span className="badge">{t("notCustomized")}</span>}</div>
-            <p className="small muted adm-set-sub">{t("opsLead")}</p>
+            <div className="panel-head"><div><h2 id="ops-h">{t("opsTitle")}</h2><p className="small muted adm-set-sub">{t("opsLead")}</p></div>{byKey.has(OPS_KEY) ? <span className="status status-dev">{t("customized")}</span> : <span className="status status-neutral">{t("notCustomized")}</span>}</div>
             {meta(OPS_KEY)}
             {notice("ops")}
-            <div className="grid g2" style={{ gap: "0 16px" }}>
+                        <div className="adm-form-grid">
               <div className="field"><label htmlFor="od">{t("dirDefault")}</label>
                 <select id="od" name="directoryOptInDefault" defaultValue={opsV.directoryOptInDefault === undefined ? "" : opsV.directoryOptInDefault ? "on" : "off"}>
                   <option value="">{defaultLabel(def.directoryOptInDefault ? t("dirOn") : t("dirOff"))}</option><option value="on">{t("dirOn")}</option><option value="off">{t("dirOff")}</option>
@@ -164,8 +218,8 @@ export default async function AdminSettings({ params, searchParams }: { params: 
                 affect old paid orders. Kept (collapsed) so existing records are still handled; they stay saved with the form. */}
             <details className="adm-set-legacy" open={legacyOpen}>
               <summary>{t("legacyTitle")}</summary>
-              <p className="small muted" style={{ margin: "8px 0 12px" }}>{t("legacyLead")}</p>
-              <div className="grid g2" style={{ gap: "0 16px" }}>
+              <p className="small muted adm-set-sub">{t("legacyLead")}</p>
+              <div className="adm-form-grid">
                 <div className="field"><label htmlFor="ot">{t("ttl")}</label><input id="ot" name="unpaidOrderTtlHours" type="number" min={1} max={8760} step={1} defaultValue={opsV.unpaidOrderTtlHours ?? ""} placeholder={String(def.unpaidOrderTtlHours)} aria-describedby="ot-h" /><span className="hint" id="ot-h">{t("ttlHint", { value: def.unpaidOrderTtlHours })}</span></div>
                 <div className="field"><label htmlFor="or">{t("rejected")}</label>
                   <select id="or" name="rejectedStudentPolicy" defaultValue={opsV.rejectedStudentPolicy ?? ""}>
@@ -177,12 +231,12 @@ export default async function AdminSettings({ params, searchParams }: { params: 
                   </select></div>
               </div>
             </details>
-            <div className="adm-form-foot">
-              {byKey.has(OPS_KEY) ? resetConfirm("ops-reset", t("resetOps"), t("resetOpsConfirm")) : <span />}
+                        {canEdit && <div className="save-row">
+              {byKey.has(OPS_KEY) && resetConfirm("ops-reset", t("resetOps"), t("resetOpsConfirm"))}
               <button className="btn btn-accent">{t("saveOps")}</button>
-            </div>
-          </form>
-          {byKey.has(OPS_KEY) && <form id="ops-reset" action={resetOps} hidden>{hidden()}</form>}
+            </div>}
+          </form>}
+          {canEdit && byKey.has(OPS_KEY) && <form id="ops-reset" action={resetOps} hidden>{hidden()}</form>}
         </section>
       </main>
     </div>

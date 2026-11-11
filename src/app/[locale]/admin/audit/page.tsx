@@ -1,7 +1,9 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/session";
+import { requireAdminPermission } from "@/lib/rbac";
 import { AdminNav } from "@/components/AppShell";
+import { Icon } from "@/components/ui/Icon";
+import { AdminHead, AdminEmpty } from "../_components/AdminUI";
 import { eventTimeZone, dateLocale } from "@/lib/time";
 import { AUDIT_PAGE_SIZE, auditLabel, auditWhere, parseAuditFilters, resolveRefs, type AuditFilters, type Ref } from "@/lib/audit";
 export const dynamic = "force-dynamic";
@@ -9,7 +11,7 @@ export const dynamic = "force-dynamic";
 /** Audit log viewer: filters (action, actor, target, ET date range), pagination, readable labels, CSV export with the same filters. */
 export default async function AdminAudit({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { locale } = await params; setRequestLocale(locale);
-  await requireAdmin(locale);
+  await requireAdminPermission(locale, "system", "view"); // the CSV export (same filters) is system.view too
   const t = await getTranslations("audit"); const ta = await getTranslations("admin");
   const f = parseAuditFilters(await searchParams);
   const where = await auditWhere(f);
@@ -51,12 +53,9 @@ export default async function AdminAudit({ params, searchParams }: { params: Pro
 
   return (
     <div className="app adm"><AdminNav locale={locale} current="/admin/audit" />
-      <main id="main" className="app-main adm-audit">
-        <div className="app-head">
-          <div><span className="eyebrow">{t("eyebrow")}</span><h1>{t("title")}</h1><p className="muted adm-lead">{t("lead")}</p></div>
-          <a className="btn btn-secondary btn-sm" href={`/api/admin/audit.csv${qs({ p: 1 })}`}>{t("exportCsv")}</a>
-        </div>
-        <form className="card adm-filterbar" method="get" action={`/${locale}/admin/audit`} role="search" aria-label={t("filters")}>
+      <main id="main" tabIndex={-1} className="app-main adm-audit">
+        <AdminHead title={t("title")} lead={t("lead")} actions={<a className="btn btn-secondary btn-sm" href={`/api/admin/audit.csv${qs({ p: 1 })}`}><Icon name="download" size={16} />{t("exportCsv")}</a>} />
+        <form className="panel adm-filterbar" method="get" action={`/${locale}/admin/audit`} role="search" aria-label={t("filters")}>
           <div className="field"><label htmlFor="au-a">{t("action")}</label>
             <select id="au-a" name="a" defaultValue={f.a}>
               <option value="">{t("allActions")}</option>
@@ -76,22 +75,22 @@ export default async function AdminAudit({ params, searchParams }: { params: Pro
           <div className="adm-filterbar-actions"><button className="btn btn-primary btn-sm">{t("apply")}</button>{filtered && <a className="btn btn-secondary btn-sm" href={`/${locale}/admin/audit`}>{t("reset")}</a>}</div>
         </form>
         <p className="small muted adm-count" role="status">{total === 1 ? t("showingOne") : total ? t("showing", { first, last, total }) : null}</p>
-        <div className="table-wrap" tabIndex={0} role="region" aria-label={t("tableLabel")}>
+        {rows.length === 0 ? <AdminEmpty title={filtered ? t("noResults") : t("empty")} action={filtered ? <a className="btn btn-secondary btn-sm" href={`/${locale}/admin/audit`}>{t("reset")}</a> : undefined} /> : (
+        <div className="table-wrap" tabIndex={0} role="region" aria-label={ta("scrollRegion", { name: t("tableLabel") })}>
           <table className="adm-table adm-stack adm-stack-2 adm-table-audit"><caption className="sr-only">{t("title")}</caption>
             <thead><tr><th scope="col">{t("when")}</th><th scope="col">{t("action")}</th><th scope="col">{t("actor")}</th><th scope="col">{t("target")}</th></tr></thead>
             <tbody>
-              {rows.length === 0 && <tr><td colSpan={4} className="muted" style={{ textAlign: "center", padding: 32 }}>{filtered ? t("noResults") : t("empty")}</td></tr>}
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="nowrap" data-label={t("when")}><time dateTime={r.createdAt.toISOString()}>{stamp(r.createdAt)}</time></td>
-                  <td data-label={t("action")}><div className="adm-person"><span>{auditLabel(ta, r.action)}</span><code className="adm-code small muted">{r.action}</code></div></td>
+                  <td className="nowrap tnum" data-label={t("when")}><time dateTime={r.createdAt.toISOString()}>{stamp(r.createdAt)}</time></td>
+                  <td data-label={t("action")}><div className="adm-person"><span>{auditLabel(ta, r.action)}</span><code className="adm-code small">{r.action}</code></div></td>
                   <td data-label={t("actor")}>{who(r.actor, ref(r.actor))}</td>
                   <td data-label={t("target")}>{r.target ? <>{who(r.target, ref(r.target))}{ref(r.target) && r.target.includes(" ") ? <span className="small muted"> {r.target.slice(r.target.indexOf(" ") + 1)}</span> : null}</> : <span className="muted">—</span>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </div>)}
         {pages > 1 && (
           <nav aria-label={t("pagination")} className="adm-pager">
             {page > 1 ? <a className="btn btn-secondary btn-sm" href={`/${locale}/admin/audit${qs({ p: page - 1 })}`} rel="prev">← {t("newer")}</a> : <span />}

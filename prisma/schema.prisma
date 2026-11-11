@@ -31,8 +31,12 @@ model User {
   memberships    Membership[]
   registrations  Registration[]
   cpe            CpeEntry[]
+  active         Boolean        @default(true) // false = deactivated in Admin → Users: cannot sign in, sessions end (D5)
+  adminRoleId    String? // Admin Portal role (only meaningful while role = "admin"); FK RESTRICT: a role in use can't be deleted
+  adminRole      AdminRole?     @relation(fields: [adminRoleId], references: [id], onDelete: Restrict)
 
   @@index([role])
+  @@index([adminRoleId])
 }
 
 model Membership {
@@ -190,4 +194,16 @@ model Setting {
   value     Json
   updatedBy String?
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+/// Admin Portal role: module × action permissions (src/lib/permissions.ts). "Super Admin" (id sys_super_admin) is the system role.
+model AdminRole {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  permissions Json // { "<module>": ["view","create","edit","delete"] }, normalised by normalizePermissions()
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+  users       User[]
 }

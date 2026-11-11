@@ -1,12 +1,13 @@
-import { currentAdmin } from "@/auth";
+import { apiAdminPermission } from "@/lib/rbac";
 import { db } from "@/lib/db";
 import { csvRow } from "@/lib/csv";
 import { etCsvStamp } from "@/lib/audit";
-/** Event registrations across all events as CSV (per-event export: /api/admin/events/[id]/registrations.csv). Admins only (role read from the DB).
+/** Event registrations across all events as CSV (per-event export: /api/admin/events/[id]/registrations.csv). Needs events.view (permissions read from the DB).
  * Times: ISO (UTC) columns plus "…ET" columns in US Eastern time, as shown in the admin screens. */
 export const dynamic = "force-dynamic";
 export async function GET() {
-  const admin = await currentAdmin(); if (!admin) return new Response("forbidden", { status: 403 });
+  const ctx = await apiAdminPermission("events", "view"); if (ctx instanceof Response) return ctx; // 403 unless events.view (§3.2)
+  const admin = ctx.user;
   const rows = await db.registration.findMany({
     include: { event: { select: { title: true, slug: true, startsAt: true } }, user: { select: { name: true, email: true, role: true } } },
     orderBy: [{ event: { startsAt: "desc" } }, { createdAt: "asc" }],

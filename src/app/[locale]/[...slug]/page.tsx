@@ -5,13 +5,14 @@ import { auth } from "@/auth";
 import { loadContent } from "@/lib/content";
 import { Html } from "@/components/SiteChrome";
 import { CONTENT_TITLES } from "@/lib/routeTitles";
+import { LegalTocSpy } from "./LegalTocSpy";
 
 // Public content pages ported 1:1 from the design prototype (content managed as HTML until a CMS is chosen).
 const PUBLIC = ["about", "principles", "governance", "community", "chapters", "resources", "news", "advocacy", "careers", "vendors", "legal"];
 // Internal design-system reference pages: staff (admin) only.
 const DESIGN: Record<string, string> = { "design/brand": "brand", "design/components": "components" };
 // Chrome labels that also appear in content breadcrumbs/eyebrows; translated on untranslated (fallback) pages.
-const CHROME_LABELS = ["about", "membership", "events", "resources", "community", "advocacy", "chapters", "careers", "contact", "aboutAdaig"] as const;
+const CHROME_LABELS = ["about", "advisoryBoard", "membership", "events", "resources", "community", "advocacy", "chapters", "careers", "contact", "aboutAdaig"] as const;
 
 export const dynamic = "force-dynamic";
 
@@ -34,14 +35,17 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
     if (s?.user?.role !== "admin") redirect(`/${locale}`);
   }
   const c = await loadContent(file, locale); if (!c) notFound();
-  if (!c.fallback) return <main id="main"><Html html={c.html} /></main>;
+  // /legal: mark the section being read in the "On this page" index (client-side, progressive).
+  const spy = key === "legal" ? <LegalTocSpy /> : null;
+  if (!c.fallback) return <main id="main" tabIndex={-1}><Html html={c.html} />{spy}</main>;
   // Untranslated page (A1-3/V4-3/Q1-12): the English body is marked lang="en" so screen readers switch pronunciation; the notice
   // (and the breadcrumb/eyebrow labels translated inside it) stay in the page language.
   const { notice, html } = await withFallbackChrome(c.html, locale);
   return (
-    <main id="main">
+    <main id="main" tabIndex={-1}>
       <Html html={notice} />
       <div lang="en"><Html html={html} /></div>
+      {spy}
     </main>
   );
 }

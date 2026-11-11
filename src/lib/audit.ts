@@ -76,11 +76,12 @@ export function auditLabel(t: { has: (k: string) => boolean; (k: string): string
   return t.has(k) ? t(k) : action.replace(/^[a-z]+\./, "").replace(/[._]/g, " ").replace(/^./, (c) => c.toUpperCase());
 }
 
-export type RefKind = "user" | "deletedUser" | "membership" | "registration" | "event" | "message";
+export type RefKind = "user" | "deletedUser" | "membership" | "registration" | "event" | "message" | "role";
 /** label = person/event name; kind is translated by the page (audit.kind_*); detail = untranslated extra (email, tier id, event title). */
 export type Ref = { label: string; kind: RefKind; detail?: string; href?: string };
 /**
- * Readable names for actor/target values (user, membership, registration, event, contact message ids, event slugs, emails).
+ * Readable names for actor/target values (user, membership, registration, event, contact message, admin role ids, event slugs,
+ * emails). People link to Admin → Users for admin accounts and to Admin → Members for everyone else (deleted: no link).
  * Values that are not ids (system, seed, cli, public, IP addresses, free text) map to nothing and are shown as-is.
  */
 export async function resolveRefs(values: string[], locale: string): Promise<Map<string, Ref>> {
@@ -88,15 +89,17 @@ export async function resolveRefs(values: string[], locale: string): Promise<Map
   const out = new Map<string, Ref>();
   if (!keys.length) return out;
   const L = (p: string) => `/${locale}${p}`;
-  const [users, byEmail, ms, rs, evs, msgs] = await Promise.all([
+  const [users, byEmail, ms, rs, evs, msgs, roles] = await Promise.all([
     db.user.findMany({ where: { id: { in: keys } }, select: { id: true, name: true, email: true, role: true } }),
     db.user.findMany({ where: { email: { in: keys.filter((k) => k.includes("@")) } }, select: { id: true, name: true, email: true, role: true } }),
     db.membership.findMany({ where: { id: { in: keys } }, select: { id: true, tierId: true, user: { select: { id: true, name: true, role: true } } } }),
     db.registration.findMany({ where: { id: { in: keys } }, select: { id: true, user: { select: { id: true, name: true, role: true } }, event: { select: { id: true, title: true } } } }),
     db.event.findMany({ where: { OR: [{ id: { in: keys } }, { slug: { in: keys } }] }, select: { id: true, slug: true, title: true } }),
     db.contactMessage.findMany({ where: { id: { in: keys } }, select: { id: true, name: true } }),
+    db.adminRole.findMany({ where: { id: { in: keys } }, select: { id: true, name: true } }),
   ]);
-  const person = (u: { id: string; name: string; role: string }) => (u.role === "deleted" ? undefined : L(`/admin/members/${u.id}`));
+  const person = (u: { id: string; name: string; role: string }) =>
+    u.role === "deleted" ? undefined : L(`/admin/${u.role === "admin" ? "users" : "members"}/${u.id}`);
   const name = (u: { name: string; role: string }) => (u.role === "deleted" ? "—" : u.name);
   for (const u of users) out.set(u.id, u.role === "deleted" ? { label: "—", kind: "deletedUser" } : { label: u.name, kind: "user", detail: u.email, href: person(u) });
   for (const u of byEmail) if (u.role !== "deleted") out.set(u.email, { label: u.name, kind: "user", detail: u.email, href: person(u) });
@@ -104,5 +107,6 @@ export async function resolveRefs(values: string[], locale: string): Promise<Map
   for (const r of rs) out.set(r.id, { label: name(r.user), kind: "registration", detail: r.event.title, href: L(`/admin/events/${r.event.id}`) });
   for (const e of evs) { const ref: Ref = { label: e.title, kind: "event", href: L(`/admin/events/${e.id}`) }; out.set(e.id, ref); out.set(e.slug, ref); }
   for (const c of msgs) out.set(c.id, { label: c.name, kind: "message", href: L("/admin/messages?f=all") });
+  for (const r of roles) out.set(r.id, { label: r.name, kind: "role", href: L(`/admin/roles/${r.id}`) });
   return out;
 }

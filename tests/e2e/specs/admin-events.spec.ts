@@ -11,12 +11,18 @@ const ta = (k: string, v?: Record<string, string | number>) => t(`admin.${k}`, v
 const te = (k: string, v?: Record<string, string | number>) => t(`adminEvents.${k}`, v);
 const manage = (p: Page, id: string) => p.goto(`/en/admin/events/${id}`);
 const notice = (p: Page) => p.locator("main .alert").first();
+/** The value of the KPI tile with this label (event page). */
+const kpi = (p: Page, label: string) => p.locator(".kpi").filter({ has: p.getByText(label, { exact: true }) }).locator(".v");
+/** A registrations filter tab (its accessible name is the label followed by the count). */
+const regFilter = (p: Page, label: string) => p.getByRole("navigation", { name: te("filterLabel") }).getByRole("link", { name: label });
 
 async function fillNewEvent(p: Page, v: { title: string; startsAt: string; publish?: boolean }) {
   await p.goto("/en/admin/events");
   const f = p.locator("#new-event");
+  await f.locator("summary").click(); // "+ New event" opens the form (a disclosure since round 5)
   await f.locator("#ti").fill(v.title);
-  await f.locator("#tf").fill(`${v.title} (FR)`);
+  // No French fields since round 6b (French is not offered): the form has no #tf/#suf/#aif.
+  await expect(f.locator("[name=titleFr], [name=summaryFr], [name=accessInfoFr]")).toHaveCount(0);
   await f.locator("#su").fill("Created by the end-to-end suite.");
   await f.locator("#ty").selectOption("Webinar");
   await f.locator("#fo").selectOption("Online");
@@ -43,7 +49,7 @@ test("create: draft event, start time entered in ET is stored as the right insta
   // Round trip: the edit form shows the same ET wall-clock time.
   await manage(p, w.id);
   await expect(p.locator("#e-st")).toHaveValue("2027-01-15T14:30");
-  await expect(p.locator(".adm-ev-tags")).toContainText(ta("draftBadge"));
+  await expect(p.locator(".app-head").getByText(ta("draftBadge"), { exact: true })).toBeVisible();
   // Drafts are not public.
   expect((await page.goto(`/en/events/${w.slug}`))?.status()).toBe(404);
 
@@ -59,13 +65,16 @@ test("create: draft event, start time entered in ET is stored as the right insta
   await expect(page.locator(".ev-dl")).toContainText("Thursday, July 15, 2027");
 });
 
-test("edit: every field, slug and publish state are saved; French texts show on /fr", async ({ adminPage: p, page }) => {
-  const e = await createEvent({ published: false, cpe: 1 });
+test("edit: every field, slug and publish state are saved; stored French texts are kept and show on /fr", async ({ adminPage: p, page }) => {
+  // French is not offered in the form since round 6b, but existing French texts must survive an edit unchanged.
+  const titleFr = `${uniqueName("Titre")} FR`;
+  const e = await createEvent({ published: false, cpe: 1, titleFr, summaryFr: "Résumé existant de la suite E2E." });
   const title = uniqueName("Edited event"); const slug = uniqueSlug();
   await manage(p, e.id);
+  await expect(p.locator("#e-tf, #e-suf, #e-aif")).toHaveCount(0); // no visible French inputs
+  await expect(p.locator("#edit input[type=hidden][name=titleFr]")).toHaveValue(titleFr);
   await p.locator("#e-ti").fill(title);
-  await p.locator("#e-tf").fill(`${title} FR`);
-  await p.locator("#e-suf").fill("Résumé modifié par la suite E2E.");
+  await p.locator("#e-su").fill("Summary edited by the E2E suite.");
   await p.locator("#e-lo").fill("E2E Hall, New York");
   await p.locator("#e-fo").selectOption("Hybrid");
   await p.locator("#e-st").fill("2027-02-01T09:15");
@@ -76,12 +85,12 @@ test("edit: every field, slug and publish state are saved; French texts show on 
   await expect(p).toHaveURL(/msg=saved/);
   await expect(notice(p)).toHaveText(te("msg_saved"));
   const after = (await eventById(e.id))!;
-  expect(after).toMatchObject({ title, titleFr: `${title} FR`, summaryFr: "Résumé modifié par la suite E2E.", location: "E2E Hall, New York", format: "Hybrid", cpe: 2, slug, published: true });
+  expect(after).toMatchObject({ title, titleFr, summary: "Summary edited by the E2E suite.", summaryFr: "Résumé existant de la suite E2E.", location: "E2E Hall, New York", format: "Hybrid", cpe: 2, slug, published: true });
   expect(after.startsAt.toISOString()).toBe("2027-02-01T14:15:00.000Z");
   for (const a of ["event.updated", "event.slug_changed", "event.published"]) expect(await auditRows({ action: a, target: e.id }), a).toHaveLength(1);
   await page.goto(`/fr/events/${slug}`);
-  await expect(page.locator("h1")).toHaveText(`${title} FR`);
-  await expect(page.locator(".lead")).toHaveText("Résumé modifié par la suite E2E.");
+  await expect(page.locator("h1")).toHaveText(titleFr);
+  await expect(page.locator(".lead")).toHaveText("Résumé existant de la suite E2E.");
   await expect(page.locator(".ev-dl")).toContainText("9:15");
   // Invalid input is refused without saving.
   await manage(p, e.id);
@@ -120,10 +129,10 @@ test("registrations: list, filters, search, attendance credits CPE once, undo re
   const cpe = (userId: string) => q<{ hours: number; title: string; status: string }>(`SELECT * FROM "CpeEntry" WHERE "userId" = $1 AND "eventId" = $2`, [userId, e.id]);
 
   await manage(p, e.id);
-  await expect(p.locator(".adm-kpis .kpi").first().locator(".v")).toHaveText("2");
+  await expect(kpi(p, te("kpiConfirmed"))).toHaveText("2");
   await expect(p.locator(".adm-table-regs tbody tr")).toHaveCount(3);
-  await expect(p.locator(".adm-ev-filters a", { hasText: te("v_pending") }).locator(".adm-n")).toHaveText("1");
-  await p.locator(".adm-ev-filters a", { hasText: te("v_pending") }).click();
+  await expect(regFilter(p, te("v_pending"))).toHaveAccessibleName(`${te("v_pending")} 1`);
+  await regFilter(p, te("v_pending")).click();
   await expect(p.locator(".adm-table-regs tbody tr")).toHaveCount(1);
   await expect(p.locator(".adm-table-regs tbody tr")).toContainText(c.name);
   await manage(p, e.id);
@@ -147,7 +156,7 @@ test("registrations: list, filters, search, attendance credits CPE once, undo re
   expect(await cpe(a.id)).toHaveLength(1);
   expect(await cpe(b.id)).toHaveLength(1);
   expect(await cpe(c.id)).toHaveLength(0);
-  await expect(p.locator(".adm-kpis .kpi").nth(1).locator(".v")).toHaveText("2");
+  await expect(kpi(p, te("kpiAttended"))).toHaveText("2");
 
   // Undo A → the automatic CPE entry is removed, B keeps theirs.
   await manage(p, e.id);
@@ -176,13 +185,13 @@ test("cancel hides the event publicly and blocks deletion; restore brings it bac
   await p.getByRole("button", { name: te("cancelYes") }).click();
   await expect(p).toHaveURL(/msg=cancelled/);
   await expect(notice(p)).toHaveText(te("msg_cancelled"));
-  await expect(p.locator(".adm-ev-tags")).toContainText(te("cancelledBadge"));
+  await expect(p.locator(".app-head").getByText(te("cancelledBadge"), { exact: true })).toBeVisible();
   const c = (await eventById(e.id))!;
   expect(c.cancelledAt).toBeTruthy();
   expect(c.published).toBe(false);
   expect((await page.goto(`/en/events/${e.slug}`))?.status()).toBe(404);
   await page.goto(`/en/events?q=${encodeURIComponent(e.title)}`);
-  await expect(page.locator(".ev-empty")).toBeVisible();
+  await expect(page.getByRole("heading", { name: t("events.empty") })).toBeVisible();
   // The registration is kept, and the member's upcoming list no longer shows the event.
   expect(await one(`SELECT id FROM "Registration" WHERE "eventId" = $1`, [e.id])).toBeTruthy();
   // Cancelled events cannot be published from the list.

@@ -1,4 +1,4 @@
-import { currentAdmin } from "@/auth";
+import { apiAdminPermission } from "@/lib/rbac";
 import { db } from "@/lib/db";
 import { csvRow } from "@/lib/csv";
 import { etCsvStamp } from "@/lib/audit";
@@ -6,10 +6,11 @@ import { idParam } from "@/lib/validation";
 import { cpeTitle } from "@/app/[locale]/admin/events/eventForm";
 import { regView, regViewWhere, regSearchWhere, cleanQuery } from "@/app/[locale]/admin/events/views";
 
-/** Admin-only CSV of one event's registrations (same filters as Admin → Events → event: ?v=<view>&q=<name or email>).
+/** CSV (needs events.view) of one event's registrations (same filters as Admin → Events → event: ?v=<view>&q=<name or email>).
  * Times: ISO (UTC) columns plus "…ET" columns in US Eastern time. */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const admin = await currentAdmin(); if (!admin) return new Response("forbidden", { status: 403 });
+  const ctx = await apiAdminPermission("events", "view"); if (ctx instanceof Response) return ctx; // 403 unless events.view (§3.2)
+  const admin = ctx.user;
   const { id } = await params;
   const e = idParam(id) ? await db.event.findUnique({ where: { id } }) : null;
   if (!e) return new Response("not found", { status: 404 });

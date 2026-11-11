@@ -62,9 +62,9 @@ export async function completeMockTicket(fd: FormData) {
   const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login`);
   const r = await db.registration.findUnique({ where: { id }, include: { event: true } });
   // replay against someone else's / unknown ticket → friendly notice (never a payment, never a 500)
-  if (!r || r.userId !== s.user.id) redirect(`/${locale}/my/dashboard?msg=ticketNotFound`);
+  if (!r || r.userId !== s.user.id) redirect(`/${locale}/my/billing?msg=ticketNotFound`);
   if (r.status === "confirmed") redirect(`/${locale}/events/${r.event.slug}?registered=1`);
-  if (r.status !== "pending_payment") redirect(`/${locale}/my/dashboard?msg=ticketNotFound`);
+  if (r.status !== "pending_payment") redirect(`/${locale}/my/billing?msg=ticketNotFound`);
   if (!(await mockAllowed())) redirect(`/${locale}/events/${r.event.slug}/checkout?r=${id}`); // no mock bypass (BUG-024)
   await db.registration.updateMany({ where: { id, status: "pending_payment" }, data: { paymentRef: `mock_${Date.now()}` } }); // idempotent on double click
   await confirmRegistration(id, s.user.id);

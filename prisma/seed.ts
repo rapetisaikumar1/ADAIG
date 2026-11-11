@@ -1,9 +1,10 @@
-/* Seed: demo users (admin + member + guest), events from the prototype, sample CPE. Tier data lives in src/config/site.ts.
+/* Seed: demo users (admin + member + guest), Admin Portal roles (Super Admin + examples), events from the prototype, sample CPE. Tier data lives in src/config/site.ts.
  * Local databases only by default (see scripts/lib/db-guard.ts): a non-local host needs ALLOW_REMOTE_DB=1 and SEED_PASSWORD. */
 import bcrypt from "bcryptjs";
 import { tiers } from "../src/config/site";
 import { scriptDb, isHostedDb } from "../scripts/lib/script-db";
 import { assertLocalDb } from "../scripts/lib/db-guard";
+import { SUPER_ADMIN_ROLE_ID, SUPER_ADMIN_NAME, FULL_PERMISSIONS, type Permissions } from "../src/lib/permissions";
 const { db, url } = scriptDb();
 const at = (iso: string) => new Date(iso);
 
@@ -18,9 +19,23 @@ async function main() {
   if (hosted && !process.env.SEED_PASSWORD) throw new Error("Seeding a hosted database: set SEED_PASSWORD (12+ characters) for the seeded accounts.");
   if (process.env.SEED_PASSWORD && process.env.SEED_PASSWORD.length < 12) throw new Error("SEED_PASSWORD must be at least 12 characters.");
   await db.registration.deleteMany(); await db.cpeEntry.deleteMany(); await db.membership.deleteMany(); await db.event.deleteMany(); await db.user.deleteMany(); await db.auditLog.deleteMany(); await db.loginThrottle.deleteMany();
+  // Admin Portal roles (SPEC_R7 §8): the Super Admin system role (same deterministic id as the admin_rbac migration) plus the
+  // client's example roles. Users are gone by now, so the FK RESTRICT doesn't block deleting the non-system roles.
+  await db.adminRole.deleteMany({ where: { isSystem: false } });
+  await db.adminRole.upsert({
+    where: { id: SUPER_ADMIN_ROLE_ID },
+    update: { name: SUPER_ADMIN_NAME, isSystem: true, permissions: FULL_PERMISSIONS },
+    create: { id: SUPER_ADMIN_ROLE_ID, name: SUPER_ADMIN_NAME, description: "Full access to every Admin Portal module. System role: it cannot be renamed, changed or deleted.", permissions: FULL_PERMISSIONS, isSystem: true },
+  });
+  const exampleRoles: { name: string; description: string; permissions: Permissions }[] = [
+    { name: "Member Manager", description: "Manages association members and their memberships; read-only access to events and messages.", permissions: { members: ["view", "create", "edit", "delete"], events: ["view"], messages: ["view"] } },
+    { name: "Event Manager", description: "Manages events, registrations and attendance; read-only access to members and messages.", permissions: { members: ["view"], events: ["view", "create", "edit", "delete"], messages: ["view"] } },
+    { name: "Viewer", description: "Read-only access to members, events and messages.", permissions: { members: ["view"], events: ["view"], messages: ["view"] } },
+  ];
+  for (const r of exampleRoles) await db.adminRole.create({ data: r });
   const pw = await bcrypt.hash(process.env.SEED_PASSWORD ?? "Password123!", 10);
-  const admin = await db.user.create({ data: { email: "admin@adaig.test", name: "ADAIG Staff Admin", passwordHash: pw, role: "admin", organisation: "ADAIG", country: "United States", province: "NY" } });
-  await db.user.create({ data: { email: "admin2@adaig.test", name: "ADAIG Second Admin", passwordHash: pw, role: "admin", organisation: "ADAIG", country: "United States", province: "DC", locale: "fr" } }); // backup admin (BUG-031)
+  const admin = await db.user.create({ data: { email: "admin@adaig.test", name: "ADAIG Staff Admin", passwordHash: pw, role: "admin", adminRoleId: SUPER_ADMIN_ROLE_ID, organisation: "ADAIG", country: "United States", province: "NY" } });
+  await db.user.create({ data: { email: "admin2@adaig.test", name: "ADAIG Second Admin", passwordHash: pw, role: "admin", adminRoleId: SUPER_ADMIN_ROLE_ID, organisation: "ADAIG", country: "United States", province: "DC", locale: "fr" } }); // backup admin (BUG-031)
   const member = await db.user.create({ data: { email: "member@adaig.test", name: "Jordan Member", passwordHash: pw, role: "member", organisation: "Sample Records Office", jobTitle: "Records Manager", country: "United States", province: "NY" } });
   await db.user.create({ data: { email: "guest@adaig.test", name: "Casey Guest", passwordHash: pw, role: "guest", organisation: "Independent" } });
   const year = (d: Date) => { const r = new Date(d); r.setFullYear(d.getFullYear() + 1); return r; };
@@ -41,6 +56,6 @@ async function main() {
   for (const [title, hours] of [["Privacy law update webinar", 4], ["Records conference session", 6]] as const)
     await db.cpeEntry.create({ data: { userId: member.id, title, hours } });
   await db.auditLog.create({ data: { actor: "seed", action: "seed.completed" } });
-  console.log(`Seeded. Logins (password ${process.env.SEED_PASSWORD ? "from SEED_PASSWORD" : "Password123!"}): admin@adaig.test, admin2@adaig.test, member@adaig.test, guest@adaig.test`);
+  console.log(`Seeded. Logins (password ${process.env.SEED_PASSWORD ? "from SEED_PASSWORD" : "Password123!"}): admin@adaig.test, admin2@adaig.test (Super Admin), member@adaig.test, guest@adaig.test. Admin roles: ${SUPER_ADMIN_NAME}, ${exampleRoles.map((r) => r.name).join(", ")}.`);
 }
 main().finally(() => db.$disconnect());

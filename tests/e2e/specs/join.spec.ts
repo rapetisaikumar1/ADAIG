@@ -1,7 +1,8 @@
-/** Membership application (new account) → dashboard "application received" → admin approve / reject → member status. */
+/** Membership application (new account) → My membership "application received / POC" notice → admin approve / reject → member status.
+ *  Admin Portal accounts can't apply (round 7, Q4). */
 import type { Page } from "@playwright/test";
-import { test, expect } from "../fixtures";
-import { auditRows, membershipsOf, userByEmail, uniqueEmail, uniquePassword, RUN } from "../support/db";
+import { test, expect, membershipCard, membershipStatus } from "../fixtures";
+import { auditRows, createUser, membershipsOf, userByEmail, uniqueEmail, uniquePassword, RUN } from "../support/db";
 import { t } from "../support/i18n";
 
 type Applicant = { first: string; last: string; email: string; password: string; org: string };
@@ -27,9 +28,13 @@ test("new applicant → application received → admin approves → active membe
   const a = applicant(); const name = `${a.first} ${a.last}`;
   await fillApplication(page, a, { tier: "professional" });
   await page.getByRole("button", { name: t("join.submit") }).click();
-  await expect(page).toHaveURL(/\/en\/my\/dashboard\?applied=1/);
-  await expect(page.locator(".mbr-alerts .alert-success")).toContainText(t("dash.appliedTitle"));
-  await expect(page.locator(".mbr-kpis")).toContainText(t("dash.underReview"));
+  // Lands on My membership with the "application received" notice: the ADAIG team (POC) will be in touch.
+  await expect(page).toHaveURL(/\/en\/my\/billing\?applied=1$/);
+  await expect(page.locator("main#main h1")).toHaveText(t("member.billingPage.title"));
+  const notice = page.locator(".mbr-alerts .alert-success");
+  await expect(notice).toContainText(t("dash.appliedTitle"));
+  await expect(notice).toContainText(t("dash.pendingVerBody", { tier: "Professional" }));
+  await expect(membershipStatus(page, "st_pending_verification")).toBeVisible();
 
   const u = await userByEmail(a.email);
   expect(u).toMatchObject({ role: "guest", name, organisation: a.org, province: "NY" });
@@ -50,13 +55,14 @@ test("new applicant → application received → admin approves → active membe
   expect(after.renewsAt && +after.renewsAt - Date.now()).toBeGreaterThan(360 * 864e5);
   expect((await userByEmail(a.email))!.role).toBe("member");
 
-  // Applicant: dashboard shows the active membership; applying again is refused.
-  await page.goto("/en/my/dashboard");
-  await expect(page.locator(".mbr-kpis")).toContainText("Professional");
-  await expect(page.locator(".mbr-kpis")).toContainText(t("dash.active"));
+  // Applicant: My membership shows the active membership; applying again is refused.
+  await page.goto("/en/my/billing");
+  await expect(membershipCard(page)).toContainText("Professional");
+  await expect(membershipStatus(page, "st_active")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText(t("dash.pendingVerTitle"));
   await page.goto("/en/join");
-  await expect(page).toHaveURL(/\/en\/my\/dashboard\?already=1/);
-  await expect(page.locator(".mbr-alerts")).toContainText(t("dash.alreadyMember"));
+  await expect(page).toHaveURL(/\/en\/my\/billing\?already=1/);
+  await expect(page.locator("main").getByRole("status").filter({ hasText: t("dash.alreadyMember") })).toBeVisible();
 });
 
 test("student application needs eligibility details; a rejection reason is shown to the applicant", async ({ page, adminPage }) => {
@@ -84,7 +90,7 @@ test("student application needs eligibility details; a rejection reason is shown
   expect(after).toMatchObject({ status: "rejected_verification", rejectionReason: reason, activeSlot: null });
   expect(await auditRows({ action: "membership.eligibility_rejected", target: m.id })).toHaveLength(1);
 
-  await page.goto("/en/my/dashboard");
+  await page.goto("/en/my/billing");
   await expect(page.locator("main").getByRole("alert")).toContainText(t("dash.rejectedTitle"));
   // The admin's reason is shown as one sentence (a single closing period added).
   await expect(page.locator("main").getByRole("alert")).toContainText(t("dash.rejectedReasonText", { reason: `${reason}.` }));
@@ -99,4 +105,27 @@ test("an existing email gets a generic error and the form keeps what was typed",
   await expect(page.locator("#fn")).toHaveValue(a.first);
   await expect(page.locator("#org")).toHaveValue(a.org);
   await expect(page).toHaveURL(/\/en\/join/);
+});
+
+test("an Admin Portal account can't apply for membership (page and forged form)", async ({ page, loginAs }) => {
+  // Members excludes admin accounts, so their application would be invisible there: /join shows a notice instead of the form.
+  const admin = await createUser({ role: "admin" });
+  const p = await loginAs(admin);
+  for (const path of ["/en/join", "/en/join?tier=professional"]) {
+    await p.goto(path);
+    await expect(p.locator("main").getByRole("status").filter({ hasText: t("join.err_adminAccount") }), path).toBeVisible();
+    await expect(p.locator("main form.join-form"), path).toHaveCount(0);
+    await expect(p.getByRole("button", { name: t("join.submit") }), path).toHaveCount(0);
+  }
+  // Forged: a visitor's filled-in application replayed with the admin's session is refused server-side (no account, no membership).
+  const a = applicant();
+  await fillApplication(page, a, { tier: "professional" });
+  const fields = await page.locator("main form.join-form").evaluate((f: HTMLFormElement) =>
+    Object.fromEntries(Array.from(new FormData(f).entries()).map(([k, v]) => [k, String(v)])));
+  expect(Object.keys(fields).some((k) => k.startsWith("$ACTION_"))).toBe(true);
+  const r = await p.request.post("/en/join", { multipart: fields, maxRedirects: 0 });
+  expect(r.status()).toBe(200); // the action returns its error and the page re-renders the notice (an accepted application redirects)
+  expect(await userByEmail(a.email)).toBeUndefined();
+  expect(await membershipsOf(admin.id)).toEqual([]);
+  expect(await auditRows({ action: "membership.application_submitted", actor: admin.id })).toHaveLength(0);
 });

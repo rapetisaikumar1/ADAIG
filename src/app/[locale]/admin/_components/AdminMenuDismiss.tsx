@@ -2,14 +2,15 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Closes the mobile "Admin menu" disclosure (<details class="adm-mnav">) the way the site menu closes: on Escape (focus goes back
- * to its summary when it was inside), on a click outside it, and when the site "Menu" button is pressed, so the two panels are
- * never open on top of each other. Renders nothing visible; without JavaScript the disclosure still opens and closes normally.
+ * Closes the admin disclosure it is placed in (the mobile "Admin menu" <details class="adm-mnav"> and the profile menu at the
+ * bottom of the admin sidebar <details class="adm-profile">) the way the site menu closes: on Escape (focus goes back to its summary when it
+ * was inside) and on a click outside it, so two panels are never open on top of each other. Renders nothing visible; without
+ * JavaScript the disclosure still opens and closes normally.
  */
 export function AdminMenuDismiss() {
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
-    const menu = ref.current?.closest<HTMLDetailsElement>("details.adm-mnav");
+    const menu = ref.current?.closest<HTMLDetailsElement>("details");
     if (!menu) return;
     const close = (refocus: boolean) => {
       if (!menu.open) return;

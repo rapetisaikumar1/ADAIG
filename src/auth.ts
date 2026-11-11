@@ -6,9 +6,11 @@ import { db } from "@/lib/db";
 import { serverEnv } from "@/lib/env";
 import { reserveAttempt, recordIpFailure, clearFailures, clientIp, ipDelay } from "@/lib/rateLimit";
 import { emailOk, hasCtl, auditTarget } from "@/lib/validation";
+import { effectivePermissions, type Permissions } from "@/lib/permissions";
 
 declare module "next-auth" {
-  interface Session { user: { id: string; name: string; email: string; role: string } }
+  // permissions: the Admin Portal role's effective permissions (re-read from the DB on every request; null for non-admins).
+  interface Session { user: { id: string; name: string; email: string; role: string; active: boolean; adminRoleId: string | null; permissions: Permissions | null } }
 }
 class LockedError extends CredentialsSignin { code = "locked"; }
 const DUMMY_HASH = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8.hNnL1E0n6cYb5RkXz1qC5U5bXkGm"; // equalises timing for unknown emails
@@ -39,6 +41,13 @@ const nextAuth = NextAuth({
           await db.auditLog.create({ data: { actor: auditTarget(ip ?? "unknown-ip"), action: "auth.login_failed", target: auditTarget(email) } });
           return null;
         }
+        // Deactivated (Admin → Users): same bcrypt work, same answer and message as a wrong password, so the response doesn't reveal
+        // that the account exists. Failures are NOT cleared (the attempt still counts toward the lock).
+        if (user.active === false) {
+          await recordIpFailure(ip);
+          await db.auditLog.create({ data: { actor: auditTarget(ip ?? "unknown-ip"), action: "auth.login_blocked_inactive", target: auditTarget(email) } });
+          return null;
+        }
         await clearFailures(email);
         return { id: user.id, name: user.name, email: user.email, sessionVersion: user.sessionVersion } as never;
       },
@@ -49,12 +58,18 @@ const nextAuth = NextAuth({
       if (user) { token.id = (user as { id: string }).id; token.sv = (user as { sessionVersion?: number }).sessionVersion ?? 0; }
       return token;
     },
-    // Role is NOT trusted from the token: it is re-read from the DB on every session lookup (QA BUG-013).
+    // Role, status and Admin Portal permissions are NOT trusted from the token: they are re-read from the DB on every session
+    // lookup (QA BUG-013; round 7 RBAC), so a role edit or a deactivation applies on the user's next request.
     async session({ session, token }) {
-      const u = token.id ? await db.user.findUnique({ where: { id: token.id as string }, select: { id: true, role: true, name: true, email: true, sessionVersion: true } }) : null;
-      // Sessions issued before a staff password reset (sessionVersion bump) are no longer valid. Tokens from before this field existed count as 0.
-      if (!u || u.role === "deleted" || ((token.sv as number | undefined) ?? 0) !== u.sessionVersion) return { ...session, user: undefined as never };
-      session.user.id = u.id; session.user.role = u.role; session.user.name = u.name; session.user.email = u.email;
+      const u = token.id ? await db.user.findUnique({ where: { id: token.id as string }, select: {
+        id: true, role: true, name: true, email: true, sessionVersion: true, active: true, adminRoleId: true,
+        adminRole: { select: { id: true, isSystem: true, permissions: true } },
+      } }) : null;
+      // Sessions issued before a password reset / role change / deactivation (sessionVersion bump) are no longer valid, and a
+      // deactivated account has no session at all. Tokens from before sessionVersion existed count as 0.
+      if (!u || u.role === "deleted" || !u.active || ((token.sv as number | undefined) ?? 0) !== u.sessionVersion) return { ...session, user: undefined as never };
+      session.user = { ...session.user, id: u.id, role: u.role, name: u.name, email: u.email, active: u.active, adminRoleId: u.adminRoleId,
+        permissions: u.role === "admin" ? effectivePermissions(u.adminRole) : null };
       return session;
     },
   },
@@ -68,11 +83,3 @@ export const { handlers, signIn, signOut } = nextAuth;
  * Don't call auth() to observe a change made earlier in the same server action (e.g. after signIn/signOut or a role update).
  */
 export const auth: () => Promise<Session | null> = cache(() => nextAuth.auth());
-
-/** Server-side admin check against the current DB role (memoized per request, like auth()). */
-export const currentAdmin = cache(async () => {
-  const s = await auth();
-  if (!s?.user?.id) return null;
-  const u = await db.user.findUnique({ where: { id: s.user.id } });
-  return u?.role === "admin" ? u : null;
-});

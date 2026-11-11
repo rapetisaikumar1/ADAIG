@@ -6,7 +6,10 @@ import { getTranslations } from "next-intl/server";
 import { signIn, signOut } from "@/auth";
 import { db } from "@/lib/db";
 import { allowAccountCreation } from "@/lib/rateLimit";
+import { redirect } from "next/navigation";
 import { safeNextPath } from "@/lib/nextPath";
+import { portalHome } from "@/lib/session";
+import { effectivePermissions } from "@/lib/permissions";
 import { checkPassword, emailOk, normEmail, cleanText, limits, isUniqueViolation, safeLocale } from "@/lib/validation";
 
 /**
@@ -15,14 +18,19 @@ import { checkPassword, emailOk, normEmail, cleanText, limits, isUniqueViolation
  */
 export type AuthState = { error?: string; locked?: boolean; field?: "name" | "email" | "password"; email?: string; name?: string; marketingOptIn?: boolean };
 
-/** After signing in: the same-site page the visitor came from (`next`, validated), else the dashboard. */
-const target = (fd: FormData, locale: string) => safeNextPath(fd.get("next"), locale) ?? `/${locale}/my/dashboard`;
+/** The same-site page the visitor came from (`next`, validated), or null. */
+const nextTarget = (fd: FormData, locale: string) => safeNextPath(fd.get("next"), locale);
 const typed = (v: FormDataEntryValue | null, max: number) => (typeof v === "string" ? [...v].slice(0, max).join("") : "");
 
+/**
+ * Sign in. Success → `next` when present (validated), else the portal home for the account's role: admins → the first Admin
+ * Portal module their role can view (else /<locale>/admin/no-access), everyone else → /<locale>/my/billing. signIn runs without its own redirect so the role can be read (from the DB, after the
+ * password check) before choosing where to go; the redirect happens outside the try (it throws NEXT_REDIRECT).
+ */
 export async function login(_: AuthState, fd: FormData): Promise<AuthState> {
   const locale = safeLocale(fd.get("locale"));
   try {
-    await signIn("credentials", { email: fd.get("email"), password: fd.get("password"), redirectTo: target(fd, locale) });
+    await signIn("credentials", { email: fd.get("email"), password: fd.get("password"), redirect: false });
   } catch (e) {
     if (e instanceof AuthError) {
       const t = await getTranslations({ locale, namespace: "auth" });
@@ -31,7 +39,11 @@ export async function login(_: AuthState, fd: FormData): Promise<AuthState> {
     }
     throw e;
   }
-  return {};
+  const next = nextTarget(fd, locale);
+  if (next) redirect(next);
+  const email = String(fd.get("email") ?? "").toLowerCase().trim(); // normalized like authorize() in src/auth.ts
+  const u = await db.user.findUnique({ where: { email }, select: { role: true, adminRole: { select: { id: true, isSystem: true, permissions: true } } } });
+  redirect(portalHome(locale, u?.role, u?.role === "admin" ? effectivePermissions(u.adminRole) : null));
 }
 
 /** Signup (QA BUG-035/036/038/041). Existing emails get the same generic error as other account failures. */
@@ -54,7 +66,8 @@ export async function signup(_: AuthState, fd: FormData): Promise<AuthState> {
     }
   } catch (e) { if (!isUniqueViolation(e)) throw e; } // double submit / race: treat like an existing email
   if (!created) return fail(tj("err_generic_account"));
-  await signIn("credentials", { email, password, redirectTo: target(fd, locale) });
+  // New accounts are always "guest" (never admin): `next` when present, else the member portal home.
+  await signIn("credentials", { email, password, redirectTo: nextTarget(fd, locale) ?? portalHome(locale, "guest") });
   return {};
 }
 

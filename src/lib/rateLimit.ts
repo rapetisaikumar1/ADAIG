@@ -10,7 +10,8 @@ import { db } from "@/lib/db";
  * - Per IP: ONLY when TRUSTED_PROXY=true (the IP comes from the proxy-appended X-Forwarded-For hop). Never locks anyone,
  *   it only delays responses. Without a trusted proxy the client IP is unknown/spoofable, so no IP bucket is used.
  * Stale rows are removed by pruneLoginThrottle() (daily cron job).
- * The same table also holds the anonymous-write buckets below (keys "c:<ip>" contact, "a:<ip>" account creation).
+ * The same table also holds the anonymous-write buckets below (keys "c:<ip>" contact, "a:<ip>" account creation) and the
+ * delete-account password counter ("del:<userId>", reserveDeleteAttempt).
  */
 export function clientIp(h: Headers): string | null {
   if (process.env.TRUSTED_PROXY !== "true") return null;
@@ -36,7 +37,19 @@ export async function ipDelay(ip: string | null) {
  * updated, so RETURNING yields no row.
  */
 export async function reserveAttempt(email: string): Promise<boolean> {
-  const key = `e:${email}`, now = new Date();
+  return reserveKey(`e:${email}`);
+}
+/**
+ * Same counter and thresholds as reserveAttempt, in a separate key namespace "del:<userId>" (round-7 fix S6 / SEC L-5):
+ * the password check of Profile → "Delete my account". Kept apart so these attempts never lock or unlock sign-in.
+ */
+export async function reserveDeleteAttempt(userId: string): Promise<boolean> {
+  return reserveKey(`del:${userId}`);
+}
+export async function clearDeleteFailures(userId: string) { await db.loginThrottle.deleteMany({ where: { key: `del:${userId}` } }); }
+
+async function reserveKey(key: string): Promise<boolean> {
+  const now = new Date();
   const rows = await db.$queryRaw<{ failures: number }[]>`
     INSERT INTO "LoginThrottle" AS t (key, failures, "lastFailAt", "lockedUntil")
     VALUES (${key}, 1, ${now}::timestamptz,
@@ -115,7 +128,8 @@ export async function allowContactMessage(): Promise<boolean> {
  */
 export async function allowAccountCreation(): Promise<boolean> {
   const since = new Date(Date.now() - anonWriteLimits.windowMs);
-  if ((await db.user.count({ where: { createdAt: { gt: since } } })) >= anonWriteLimits.accountsGlobal) return false;
+  // Only self-service accounts count: Admin Portal accounts (role admin) are created by staff in Admin → Users (round-7 S7).
+  if ((await db.user.count({ where: { createdAt: { gt: since }, role: { not: "admin" } } })) >= anonWriteLimits.accountsGlobal) return false;
   const ip = clientIp(await headers());
   return ip ? hitBucket(`a:${ip}`, anonWriteLimits.accountsPerIp) : true;
 }

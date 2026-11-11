@@ -33,6 +33,8 @@ export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> 
   const institution = cleanText(fd.get("institution"), limits.institution);
   if (tier.requiresVerification && (fd.get("eligibilityAttest") !== "on" || !institution)) return err("err_student", institution ? "attest" : "inst");
   const session = await auth();
+  // Q4 (round 7): Admin Portal accounts can't apply (their application would be invisible in Members, which excludes admins).
+  if (session?.user?.role === "admin") return err("err_adminAccount");
   let userId = session?.user?.id; let newCreds: { email: string; password: string } | null = null;
   const profile = { name: `${first} ${last}`, organisation, country, province, directoryOptIn: fd.get("directoryOptIn") === "on", marketingOptIn: fd.get("marketingOptIn") === "on", locale };
   if (!userId) {
@@ -50,10 +52,10 @@ export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> 
       console.error("join: could not create account", e); return err("err_generic");
     }
   } else {
-    // BUG-033: already a member (or an application in progress) → dashboard
+    // BUG-033: already a member (or an application in progress) → My membership
     await expireUnpaid(userId);
     const open = await db.membership.findMany({ where: { userId, status: { in: OPEN } } });
-    if (open.some((o) => o.status !== "pending")) redirect(`/${locale}/my/dashboard?already=1`);
+    if (open.some((o) => o.status !== "pending")) redirect(`/${locale}/my/billing?already=1`);
     // Legacy unpaid orders (from the old payment flow) are replaced by the application (cancelled first, conditionally)
     for (const o of open) await cancelUnpaid(o.id, userId, "membership.order_replaced");
     await db.user.update({ where: { id: userId }, data: profile });
@@ -65,7 +67,7 @@ export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> 
       eligibilityNote: tier.requiresVerification ? `Attested student at: ${institution}` : null,
     } });
   } catch (e) {
-    if (isUniqueViolation(e)) redirect(`/${locale}/my/dashboard?already=1`);
+    if (isUniqueViolation(e)) redirect(`/${locale}/my/billing?already=1`);
     console.error("join: could not save application", e);
     // An account created a moment ago without its application would block a retry ("account exists"): remove it.
     if (newCreds) await db.user.delete({ where: { id: userId } }).catch(() => undefined);
@@ -73,14 +75,14 @@ export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> 
   }
   await db.auditLog.create({ data: { actor: userId, action: "membership.application_submitted", target: m.id } }).catch((e) => console.error("join: audit row failed", e));
 
-  const next = `/${locale}/my/dashboard?applied=1`;
+  const next = `/${locale}/my/billing?applied=1`; // My membership (member home) shows "Application received… your POC will be in touch"
   if (newCreds) await signIn("credentials", { ...newCreds, redirectTo: next });
   redirect(next);
 }
 
-/** BUG-042: cancel my unpaid (legacy) order (from /join or the dashboard). */
+/** BUG-042: cancel my unpaid (legacy) order (from /join or My membership). */
 export async function cancelOrder(fd: FormData) {
-  const locale = safeLocale(fd.get("locale")); const id = idParam(fd.get("m")); const back = fd.get("from") === "join" ? "join" : "my/dashboard";
+  const locale = safeLocale(fd.get("locale")); const id = idParam(fd.get("m")); const back = fd.get("from") === "join" ? "join" : "my/billing";
   const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login`);
   const ok = await cancelUnpaid(id, s.user.id);
   redirect(`/${locale}/${back}?msg=${ok ? "orderCancelled" : "orderNotFound"}`);

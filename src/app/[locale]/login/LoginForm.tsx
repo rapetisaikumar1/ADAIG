@@ -1,6 +1,7 @@
 "use client";
 import { useActionState, useEffect, useRef, startTransition, type FormEvent } from "react";
 import { login, type AuthState } from "./actions";
+import { Icon } from "@/components/ui/Icon";
 
 export type LoginLabels = { email: string; password: string; forgot: string; signIn: string };
 
@@ -23,7 +24,7 @@ export function LoginForm({ locale, next, labels, initialError, initialEmail }: 
   const invalid = !!state.error && !state.locked;
   return (
     <>
-      {state.error && <div className="alert alert-danger" role="alert" id="login-err" tabIndex={-1} ref={errRef}><div>{state.error}</div></div>}
+      {state.error && <div className="alert alert-danger" role="alert" id="login-err" tabIndex={-1} ref={errRef}><Icon name="x-circle" /><div>{state.error}</div></div>}
       <form action={action} onSubmit={submit}>
         <input type="hidden" name="locale" value={locale} />
         {next && <input type="hidden" name="next" value={next} />}
