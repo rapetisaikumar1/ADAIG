@@ -8,6 +8,7 @@ import { setAdminActive, setAdminRole } from "@/lib/account";
 import { effectivePermissions, isSubset, SUPER_ADMIN_ROLE_ID } from "@/lib/permissions";
 import { checkPassword, cleanText, emailOk, idParam, isUniqueViolation, limits, normEmail, safeLocale } from "@/lib/validation";
 import { defaultCountry } from "@/config/site";
+import { notifyEmailChanged, notifyPasswordResetByStaff } from "@/lib/notify/account";
 
 /**
  * Admin → Users (round 7, SPEC_R7 §5.2): Admin Portal accounts (User rows with role "admin"). Direct creation only (no invitation,
@@ -133,7 +134,7 @@ export async function updateAdminUser(fd: FormData): Promise<void> {
   if (name === u.name && email === u.email) back(locale, u.id, "msg_noChange", "details");
   const emailChanged = email !== u.email;
   if (emailChanged && (await db.user.findUnique({ where: { email }, select: { id: true } }))) back(locale, u.id, "err_emailTaken", "details");
-  let ok: boolean;
+  let ok: false | { emailAudit: { id: string; createdAt: Date } | null }; // emailAudit: the admin_user.email_changed row
   try {
     ok = await db.$transaction(async (tx) => {
       // Pinned to what was checked: same role (canManageUser) and same email (the throttle move below).
@@ -142,10 +143,11 @@ export async function updateAdminUser(fd: FormData): Promise<void> {
       if (emailChanged) { // login lockouts are keyed by email: move the counter to the new address
         await tx.loginThrottle.deleteMany({ where: { key: `e:${email}` } });
         await tx.loginThrottle.updateMany({ where: { key: `e:${u.email}` }, data: { key: `e:${email}` } });
+        await tx.passwordResetToken.deleteMany({ where: { userId: u.id } }); // a reset link sent to the old address stops working
       }
       await tx.auditLog.create({ data: { actor: ctx.user.id, action: "admin_user.updated", target: u.id } });
-      if (emailChanged) await tx.auditLog.create({ data: { actor: ctx.user.id, action: "admin_user.email_changed", target: u.id } });
-      return true;
+      const emailAudit = emailChanged ? await tx.auditLog.create({ data: { actor: ctx.user.id, action: "admin_user.email_changed", target: u.id }, select: { id: true, createdAt: true } }) : null;
+      return { emailAudit };
     });
   } catch (e) {
     if (isUniqueViolation(e)) back(locale, u.id, "err_emailTaken", "details");
@@ -155,6 +157,8 @@ export async function updateAdminUser(fd: FormData): Promise<void> {
     if (!(await loadTarget(fd))) redirect(`/${locale}/admin/users?msg=notFound`);
     back(locale, u.id, "err_conflict", "details");
   }
+  // Security notice to the OLD address (new one masked); deactivated accounts get no email. Never throws.
+  if (ok.emailAudit && u.active) await notifyEmailChanged({ userId: u.id, name, oldEmail: u.email, newEmail: email, variant: "admin", at: ok.emailAudit.createdAt, auditId: ok.emailAudit.id });
   back(locale, u.id, "msg_saved", "details");
 }
 
@@ -220,7 +224,10 @@ export async function resetAdminUserPassword(_: PasswordResetState, fd: FormData
   // Conditional on the role checked above: a concurrent promotion of the target makes this a no-op instead of an escalation.
   const r = await db.user.updateMany({ where: { id: u.id, role: "admin", adminRoleId: u.adminRoleId, email: u.email }, data: { passwordHash, sessionVersion: { increment: 1 } } });
   if (!r.count) return { error: t("err_notFound") };
-  await audit(ctx.user.id, "admin_user.password_reset", u.id);
+  await db.passwordResetToken.deleteMany({ where: { userId: u.id } }); // earlier emailed reset links stop working
+  const a = await audit(ctx.user.id, "admin_user.password_reset", u.id);
+  // Notice only (never the password); deactivated accounts get no email. Never throws.
+  if (u.active) await notifyPasswordResetByStaff({ userId: u.id, email: u.email, name: u.name, variant: "admin", at: a.createdAt, auditId: a.id });
   return { ok: true };
 }
 

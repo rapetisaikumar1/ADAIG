@@ -1,6 +1,6 @@
 /**
  * Admin operations and platform security: admin pages render (EN/FR), the removed Content admin is a 404, audit log filters + CSV,
- * System page shows no secret values, CSV exports are admin-only, cron endpoint auth, Supabase RLS (anon/authenticated cannot read
+ * System page shows no secret values, CSV exports are admin-only, cron endpoint auth and rate-limit bucket pruning, Supabase RLS (anon/authenticated cannot read
  * tables).
  */
 import pg from "pg";
@@ -145,13 +145,34 @@ test.describe("CSV exports and the data export are restricted", () => {
 });
 
 test("cron endpoint refuses requests without the right secret", async ({ request }) => {
-  const configured = !!(appDotEnv().CRON_SECRET ?? process.env.CRON_SECRET ?? "").trim();
+  const configured = !!(process.env.E2E_CRON_SECRET ?? process.env.CRON_SECRET ?? appDotEnv().CRON_SECRET ?? "").trim(); // E2E_CRON_SECRET = the secret the test server was started with
   const expected = configured ? 401 : 503; // 503 = cron disabled (no CRON_SECRET), 401 = wrong/missing token
   for (const headers of <Record<string, string>[]>[{}, { authorization: "Bearer wrong-secret" }, { authorization: "Basic abc" }, { authorization: "Bearer " }]) {
     const r = await request.get("/api/cron/expire-unpaid-orders", { headers });
     expect(r.status(), JSON.stringify(headers)).toBe(expected);
     expect((await r.json()).ok).toBe(false);
     expect(r.headers()["cache-control"]).toContain("no-store");
+  }
+});
+
+test("cron prunes ended one-hour rate-limit buckets (pr: / pi:) and keeps live ones", async ({ request }) => {
+  const secret = (process.env.E2E_CRON_SECRET || process.env.CRON_SECRET || "").trim(); // the secret the test server was started with
+  test.skip(!secret, "set E2E_CRON_SECRET (the app's CRON_SECRET) to run the cron");
+  const old = [`pr:e2e-${RUN}-prune-old@example.test`, `pi:e2e-${RUN}-prune-old`];
+  const live = [`pr:e2e-${RUN}-prune-live@example.test`, `pi:e2e-${RUN}-prune-live`];
+  try {
+    // Ended windows (2 h ago) and live ones (10 min ago); round-8 SEC L2: the daily cron removes the ended ones.
+    for (const [keys, ago] of [[old, "2 hours"], [live, "10 minutes"]] as const)
+      for (const key of keys) await q(`INSERT INTO "LoginThrottle" (key, failures, "lastFailAt") VALUES ($1, 3, now() - $2::interval)`, [key, ago]);
+    const r = await request.get("/api/cron/expire-unpaid-orders", { headers: { authorization: `Bearer ${secret}` }, timeout: 90_000 });
+    expect(r.status()).toBe(200);
+    const body = await r.json();
+    expect(body.ok).toBe(true);
+    expect(body.throttlePruned).toBeGreaterThanOrEqual(2);
+    const left = (await q<{ key: string }>(`SELECT key FROM "LoginThrottle" WHERE key = ANY($1) ORDER BY key`, [[...old, ...live]])).map((x) => x.key);
+    expect(left).toEqual([...live].sort());
+  } finally {
+    await q(`DELETE FROM "LoginThrottle" WHERE key = ANY($1)`, [[...old, ...live]]);
   }
 });
 

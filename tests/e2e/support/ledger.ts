@@ -9,7 +9,7 @@ import { STATE_DIR } from "./env";
 import { q } from "./db";
 
 export const LEDGER_FILE = path.join(STATE_DIR, "ledger.jsonl");
-export type LedgerEntry = { table: "AuditLog" | "Setting" | "ContentPage" | "AdminRole"; pk: string };
+export type LedgerEntry = { table: "AuditLog" | "Setting" | "ContentPage" | "AdminRole" | "EmailLog" | "PasswordResetToken"; pk: string };
 
 export function appendLedger(entries: LedgerEntry[]) {
   if (!entries.length) return;
@@ -44,6 +44,8 @@ export const dbNow = async () => (await q<{ now: Date }>("SELECT now() AS now"))
  * settings / content audit entries and overrides, CSV export entries, actions targeting seed accounts, events or seed
  * roles, Users / Roles audit entries (a role created and deleted in a test leaves no marked row to find them by), and the
  * admin roles created through the UI by a seed or e2e account (from their `admin_role.created` audit row).
+ * Round 8: emails the run sent to or about the seed accounts (EmailLog rows by userId / address, or keyed on one of the audit
+ * rows above), and password reset tokens of seed accounts. Emails about e2e data are found by markerCleanup itself.
  */
 export async function collectSince(since: Date): Promise<LedgerEntry[]> {
   const s = await seedRefs();
@@ -56,16 +58,24 @@ export async function collectSince(since: Date): Promise<LedgerEntry[]> {
   );
   const roles = await q<{ id: string }>(
     `SELECT DISTINCT split_part(a.target, ' ', 1) AS id FROM "AuditLog" a WHERE a."createdAt" >= $1 AND a.action = 'admin_role.created'
-       AND (a.actor = ANY($2) OR a.actor IN (SELECT id FROM "User" WHERE email LIKE 'e2e+%@example.test' OR id LIKE 'e2e-%'))
+       AND (a.actor = ANY($2) OR a.actor IN (SELECT id FROM "User" WHERE email LIKE 'e2e_%@example.test' OR id LIKE 'e2e-%'))
        AND split_part(a.target, ' ', 1) <> ALL($3)`,
     [since, s.users, s.roles],
   );
   const settings = await q<{ key: string }>(`SELECT key FROM "Setting" WHERE "updatedAt" >= $1 AND "updatedBy" = ANY($2)`, [since, s.admins]);
   const pages = await q<{ id: string }>(`SELECT id FROM "ContentPage" WHERE "createdAt" >= $1 AND "updatedBy" = ANY($2)`, [since, s.admins]);
+  const seedEmails = await q<{ email: string }>(`SELECT lower(email) AS email FROM "User" WHERE id = ANY($1)`, [s.users]);
+  const emails = await q<{ id: string }>(
+    `SELECT id FROM "EmailLog" WHERE "createdAt" >= $1 AND ("userId" = ANY($2) OR lower("toEmail") = ANY($3) OR split_part("dedupeKey", ':', 2) = ANY($4))`,
+    [since, s.users, seedEmails.map((r) => r.email), audit.map((r) => r.id)],
+  );
+  const tokens = await q<{ id: string }>(`SELECT id FROM "PasswordResetToken" WHERE "createdAt" >= $1 AND "userId" = ANY($2)`, [since, s.users]);
   return [
     ...audit.map((r) => ({ table: "AuditLog" as const, pk: r.id })),
     ...settings.map((r) => ({ table: "Setting" as const, pk: r.key })),
     ...pages.map((r) => ({ table: "ContentPage" as const, pk: r.id })),
     ...roles.filter((r) => r.id).map((r) => ({ table: "AdminRole" as const, pk: r.id })),
+    ...emails.map((r) => ({ table: "EmailLog" as const, pk: r.id })),
+    ...tokens.map((r) => ({ table: "PasswordResetToken" as const, pk: r.id })),
   ];
 }

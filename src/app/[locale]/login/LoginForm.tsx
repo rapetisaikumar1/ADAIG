@@ -30,7 +30,7 @@ export function LoginForm({ locale, next, labels, initialError, initialEmail }: 
         {next && <input type="hidden" name="next" value={next} />}
         <div className="field"><label htmlFor="le">{labels.email}</label><input id="le" name="email" type="email" required maxLength={254} autoComplete="username" defaultValue={state.email ?? initialEmail} aria-invalid={invalid || undefined} aria-describedby={state.error ? "login-err" : undefined} /></div>
         <div className="field"><label htmlFor="lp">{labels.password}</label><input id="lp" ref={pwRef} name="password" type="password" required autoComplete="current-password" aria-invalid={invalid || undefined} aria-describedby={state.error ? "login-err" : undefined} /></div>
-        <p className="small auth-forgot"><a href={`/${locale}/contact?topic=account`}>{labels.forgot}</a></p>
+        <p className="small auth-forgot"><a href={`/${locale}/forgot-password`}>{labels.forgot}</a></p>
         <button className="btn btn-accent btn-block" disabled={pending} aria-busy={pending || undefined}>{labels.signIn}</button>
       </form>
     </>

@@ -7,7 +7,7 @@
  *   values (json_populate_record, so every column type round-trips exactly), in one transaction. Strict mode only
  *   (E2E_RESTORE=strict): it would also remove rows written meanwhile by anyone else using the database.
  * - markerCleanup(): removes everything carrying the e2e markers or listed in the run ledger (default cleanup, and the
- *   pre-run purge of an earlier run's leftovers).
+ *   pre-run purge of an earlier run's leftovers), including the EmailLog rows and password reset tokens of e2e data.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -19,11 +19,13 @@ export const TABLES = [
   { name: "ContentRevision", pk: "id" }, { name: "Registration", pk: "id" }, { name: "CpeEntry", pk: "id" },
   { name: "Membership", pk: "id" }, { name: "AuditLog", pk: "id" }, { name: "LoginThrottle", pk: "key" },
   { name: "ContactMessage", pk: "id" }, { name: "Setting", pk: "key" }, { name: "ContentPage", pk: "id" },
+  // Round 8: EmailLog (userId FK SetNull) and PasswordResetToken (userId FK Cascade) are children of User.
+  { name: "EmailLog", pk: "id" }, { name: "PasswordResetToken", pk: "id" },
   { name: "Event", pk: "id" }, { name: "User", pk: "id" }, { name: "AdminRole", pk: "id" },
 ] as const;
 
 /** SQL for the e2e user markers (also used by the leftover check). */
-export const E2E_USER_SQL = `email LIKE 'e2e+%@example.test' OR id LIKE 'e2e-%' OR (name LIKE 'E2E %' AND email LIKE '%@example.test')`;
+export const E2E_USER_SQL = `email LIKE 'e2e_%@example.test' OR id LIKE 'e2e-%' OR (name LIKE 'E2E %' AND email LIKE '%@example.test')`;
 /** SQL for the e2e admin role markers. The system role is never matched. */
 export const E2E_ROLE_SQL = `NOT "isSystem" AND (id LIKE 'e2e-%' OR name LIKE 'E2E %')`;
 export type TableName = (typeof TABLES)[number]["name"];
@@ -123,10 +125,14 @@ export async function restore(s: Snapshot, only?: Partial<Record<TableName, stri
  * e2e admin roles ("e2e-" id or "E2E " name, never the system role), e2e events, contact messages, login-throttle rows,
  * test ContentPage overrides ("e2e-" ids) and audit rows written by or about any of them, plus the unmarked rows listed in
  * the run ledger (`extra`). Data of anyone else using the database is untouched.
+ * Round 8: EmailLog rows sent to e2e addresses, about e2e users (userId), or whose dedupeKey names an e2e object
+ * ("<kind>:<id>[:…]" where <id> is an e2e user, contact message, membership, registration, reset token or a deleted audit row,
+ * e.g. contact.notify:<messageId> to the association inbox), and the password reset tokens of e2e users. They are deleted
+ * before the users (EmailLog.userId is SetNull: afterwards the rows could no longer be attributed).
  * FK order: e2e users are deleted before e2e roles; any other user still holding an e2e role is detached first (seed admins
  * get Super Admin back, anyone else no role = no permissions) so the RESTRICT FK can't block the cleanup.
  */
-export async function markerCleanup(extra: { auditIds?: string[]; settingKeys?: string[]; contentPageIds?: string[]; roleIds?: string[] } = {}): Promise<Record<string, number>> {
+export async function markerCleanup(extra: { auditIds?: string[]; settingKeys?: string[]; contentPageIds?: string[]; roleIds?: string[]; emailLogIds?: string[]; resetTokenIds?: string[] } = {}): Promise<Record<string, number>> {
   const client = await getPool().connect();
   const n: Record<string, number> = {};
   try {
@@ -137,16 +143,27 @@ export async function markerCleanup(extra: { auditIds?: string[]; settingKeys?: 
     const events = (await client.query(`SELECT id FROM "Event" WHERE slug LIKE 'e2e-%' OR title LIKE 'E2E %'`)).rows.map((r: { id: string }) => r.id);
     const related = (await client.query(
       `SELECT id FROM "Membership" WHERE "userId" = ANY($1) UNION SELECT id FROM "Registration" WHERE "userId" = ANY($1) OR "eventId" = ANY($2)`, [ids, events])).rows.map((r: { id: string }) => r.id);
-    const msgs = (await client.query(`SELECT id FROM "ContactMessage" WHERE email LIKE 'e2e+%@example.test' OR "userId" = ANY($1)`, [ids])).rows.map((r: { id: string }) => r.id);
+    const msgs = (await client.query(`SELECT id FROM "ContactMessage" WHERE email LIKE 'e2e_%@example.test' OR "userId" = ANY($1)`, [ids])).rows.map((r: { id: string }) => r.id);
     const targets = [...ids, ...emails, ...events, ...related, ...msgs, ...roles, ...ids.map((i) => `user:${i}`)];
-    n.AuditLog = (await client.query(
-      `DELETE FROM "AuditLog" WHERE actor = ANY($1) OR target = ANY($2) OR split_part(target, ' ', 1) = ANY($2) OR target LIKE 'e2e+%@example.test'
-         OR actor LIKE 'e2e-%' OR target LIKE 'e2e-%' OR target LIKE 'user:e2e-%' OR id = ANY($3)`,
-      [ids, targets, extra.auditIds ?? []])).rowCount ?? 0;
+    const auditGone = (await client.query(
+      `DELETE FROM "AuditLog" WHERE actor = ANY($1) OR target = ANY($2) OR split_part(target, ' ', 1) = ANY($2) OR target LIKE 'e2e_%@example.test'
+         OR actor LIKE 'e2e-%' OR target LIKE 'e2e-%' OR target LIKE 'user:e2e-%' OR id = ANY($3) RETURNING id`,
+      [ids, targets, extra.auditIds ?? []])).rows.map((r: { id: string }) => r.id);
+    n.AuditLog = auditGone.length;
+    // Round 8 email tables (before the users: EmailLog.userId would be set null, PasswordResetToken would cascade uncounted).
+    const tokens = (await client.query(`SELECT id FROM "PasswordResetToken" WHERE "userId" = ANY($1) OR id = ANY($2)`, [ids, extra.resetTokenIds ?? []])).rows.map((r: { id: string }) => r.id);
+    const keyRefs = [...ids, ...msgs, ...related, ...events, ...tokens, ...auditGone];
+    n.EmailLog = (await client.query(
+      `DELETE FROM "EmailLog" WHERE id = ANY($1) OR "userId" = ANY($2) OR lower("toEmail") = ANY($3) OR "toEmail" LIKE 'e2e_%@example.test'
+         OR "toEmail" = ANY($4) OR split_part("dedupeKey", ':', 2) = ANY($5)`,
+      [extra.emailLogIds ?? [], ids, emails.map((e) => e.toLowerCase()), ids.map((i) => `deleted-${i}@deleted.invalid`), keyRefs])).rowCount ?? 0;
+    n.PasswordResetToken = (await client.query(`DELETE FROM "PasswordResetToken" WHERE id = ANY($1)`, [tokens])).rowCount ?? 0;
     n.Setting = (await client.query(`DELETE FROM "Setting" WHERE key = ANY($1)`, [extra.settingKeys ?? []])).rowCount ?? 0;
     n.ContentPage = (await client.query(`DELETE FROM "ContentPage" WHERE id = ANY($1) OR id LIKE 'e2e-%'`, [extra.contentPageIds ?? []])).rowCount ?? 0; // cascades revisions
     n.ContactMessage = (await client.query(`DELETE FROM "ContactMessage" WHERE id = ANY($1)`, [msgs])).rowCount ?? 0;
-    n.LoginThrottle = (await client.query(`DELETE FROM "LoginThrottle" WHERE key LIKE 'e:e2e+%@example.test' OR key = ANY($1)`, [emails.map((e) => `e:${e}`)])).rowCount ?? 0;
+    // "e:<email>" sign-in throttle; "pr:<email>" password-reset request bucket (round 8, src/lib/rateLimit.ts).
+    n.LoginThrottle = (await client.query(`DELETE FROM "LoginThrottle" WHERE key LIKE 'e:e2e_%@example.test' OR key LIKE 'pr:e2e_%@example.test' OR key = ANY($1)`,
+      [[...emails.map((e) => `e:${e}`), ...emails.map((e) => `pr:${e}`)]])).rowCount ?? 0;
     n.Event = (await client.query(`DELETE FROM "Event" WHERE id = ANY($1)`, [events])).rowCount ?? 0; // cascades registrations; CPE eventId set null
     n.CpeEntry = (await client.query(`DELETE FROM "CpeEntry" WHERE "userId" = ANY($1)`, [ids])).rowCount ?? 0;
     n.User = (await client.query(`DELETE FROM "User" WHERE id = ANY($1)`, [ids])).rowCount ?? 0; // cascades memberships, registrations

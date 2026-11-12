@@ -16,6 +16,8 @@ const ROUTES: [RegExp, string][] = [
   [/^events$/, "events"],
   [/^events\/[^/]+\/checkout$/, "eventRegistration"],
   [/^events\/[^/]+$/, "events"],
+  [/^forgot-password$/, "forgotPassword"],
+  [/^reset-password$/, "resetPassword"],
   [/^login$/, "login"],
   [/^signup$/, "signup"],
   [/^my(\/.*)?$/, "my"],

@@ -27,6 +27,9 @@ export default async function globalSetup() {
     `SELECT to_regclass('public."AdminRole"')::text AS roles,
             (SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name IN ('active', 'adminRoleId'))::text AS cols`);
   if (!schema[0].roles || schema[0].cols !== "2") throw new Error(`[e2e] The E2E database is not migrated (no AdminRole table / User.active / User.adminRoleId). Run prisma migrate deploy on it (local URL).`);
+  // Round 8 schema (EmailLog, PasswordResetToken): snapshotted and cleaned like the other tables.
+  const mail = await q<{ log: string | null; tok: string | null }>(`SELECT to_regclass('public."EmailLog"')::text AS log, to_regclass('public."PasswordResetToken"')::text AS tok`);
+  if (!mail[0].log || !mail[0].tok) throw new Error(`[e2e] The E2E database is not migrated (no EmailLog / PasswordResetToken table, round 8 migration 20261112180000_email). Run prisma migrate deploy on it (local URL).`);
   if (!(await q(`SELECT 1 FROM "AdminRole" WHERE id = $1 AND "isSystem"`, [SUPER_ADMIN_ROLE_ID])).length) throw new Error(`[e2e] The Super Admin system role (${SUPER_ADMIN_ROLE_ID}) is missing. Re-run the admin_rbac migration or npm run db:seed on the local database.`);
 
   const seeds = await q<{ email: string; role: string }>(`SELECT email, role FROM "User" WHERE email = ANY($1)`, [Object.values(SEED)]);

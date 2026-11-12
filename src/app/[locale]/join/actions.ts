@@ -1,6 +1,7 @@
 "use server";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { db } from "@/lib/db";
 import { auth, signIn } from "@/auth";
 import { expireUnpaid, cancelUnpaid } from "@/lib/membership";
@@ -9,6 +10,7 @@ import { getTiers } from "@/lib/settings";
 import { allowAccountCreation } from "@/lib/rateLimit";
 import { getTranslations } from "next-intl/server";
 import { checkPassword, emailOk, normEmail, cleanText, normCountry, normProvince, limits, isUniqueViolation, safeLocale, idParam } from "@/lib/validation";
+import { notifyApplication } from "@/lib/notify/membership";
 
 /** `field` is the id of the input the error is about (JoinForm marks it aria-invalid and links the message to it). */
 export type JoinField = "tier" | "fn" | "ln" | "org" | "co" | "pr" | "inst" | "attest" | "em" | "pw";
@@ -20,6 +22,7 @@ const OPEN = ["pending", "pending_verification", "active"]; // statuses that blo
  * status "pending_verification" for ANY tier; staff approve or reject it in Admin → Members, and the ADAIG team
  * point of contact follows up with the applicant. Nothing is charged here: amount/tax are 0 and there is no paymentRef,
  * so a rejection never flags a refund and the application never shows up in dues totals.
+ * Emails (round 8): an acknowledgement to the applicant and a notification to the ADAIG inbox (CONTACT_TO_EMAIL).
  */
 export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> {
   const locale = fd.get("locale") === "fr" ? "fr" : "en";
@@ -74,6 +77,15 @@ export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> 
     return err("err_generic");
   }
   await db.auditLog.create({ data: { actor: userId, action: "membership.application_submitted", target: m.id } }).catch((e) => console.error("join: audit row failed", e));
+  // Emails after the commit, sent after the response (Next `after()`): join.ack to the applicant, join.notify to the ADAIG inbox
+  // (src/lib/notify/membership.ts; never throws, a failed send is logged in EmailLog and the application stands). In the
+  // background so a slow/unreachable SMTP server never delays the applicant's redirect.
+  const notice = {
+    membershipId: m.id, createdAt: m.createdAt, userId, email: newCreds?.email, isNewAccount: !!newCreds,
+    tierName: tier.name.en, requiresVerification: !!tier.requiresVerification,
+    first, last, organisation, country, province, institution: institution || null,
+  };
+  after(() => notifyApplication(notice));
 
   const next = `/${locale}/my/billing?applied=1`; // My membership (member home) shows "Application received… your POC will be in touch"
   if (newCreds) await signIn("credentials", { ...newCreds, redirectTo: next });

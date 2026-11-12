@@ -8,9 +8,9 @@ import { SignedIn } from "./SignedIn";
 import { Icon } from "@/components/ui/Icon";
 import { FocusOnLoad } from "@/components/ui/FocusOnLoad";
 
-export default async function Login({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ error?: string; deleted?: string; pw?: string; next?: string | string[] }> }) {
+export default async function Login({ params, searchParams }: { params: Promise<{ locale: string }>; searchParams: Promise<{ error?: string; deleted?: string; pw?: string; reset?: string; next?: string | string[] }> }) {
   const { locale } = await params; setRequestLocale(locale);
-  const { error, deleted, pw, next: rawNext } = await searchParams; const t = await getTranslations("auth"); const tp = await getTranslations("profile"); const tc = await getTranslations("chrome");
+  const { error, deleted, pw, reset, next: rawNext } = await searchParams; const t = await getTranslations("auth"); const tp = await getTranslations("profile"); const tc = await getTranslations("chrome");
   const next = safeNextPath(typeof rawNext === "string" ? rawNext : null, locale) ?? null; // same-site path to return to after signing in
   const s = await auth();
   const withNext = (p: string) => (next ? `${p}?next=${encodeURIComponent(next)}` : p);
@@ -28,7 +28,8 @@ export default async function Login({ params, searchParams }: { params: Promise<
           })}</p>
           {deleted && <FocusOnLoad><div className="alert alert-success" role="status"><Icon name="check-circle" /><div>{tp("deleted")}</div></div></FocusOnLoad>}
           {pw === "changed" && <FocusOnLoad><div className="alert alert-success" role="status"><Icon name="check-circle" /><div>{tp("pwChanged")}</div></div></FocusOnLoad>}
-          {next && !error && !deleted && pw !== "changed" && <div className="alert alert-info" role="note"><Icon name="info" /><div>{t("signInToContinue")}</div></div>}
+          {reset === "done" && <FocusOnLoad><div className="alert alert-success" role="status"><Icon name="check-circle" /><div>{t("resetDone")}</div></div></FocusOnLoad>}
+          {next && !error && !deleted && pw !== "changed" && reset !== "done" && <div className="alert alert-info" role="note"><Icon name="info" /><div>{t("signInToContinue")}</div></div>}
           <LoginForm locale={locale} next={next} initialError={initialError}
             labels={{ email: t("email"), password: t("password"), forgot: t("forgot"), signIn: t("signIn") }} />
         </>}

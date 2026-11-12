@@ -1,20 +1,30 @@
 import { headers } from "next/headers";
 import { loginRateLimit as L } from "@/config/site";
 import { db } from "@/lib/db";
+import { ADDRESS_KEY_SQL, addressKey } from "@/lib/validation";
 /**
  * Login throttling (QA BUG-008/021/022/026). Counters are stored in the DB, so they survive restarts and are shared across instances.
  * - Per account: after L.maxPerEmail failures, exponential backoff lock (1 min doubling to 15 min).
  *   Each attempt is counted BEFORE the password is checked, in one atomic statement (reserveAttempt), so parallel requests
  *   can't all slip past the lock check: at most L.maxPerEmail passwords are evaluated before the account locks.
  *   A successful login clears the counter (clearFailures).
- * - Per IP: ONLY when TRUSTED_PROXY=true (the IP comes from the proxy-appended X-Forwarded-For hop). Never locks anyone,
- *   it only delays responses. Without a trusted proxy the client IP is unknown/spoofable, so no IP bucket is used.
+ * - Per IP: ONLY behind a trusted proxy (the IP comes from the proxy-appended X-Forwarded-For hop; see proxyTrusted()). Never
+ *   locks anyone, it only delays responses. Without a trusted proxy the client IP is unknown/spoofable, so no IP bucket is used.
  * Stale rows are removed by pruneLoginThrottle() (daily cron job).
- * The same table also holds the anonymous-write buckets below (keys "c:<ip>" contact, "a:<ip>" account creation) and the
- * delete-account password counter ("del:<userId>", reserveDeleteAttempt).
+ * The same table also holds the anonymous-write buckets below (keys "c:<ip>" contact, "a:<ip>" account creation,
+ * "pr:<address key>" and "pi:<ip>" password reset requests) and the delete-account password counter ("del:<userId>", reserveDeleteAttempt).
  */
+/**
+ * Is X-Forwarded-For set by our own proxy? TRUSTED_PROXY=true → yes; any other explicit value ("false", …) → no. When
+ * TRUSTED_PROXY is unset, yes only on Vercel (VERCEL=1, set by the platform): Vercel's edge overwrites X-Forwarded-For with
+ * the client IP, so a visitor cannot spoof it there (round-8 SEC M1: per-IP limits are on by default in production).
+ */
+export function proxyTrusted(): boolean {
+  const v = process.env.TRUSTED_PROXY?.trim();
+  return v ? v === "true" : process.env.VERCEL === "1";
+}
 export function clientIp(h: Headers): string | null {
-  if (process.env.TRUSTED_PROXY !== "true") return null;
+  if (!proxyTrusted()) return null;
   const hops = Math.max(1, Number(process.env.TRUSTED_PROXY_HOPS ?? 1));
   const xff = (h.get("x-forwarded-for") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   return xff.length >= hops ? xff[xff.length - hops] : null; // rightmost entries are added by our own proxies; left ones are client-controlled
@@ -78,16 +88,26 @@ export async function recordIpFailure(ip: string | null) {
 }
 export async function clearFailures(email: string) { await db.loginThrottle.deleteMany({ where: { key: `e:${email}` } }); }
 
-/** Housekeeping: rows with no lock and no failure for 24 h, and locks that ended more than 24 h ago. Returns the count. */
+/**
+ * Housekeeping (daily cron): rows with no lock and no failure for 24 h, locks that ended more than 24 h ago, and the
+ * one-hour anonymous-write buckets ("pr:", "pi:", "c:", "a:", see below) whose window is over (round-8 SEC L2: random
+ * addresses on /forgot-password each leave a "pr:" row; an expired bucket counts from 1 again anyway, so deleting it changes
+ * nothing). Returns the count.
+ */
 export async function pruneLoginThrottle(now = new Date()) {
   const cutoff = new Date(now.getTime() - 24 * 3600_000);
-  const r = await db.loginThrottle.deleteMany({ where: { OR: [{ lockedUntil: null, lastFailAt: { lt: cutoff } }, { lockedUntil: { lt: cutoff } }] } });
+  const windowStart = new Date(now.getTime() - anonWriteLimits.windowMs);
+  const r = await db.loginThrottle.deleteMany({ where: { OR: [
+    { lockedUntil: null, lastFailAt: { lt: cutoff } }, { lockedUntil: { lt: cutoff } },
+    ...ANON_BUCKET_PREFIXES.map((p) => ({ key: { startsWith: p }, lockedUntil: null, lastFailAt: { lt: windowStart } })),
+  ] } });
   return r.count;
 }
+const ANON_BUCKET_PREFIXES = ["pr:", "pi:", "c:", "a:"];
 
 /* ───────────── Anonymous writes (S1-3): contact form, signup, join ─────────────
- * Global caps (always on) bound table growth and bcrypt CPU even when the client IP is unknown. Per-IP caps apply only with
- * TRUSTED_PROXY=true (see clientIp). Counters: the global ones count real rows (ContactMessage / User created in the window);
+ * Global caps (always on) bound table growth and bcrypt CPU even when the client IP is unknown. Per-IP caps apply only behind a
+ * trusted proxy (see proxyTrusted / clientIp). Counters: the global ones count real rows (ContactMessage / User created in the window);
  * the per-IP ones are fixed-window buckets in LoginThrottle (failures = hits, lastFailAt = window start, lockedUntil unused),
  * incremented atomically, and pruned by pruneLoginThrottle like the login rows. The existing 5-per-email contact limit stays.
  */
@@ -123,6 +143,18 @@ export async function allowContactMessage(): Promise<boolean> {
 }
 
 /**
+ * Contact messages saved in the last hour from this address, counted by its counting key (lower case, "+tag" removed: round-8
+ * SEC M1), so x@d, X@d and x+1@d share the contact form's per-address limit. The stored address is never changed.
+ */
+export async function contactMessagesFromAddress(email: string): Promise<number> {
+  const since = new Date(Date.now() - anonWriteLimits.windowMs);
+  const rows = await db.$queryRaw<{ n: number }[]>`
+    SELECT count(*)::int AS n FROM "ContactMessage"
+    WHERE "createdAt" > ${since}::timestamptz AND regexp_replace(lower(trim(email)), ${ADDRESS_KEY_SQL.re}, ${ADDRESS_KEY_SQL.to}) = ${addressKey(email)}`;
+  return rows[0]?.n ?? 0;
+}
+
+/**
  * Signup and join (signed-out visitors): call after validation and BEFORE hashing the password, for every attempt (also for
  * emails that turn out to exist, so the answer reveals nothing). False → refuse with a "too many attempts, try later" error.
  */
@@ -132,4 +164,25 @@ export async function allowAccountCreation(): Promise<boolean> {
   if ((await db.user.count({ where: { createdAt: { gt: since }, role: { not: "admin" } } })) >= anonWriteLimits.accountsGlobal) return false;
   const ip = clientIp(await headers());
   return ip ? hitBucket(`a:${ip}`, anonWriteLimits.accountsPerIp) : true;
+}
+
+/* ───────────── Password reset requests (round 8, EMAIL_SPEC §3.3) ─────────────
+ * Counted for EVERY valid-format address, whether or not an account exists, so the answer reveals nothing. Refuses when:
+ * more than resetGlobal tokens were created in the last hour (all accounts); the address's bucket "pr:<address key>" is over
+ * resetPerEmail; or (trusted proxy only) the IP's bucket "pi:<ip>" is over resetPerIp. The daily cron prunes ended buckets.
+ */
+const resetLimits = { resetGlobal: 200, resetPerEmail: 3, resetPerIp: 10 };
+/*
+ * Accepted residual risk (round-8 SEC L2): anyone can use up an address's 3 requests in an hour, which sends that person up
+ * to 3 reset emails and refuses their own requests until the hour is over. The block is bounded (one hour, no lockout of
+ * sign-in) and the answer never reveals whether the account exists; counting per account instead would reveal it.
+ */
+export async function allowPasswordResetRequest(email: string): Promise<boolean> {
+  const since = new Date(Date.now() - anonWriteLimits.windowMs);
+  if ((await db.passwordResetToken.count({ where: { createdAt: { gt: since } } })) > resetLimits.resetGlobal) return false;
+  const ip = clientIp(await headers());
+  // Both buckets are counted on every request (no short-circuit), so a refused IP still uses up the address's quota and vice versa.
+  // The address bucket uses the counting key (lower case, "+tag" removed: SEC M1), so x+1@, x+2@… share x@'s quota.
+  const [byEmail, byIp] = await Promise.all([hitBucket(`pr:${addressKey(email)}`, resetLimits.resetPerEmail), ip ? hitBucket(`pi:${ip}`, resetLimits.resetPerIp) : Promise.resolve(true)]);
+  return byEmail && byIp;
 }

@@ -54,7 +54,7 @@ test.describe("admin Server Actions refuse non-admins", () => {
     const e = await createEvent({ published: false });
     const victim = await createMember();
     const msgId = `e2e-${RUN}-${Math.random().toString(36).slice(2)}`;
-    await q(`INSERT INTO "ContactMessage" (id, name, email, topic, message, locale) VALUES ($1, 'E2E', $2, 'other', 'E2E replay target', 'en')`, [msgId, `e2e+${RUN}-replay@example.test`]);
+    await q(`INSERT INTO "ContactMessage" (id, name, email, topic, message, locale) VALUES ($1, 'E2E', $2, 'other', 'E2E replay target', 'en')`, [msgId, `e2e-${RUN}-replay@example.test`]);
 
     await adminPage.goto("/en/admin/events");
     const publish = await formFields(adminPage.locator("form", { has: adminPage.getByRole("button", { name: `${t("admin.publish")}: ${e.title}`, exact: true }) }));
@@ -125,7 +125,7 @@ test("user-supplied text is rendered as text (contact message, names, event titl
   const payload = `<img src=x onerror="window.__e2eXss=1"><script>window.__e2eXss=2</script> E2E ${RUN}`;
   await page.goto("/en/contact");
   await page.locator("#cf-name").fill(`E2E <b>bold</b> ${RUN}`);
-  await page.locator("#cf-email").fill(`e2e+${RUN}-xss@example.test`);
+  await page.locator("#cf-email").fill(`e2e-${RUN}-xss@example.test`);
   await page.locator("#cf-topic").selectOption("other");
   await page.locator("#cf-msg").fill(payload);
   await page.locator(".contact-form input[name=consent]").check();

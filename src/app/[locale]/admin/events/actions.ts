@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { assertAdminPermission } from "@/lib/rbac";
 import type { Action } from "@/lib/permissions";
 import { db } from "@/lib/db";
@@ -7,6 +8,7 @@ import { isUniqueViolation, idParam } from "@/lib/validation";
 import { stripStatus } from "@/components/EventCard";
 import { parseEventForm, slugify, SLUG_RE, cpeTitle } from "./eventForm";
 import { regView, cleanQuery } from "./views";
+import { notifyEventCancelled } from "@/lib/notify/events";
 
 /** Create an event. It is saved as a draft unless "publish now" is ticked; invalid input returns to the form with a notice. */
 export async function createEvent(fd: FormData) {
@@ -97,7 +99,8 @@ export async function deleteEvent(fd: FormData) {
 /**
  * Cancel an event: it is unpublished and flagged cancelledAt, so it disappears from the public and member pages and takes no
  * registrations. Unpaid tickets (pending_payment) are cancelled so they can't be paid any more. Confirmed registrations are kept as
- * the record of who was registered (export the list to notify them); paid tickets are refunded manually in Stripe.
+ * the record of who was registered and are emailed a cancellation notice (src/lib/notify/events.ts, after the response); paid
+ * tickets are refunded manually in Stripe.
  */
 export async function cancelEvent(fd: FormData) {
   const { locale, admin, e } = await guard(fd, "edit");
@@ -111,6 +114,9 @@ export async function cancelEvent(fd: FormData) {
     { actor: admin.id, action: "event.cancelled", target: e.id },
     ...(unpaid.count ? [{ actor: admin.id, action: "event.unpaid_tickets_cancelled", target: e.id }] : []),
   ] });
+  // event.cancelled to every confirmed registrant, after the response (bulk send; never throws). Only the request that won the
+  // conditional update above gets here, and the key carries cancelledAt, so each cancellation emails each person once.
+  after(() => notifyEventCancelled({ eventId: e.id, cancelledAt: now }));
   back(locale, e.id, fd, "cancelled");
 }
 /** Undo a cancellation. The event comes back as a draft; publish it when ready. Cancelled unpaid tickets stay cancelled. */

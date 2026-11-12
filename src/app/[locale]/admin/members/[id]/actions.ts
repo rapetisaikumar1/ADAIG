@@ -10,6 +10,7 @@ import type { Action } from "@/lib/permissions";
 import { staffChangeTier, staffCancel, staffMarkLapsed, staffSetRenewal, staffReactivate, staffGrant, parseRenewalDay, type StaffResult } from "@/lib/membership";
 import { parseProfile, tempPassword } from "../_validate";
 import { isMembersTarget } from "../_shared";
+import { notifyAccountDeleted, notifyEmailChanged, notifyPasswordResetByStaff } from "@/lib/notify/account";
 
 /**
  * Admin → Members → account page. Every action checks the actor's Admin Portal permission from the DB (members.<action>,
@@ -39,17 +40,21 @@ export async function updateProfile(fd: FormData) {
   const r = parseProfile(fd); if ("error" in r) back(locale, u.id, r.error, "profile");
   const d = r.data; const emailChanged = d.email !== u.email;
   if (emailChanged && (await db.user.findUnique({ where: { email: d.email } }))) back(locale, u.id, "err_emailTaken", "profile");
+  let changed: { id: string; createdAt: Date } | null = null; // the admin.email_changed audit row
   try {
-    await db.$transaction(async (tx) => {
+    changed = await db.$transaction(async (tx) => {
       await tx.user.update({ where: { id: u.id }, data: d });
       if (emailChanged) { // login lockouts are keyed by email: move the counter to the new address
         await tx.loginThrottle.deleteMany({ where: { key: `e:${d.email}` } });
         await tx.loginThrottle.updateMany({ where: { key: `e:${u.email}` }, data: { key: `e:${d.email}` } });
+        await tx.passwordResetToken.deleteMany({ where: { userId: u.id } }); // a reset link sent to the old address stops working
       }
       await tx.auditLog.create({ data: { actor: admin.id, action: "admin.profile_updated", target: u.id } });
-      if (emailChanged) await tx.auditLog.create({ data: { actor: admin.id, action: "admin.email_changed", target: u.id } });
+      return emailChanged ? tx.auditLog.create({ data: { actor: admin.id, action: "admin.email_changed", target: u.id }, select: { id: true, createdAt: true } }) : null;
     });
   } catch (e) { if (isUniqueViolation(e)) back(locale, u.id, "err_emailTaken", "profile"); throw e; }
+  // Security notice to the OLD address (the new one is shown masked). Never throws.
+  if (changed) await notifyEmailChanged({ userId: u.id, name: d.name, oldEmail: u.email, newEmail: d.email, variant: "member", at: changed.createdAt, auditId: changed.id });
   back(locale, u.id, "msg_profileSaved", "profile");
 }
 
@@ -92,7 +97,10 @@ export async function resetPassword(_: PasswordState, fd: FormData): Promise<Pas
   const hash = await bcrypt.hash(password, 10);
   const r = await db.user.updateMany({ where: { id: u.id, role: { notIn: ["deleted", "admin"] } }, data: { passwordHash: hash, sessionVersion: { increment: 1 } } });
   if (!r.count) return { error: t("err_notFound") };
-  await db.auditLog.create({ data: { actor: admin.id, action: "admin.password_reset", target: u.id } });
+  await db.passwordResetToken.deleteMany({ where: { userId: u.id } }); // earlier emailed reset links stop working
+  const a = await db.auditLog.create({ data: { actor: admin.id, action: "admin.password_reset", target: u.id }, select: { id: true, createdAt: true } });
+  // Notice only: the email never contains the password. Never throws.
+  await notifyPasswordResetByStaff({ userId: u.id, email: u.email, name: u.name, variant: "member", at: a.createdAt, auditId: a.id });
   return { password };
 }
 
@@ -102,7 +110,9 @@ export async function deleteUser(fd: FormData) {
   if (fd.get("confirm") !== "on") back(locale, u.id, "err_confirmDelete", "delete");
   // targetUser refused admin rows, so deleteUserAccount's last-Super-Admin branch can't apply; it re-reads the row in its own
   // transaction, and an account deleted meanwhile is simply gone.
-  await deleteUserAccount(u.id, { actor: admin.id, action: "account.deleted_by_admin" });
+  const r = await deleteUserAccount(u.id, { actor: admin.id, action: "account.deleted_by_admin" });
+  // u.email comes from targetUser (read before the anonymization). Never throws.
+  if (r === "deleted") await notifyAccountDeleted({ userId: u.id, email: u.email, variant: "staff", at: new Date() });
   redirect(`/${locale}/admin/members?msg=accountDeleted`);
 }
 

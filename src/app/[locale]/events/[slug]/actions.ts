@@ -10,6 +10,7 @@ import { confirmRegistration } from "@/lib/membership";
 import { eventCurrency } from "@/config/site";
 import { eventView } from "@/components/EventCard";
 import { SLUG_RE } from "@/app/[locale]/admin/events/eventForm";
+import { notifyEventRegistered } from "@/lib/notify/events";
 
 /** Register for an event. Free tickets confirm immediately; paid tickets go through Stripe (test) or the mock checkout. */
 export async function register(fd: FormData) {
@@ -35,7 +36,11 @@ export async function register(fd: FormData) {
     r = (await db.registration.findUnique({ where: { userId_eventId: { userId: s.user.id, eventId: e.id } } }))!;
     if (r.status === "confirmed") redirect(`/${locale}/events/${slug}?registered=1`);
   }
-  if (price === 0) { await db.auditLog.create({ data: { actor: s.user.id, action: "event.registered_free", target: r.id } }); redirect(`/${locale}/events/${slug}?registered=1`); }
+  if (price === 0) {
+    const a = await db.auditLog.create({ data: { actor: s.user.id, action: "event.registered_free", target: r.id } });
+    await notifyEventRegistered({ registrationId: r.id, occurrence: a.id }); // event.registered (never throws), before the redirect
+    redirect(`/${locale}/events/${slug}?registered=1`);
+  }
   let next = `/${locale}/events/${slug}/checkout?r=${r.id}`;
   const stripe = getStripe();
   if (stripe) {
@@ -67,6 +72,8 @@ export async function completeMockTicket(fd: FormData) {
   if (r.status !== "pending_payment") redirect(`/${locale}/my/billing?msg=ticketNotFound`);
   if (!(await mockAllowed())) redirect(`/${locale}/events/${r.event.slug}/checkout?r=${id}`); // no mock bypass (BUG-024)
   await db.registration.updateMany({ where: { id, status: "pending_payment" }, data: { paymentRef: `mock_${Date.now()}` } }); // idempotent on double click
-  await confirmRegistration(id, s.user.id);
+  const done = await confirmRegistration(id, s.user.id);
+  // event.registered, keyed by the payment reference: a double click or a replay sends one email (never throws).
+  if (done?.status === "confirmed") await notifyEventRegistered({ registrationId: id, occurrence: done.paymentRef ?? "mock" });
   redirect(`/${locale}/events/${r.event.slug}?registered=1`);
 }

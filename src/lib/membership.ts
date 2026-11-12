@@ -72,7 +72,8 @@ async function expireUnpaidOrders(userId?: string) {
 }
 /**
  * Grace period: an ACTIVE membership whose renewsAt is more than this many days in the past lapses automatically
- * (decision Nov 2026: no automatic renewals or reminders yet; staff contact members while the renewal is due).
+ * (no automatic renewals; the daily cron emails a renewal reminder once the date has passed and a notice after the lapse —
+ * src/lib/notify/membership.ts; staff contact members while the renewal is due).
  * scripts/expire-unpaid-orders.mts uses the same value.
  */
 export const LAPSE_GRACE_DAYS = 30;

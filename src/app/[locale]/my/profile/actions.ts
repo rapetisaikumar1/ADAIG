@@ -7,6 +7,7 @@ import { deleteUserAccount } from "@/lib/account";
 import { reserveAttempt, clearFailures, reserveDeleteAttempt, clearDeleteFailures } from "@/lib/rateLimit";
 import { safeLocale, cleanText, limits, checkPassword, normCountry, normProvince } from "@/lib/validation";
 import { subdivisionsFor } from "@/config/site";
+import { notifyAccountDeleted, notifyPasswordChanged } from "@/lib/notify/account";
 
 /** Profile text fields and their limits (the form uses the same limits as maxLength). */
 const TEXT_FIELDS = { name: limits.name, organisation: limits.organisation, jobTitle: limits.jobTitle } as const;
@@ -84,7 +85,9 @@ export async function changePassword(fd: FormData) {
   // Conditional on the hash we checked: a concurrent staff reset or second change wins, this one then changes nothing.
   const r = await db.user.updateMany({ where: { id: u.id, role: { not: "deleted" }, passwordHash: u.passwordHash }, data: { passwordHash: hash, sessionVersion: { increment: 1 } } });
   if (!r.count) back("wrong");
-  await db.auditLog.create({ data: { actor: u.id, action: "auth.password_changed", target: u.id } });
+  await db.passwordResetToken.deleteMany({ where: { userId: u.id } }); // an emailed reset link from before the change no longer works
+  const a = await db.auditLog.create({ data: { actor: u.id, action: "auth.password_changed", target: u.id }, select: { id: true, createdAt: true } });
+  await notifyPasswordChanged({ userId: u.id, email: u.email, at: a.createdAt, via: "profile", auditId: a.id }); // never throws
   await signOut({ redirect: false });
   redirect(`/${locale}/login?pw=changed`);
 }
@@ -112,10 +115,12 @@ export async function deleteAccount(fd: FormData) {
   await clearDeleteFailures(u.id);
   // Shared with Admin → Members (src/lib/account.ts): same anonymisation; the last ACTIVE Super Admin can't delete their own account
   // (checked inside the transaction, with the Super Admin rows locked).
-  if ((await deleteUserAccount(u.id, { actor: u.id, action: "account.deleted_by_member" })) === "lastAdmin") {
+  const r = await deleteUserAccount(u.id, { actor: u.id, action: "account.deleted_by_member" }); // u.email read above, before anonymization
+  if (r === "lastAdmin") {
     await db.auditLog.create({ data: { actor: u.id, action: "admin.delete_blocked_last_admin", target: u.id } });
     redirect(`/${locale}/my/profile?del=lastAdmin`);
   }
+  if (r === "deleted") await notifyAccountDeleted({ userId: u.id, email: u.email, variant: "self", at: new Date() }); // never throws
   await signOut({ redirect: false });
   redirect(`/${locale}/login?deleted=1`);
 }

@@ -2,10 +2,12 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { afterActivated } from "@/lib/membership";
+import { after } from "next/server";
 import { cleanText, limits, idParam } from "@/lib/validation";
 import { rejectedStudentPolicy } from "@/lib/settings";
 import { assertAdminPermission } from "@/lib/rbac";
 import { memberQuery } from "./_shared";
+import { notifyReview, type ReviewNotice } from "@/lib/notify/membership";
 
 /** List notices → account-page notices (adminMembers.msg_* / err_*). */
 const DETAIL_MSG: Record<string, string> = { approved: "msg_approved", rejectedOk: "msg_rejected", alreadyDecided: "err_alreadyDecided", unlocked: "msg_unlocked", refundedOk: "msg_refunded" };
@@ -30,6 +32,8 @@ function back(locale: string, fd: FormData, msg?: string, userId?: string): neve
  * (only legacy paid rows with a paymentRef can be flagged).
  * BUG-034: each decision is ONE conditional update (WHERE status = 'pending_verification'); only the first decision wins,
  * later ones change nothing and get "already decided".
+ * The winning decision emails the member (membership.approved / membership.rejected with the reason) after the commit;
+ * a failed send never changes the outcome (src/lib/notify/membership.ts).
  */
 export async function reviewEligibility(fd: FormData) {
   const { locale, ctx } = await assertAdminPermission(fd, "members", "edit"); const admin = ctx.user;
@@ -37,7 +41,7 @@ export async function reviewEligibility(fd: FormData) {
   const m = await db.membership.findUnique({ where: { id }, include: { user: { select: { role: true } } } }); if (!m) redirect(`/${locale}/admin/members`);
   // D1 separation: an Admin Portal account's membership is not managed in Members (same answer as a missing account).
   if (m.user.role === "admin") back(locale, fd, "notFound");
-  let won = false;
+  let won = false; let notice: ReviewNotice | null = null;
   if (decision === "approve") {
     const now = new Date(); const renews = new Date(now); renews.setFullYear(now.getFullYear() + 1);
     // One transaction: the status change, the guest → member role change and the audit row succeed or fail together.
@@ -46,6 +50,7 @@ export async function reviewEligibility(fd: FormData) {
       if (ok) await afterActivated(m.userId, admin.id, "membership.eligibility_approved", id, tx);
       return ok;
     });
+    notice = { decision: "approve", membershipId: id, userId: m.userId, tierId: m.tierId, startsAt: now, renewsAt: renews };
   } else if (decision === "reject") {
     // No reason typed → null: the member's dashboard then shows a translated "no reason given" (never English text stored in the DB).
     const reason = cleanText(fd.get("reason"), limits.reason) || null;
@@ -55,8 +60,9 @@ export async function reviewEligibility(fd: FormData) {
       await db.auditLog.create({ data: { actor: admin.id, action: "membership.eligibility_rejected", target: id } });
       if (flag) await db.auditLog.create({ data: { actor: admin.id, action: "payment.manual_refund_flagged", target: id } });
     }
-    // Email notice: no mail provider is wired in the MVP; the member sees the notice + reason on their dashboard.
+    notice = { decision: "reject", membershipId: id, userId: m.userId, tierId: m.tierId, createdAt: m.createdAt, reason, flag, paymentRef: m.paymentRef };
   }
+  if (won && notice) after(() => notifyReview(notice)); // never throws; sent after the response so staff never wait on SMTP
   if (!won) { await db.auditLog.create({ data: { actor: admin.id, action: "membership.review_already_decided", target: id } }); back(locale, fd, "alreadyDecided", m.userId); }
   back(locale, fd, decision === "approve" ? "approved" : decision === "reject" ? "rejectedOk" : undefined, m.userId);
 }

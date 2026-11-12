@@ -3,7 +3,8 @@
  *
  * Default (attributed): removes exactly what the suite wrote, so other people/agents using the same database keep their data:
  *   1. Setting overrides left by a failed test are reset through the admin UI (expires the app's data cache);
- *   2. every e2e-marked row and every ledger row is deleted (markerCleanup), including test ContentPage overrides (deleted
+ *   2. every e2e-marked row and every ledger row is deleted (markerCleanup), including the EmailLog rows and password reset
+ *      tokens of e2e data and seed accounts (round 8), test ContentPage overrides (deleted
  *      directly in the DB: the admin Content editor no longer exists, so the public pages may serve their cached copy for up
  *      to the 5-minute revalidate) and e2e admin roles (after the users holding them);
  *   3. seed accounts (incl. their role, adminRoleId and active flag), seed events and seed admin roles changed by the run are
@@ -31,11 +32,13 @@ async function leftovers(ledger: { table: string; pk: string }[]) {
     users: await n(`SELECT count(*) AS n FROM "User" WHERE ${E2E_USER_SQL}`),
     roles: await n(`SELECT count(*) AS n FROM "AdminRole" WHERE ${E2E_ROLE_SQL} OR (NOT "isSystem" AND id = ANY($1))`, [ids("AdminRole")]),
     events: await n(`SELECT count(*) AS n FROM "Event" WHERE slug LIKE 'e2e-%' OR title LIKE 'E2E %'`),
-    messages: await n(`SELECT count(*) AS n FROM "ContactMessage" WHERE email LIKE 'e2e+%@example.test'`),
-    loginThrottle: await n(`SELECT count(*) AS n FROM "LoginThrottle" WHERE key LIKE 'e:e2e+%@example.test'`),
-    audit: await n(`SELECT count(*) AS n FROM "AuditLog" WHERE id = ANY($1) OR target LIKE 'e2e+%@example.test' OR actor LIKE 'e2e-%' OR target LIKE 'e2e-%' OR target LIKE 'user:e2e-%'`, [ids("AuditLog")]),
+    messages: await n(`SELECT count(*) AS n FROM "ContactMessage" WHERE email LIKE 'e2e_%@example.test'`),
+    loginThrottle: await n(`SELECT count(*) AS n FROM "LoginThrottle" WHERE key LIKE 'e:e2e_%@example.test' OR key LIKE 'pr:e2e_%@example.test'`),
+    audit: await n(`SELECT count(*) AS n FROM "AuditLog" WHERE id = ANY($1) OR target LIKE 'e2e_%@example.test' OR actor LIKE 'e2e-%' OR target LIKE 'e2e-%' OR target LIKE 'user:e2e-%'`, [ids("AuditLog")]),
     settings: await n(`SELECT count(*) AS n FROM "Setting" WHERE key = ANY($1)`, [ids("Setting")]),
     contentPages: await n(`SELECT count(*) AS n FROM "ContentPage" WHERE id = ANY($1) OR id LIKE 'e2e-%'`, [ids("ContentPage")]),
+    emailLog: await n(`SELECT count(*) AS n FROM "EmailLog" WHERE id = ANY($1) OR "toEmail" LIKE 'e2e_%@example.test'`, [ids("EmailLog")]),
+    resetTokens: await n(`SELECT count(*) AS n FROM "PasswordResetToken" WHERE id = ANY($1) OR "userId" IN (SELECT id FROM "User" WHERE ${E2E_USER_SQL})`, [ids("PasswordResetToken")]),
   };
 }
 
@@ -67,6 +70,7 @@ export async function cleanupDatabase() {
   const allLedger = [...ledger, ...resetRows];
   const removed = await markerCleanup({
     auditIds: allLedger.filter((e) => e.table === "AuditLog").map((e) => e.pk), settingKeys, contentPageIds, roleIds,
+    emailLogIds: uniq("EmailLog"), resetTokenIds: uniq("PasswordResetToken"),
   });
 
   // 3. Seed rows the suite may have changed (strict: every table).
@@ -87,7 +91,7 @@ export async function cleanupDatabase() {
 
 /**
  * Pre-run purge (global setup): remove every e2e-marked row left by EARLIER runs whose teardown never ran or whose state
- * files were lost (users "e2e+…@example.test" / "e2e-…" ids, "E2E …" admin roles, e2e events, messages, throttle rows,
+ * files were lost (users "e2e-…@example.test" / "e2e+…@example.test" / "e2e-…" ids, "E2E …" admin roles, e2e events, messages, throttle rows,
  * ContentPage rows with "e2e-" ids and their audit rows). Marker-based only: rows without an e2e marker are never touched.
  * Local databases only, without override: it refuses any E2E_DATABASE_URL whose host is not this machine.
  */

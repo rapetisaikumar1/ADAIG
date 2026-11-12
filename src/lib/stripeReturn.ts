@@ -1,5 +1,7 @@
+import { after } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { activateMembership, confirmRegistration } from "@/lib/membership";
+import { notifyEventRegistered } from "@/lib/notify/events";
 /**
  * Stripe Checkout return pages (server only): verify the session with Stripe before confirming anything.
  * Kept out of the "use server" action modules on purpose, so these are plain server functions called by the checkout
@@ -21,7 +23,13 @@ export async function confirmStripeTicket(id: string, sid: string) {
   const stripe = getStripe(); if (!stripe) return false;
   try {
     const cs = await stripe.checkout.sessions.retrieve(sid);
-    if (cs.payment_status === "paid" && cs.metadata?.registrationId === id) { await confirmRegistration(id, "stripe-return"); return true; }
+    if (cs.payment_status === "paid" && cs.metadata?.registrationId === id) {
+      const r = await confirmRegistration(id, "stripe-return");
+      // event.registered after the response (called from the checkout page, a server component). The key is the Checkout
+      // session id, shared with the webhook, so the return page (or a reload) and the webhook send one email together.
+      if (r?.status === "confirmed") after(() => notifyEventRegistered({ registrationId: id, occurrence: cs.id }));
+      return true;
+    }
   } catch (e) { console.error("[stripe] confirm ticket failed", (e as Error).message); }
   return false;
 }

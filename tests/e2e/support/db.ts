@@ -1,6 +1,6 @@
 /**
  * Direct database access for setup, assertions and cleanup (node-postgres, the driver the app itself uses).
- * Rows created here use the e2e markers (ids "e2e-…", emails "e2e+<run>-<n>@example.test", event slugs "e2e-…", admin role
+ * Rows created here use the e2e markers (ids "e2e-…", emails "e2e-<run>-<n>@example.test" (older runs: "e2e+…"), event slugs "e2e-…", admin role
  * names "E2E …"), so the global teardown, `npm run test:e2e:cleanup` and the pre-run purge can always find them.
  * Rules for spec authors: README → Testing.
  */
@@ -37,7 +37,9 @@ export const RUN = (process.env.E2E_RUN_ID ||= Date.now().toString(36));
 let n = 0;
 /** Unique within the run, also across worker restarts (retries start a new worker process). */
 const nextN = () => `${crypto.randomBytes(3).toString("hex")}${++n}`;
-export const uniqueEmail = () => `e2e+${RUN}-${nextN()}@example.test`;
+// "e2e-…", not "e2e+…": the app counts per-address limits and the email send budget with any "+tag" removed (round-8 SEC M1),
+// so plus-addresses would all share one counter. Cleanup patterns match both ('e2e_%@example.test') for older leftovers.
+export const uniqueEmail = () => `e2e-${RUN}-${nextN()}@example.test`;
 export const uniqueName = (label = "User") => `E2E ${label} ${RUN}${nextN()}`;
 export const uniqueSlug = () => `e2e-${RUN}-${nextN()}`;
 export const e2eId = () => `e2e-${crypto.randomUUID()}`;

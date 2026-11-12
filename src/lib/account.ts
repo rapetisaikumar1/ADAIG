@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { deletionPolicy } from "@/lib/settings";
 import { SUPER_ADMIN_ROLE_ID } from "@/lib/permissions";
+import { ADDRESS_IN_TEXT_SQL } from "@/lib/email/config";
 
 /**
  * Lock every ACTIVE Super Admin row (stable order) so last-Super-Admin checks can't race (SPEC_R7 §3.4 rule 2).
@@ -17,7 +18,9 @@ export type DeleteAccountResult = "deleted" | "lastAdmin" | "notFound";
 /**
  * TC-E2E-006: account deletion, shared by member self-service (Profile → Delete my account) and staff (Admin → Members → account).
  * Removed/anonymised: name, email, password, organisation, job title, province, preferences, CPE log, eligibility notes,
- * unpaid/free registrations, login-throttle rows, contact messages, the email in audit-log targets.
+ * unpaid/free registrations, login-throttle rows, contact messages, password reset tokens, the email in audit-log targets and
+ * in the email log (EmailLog.toEmail → the anonymous address, addresses in EmailLog.error → "[address]"; the account.deleted
+ * notice sent afterwards is anonymized the same way).
  * Kept (anonymised, linked only to an opaque user id): memberships and paid registrations (amount, tax, currency, payment ref, dates)
  * for tax/financial record-keeping, and the audit log. Open memberships are cancelled (no refund unless DELETED_MEMBERSHIP_REFUND says so).
  *
@@ -47,6 +50,11 @@ export async function deleteUserAccount(userId: string, audit: { actor: string; 
     await tx.membership.updateMany({ where: { userId: u.id }, data: { eligibilityNote: null, rejectionReason: null } });
     await tx.loginThrottle.deleteMany({ where: { key: `e:${u.email}` } });
     await tx.contactMessage.deleteMany({ where: { OR: [{ userId: u.id }, { email: u.email }] } });
+    await tx.passwordResetToken.deleteMany({ where: { userId: u.id } });
+    // EmailLog: the address in `error` too (SMTP replies quote the recipient; round-8 SEC L4), then the recipient column.
+    await tx.$executeRaw`UPDATE "EmailLog" SET error = regexp_replace(error, ${ADDRESS_IN_TEXT_SQL}, '[address]', 'g')
+      WHERE error IS NOT NULL AND ("userId" = ${u.id} OR lower("toEmail") = ${u.email.toLowerCase()} OR strpos(lower(error), ${u.email.toLowerCase()}) > 0)`;
+    await tx.emailLog.updateMany({ where: { OR: [{ userId: u.id }, { toEmail: u.email }] }, data: { toEmail: anonEmail } });
     await tx.auditLog.updateMany({ where: { target: u.email }, data: { target: `user:${u.id}` } });
     await tx.user.update({ where: { id: u.id }, data: {
       email: anonEmail, name: "Deleted member", passwordHash: `!deleted:${randomBytes(16).toString("hex")}`, // not a bcrypt hash: can never match
@@ -106,7 +114,8 @@ export async function setAdminRole(targetId: string, roleId: string, expect?: Ad
 
 /**
  * Admin → Users: activate or deactivate an admin account (last-Super-Admin safe). Deactivation bumps sessionVersion (D4/D5; the
- * session callback also rejects inactive users); reactivation doesn't. Same locking as setAdminRole.
+ * session callback also rejects inactive users) and deletes the user's password reset tokens; reactivation does neither.
+ * Same locking as setAdminRole.
  */
 export async function setAdminActive(targetId: string, active: boolean, expect?: AdminExpect): Promise<AdminChange> {
   return db.$transaction(async (tx) => {
@@ -118,6 +127,8 @@ export async function setAdminActive(targetId: string, active: boolean, expect?:
     if (u.active === active) return "unchanged";
     if (!active && isActiveSuper(u) && supers.filter((x) => x.id !== u.id).length === 0) return "lastSuperAdmin";
     await tx.user.update({ where: { id: u.id }, data: active ? { active: true } : { active: false, sessionVersion: { increment: 1 } } });
+    // Outstanding reset links die with the deactivation, so they can't come back to life on a reactivation (round-8 SEC L3).
+    if (!active) await tx.passwordResetToken.deleteMany({ where: { userId: u.id } });
     return "changed";
   });
 }

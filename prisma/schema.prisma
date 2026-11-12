@@ -12,28 +12,30 @@ datasource db {
 }
 
 model User {
-  id             String         @id @default(cuid())
-  email          String         @unique
+  id             String               @id @default(cuid())
+  email          String               @unique
   /// Collation "C" (byte order, as on SQLite) is set in the init migration so the directory's name ordering is unchanged.
   name           String
   passwordHash   String
-  sessionVersion Int            @default(0) // bumped when staff reset the password: older sign-in sessions stop working
-  role           String         @default("member") // guest | member | admin | deleted
+  sessionVersion Int                  @default(0) // bumped when staff reset the password: older sign-in sessions stop working
+  role           String               @default("member") // guest | member | admin | deleted
   organisation   String?
   jobTitle       String?
-  country        String         @default("Canada") // the app always sets the country explicitly
+  country        String               @default("Canada") // the app always sets the country explicitly
   province       String?
-  locale         String         @default("en")
-  directoryOptIn Boolean        @default(false)
-  marketingOptIn Boolean        @default(false)
-  deletedAt      DateTime?      @db.Timestamptz(3) // set when the member deletes their account (personal data anonymised)
-  createdAt      DateTime       @default(now()) @db.Timestamptz(3)
+  locale         String               @default("en")
+  directoryOptIn Boolean              @default(false)
+  marketingOptIn Boolean              @default(false)
+  deletedAt      DateTime?            @db.Timestamptz(3) // set when the member deletes their account (personal data anonymised)
+  createdAt      DateTime             @default(now()) @db.Timestamptz(3)
   memberships    Membership[]
   registrations  Registration[]
   cpe            CpeEntry[]
-  active         Boolean        @default(true) // false = deactivated in Admin → Users: cannot sign in, sessions end (D5)
+  active         Boolean              @default(true) // false = deactivated in Admin → Users: cannot sign in, sessions end (D5)
   adminRoleId    String? // Admin Portal role (only meaningful while role = "admin"); FK RESTRICT: a role in use can't be deleted
-  adminRole      AdminRole?     @relation(fields: [adminRoleId], references: [id], onDelete: Restrict)
+  adminRole      AdminRole?           @relation(fields: [adminRoleId], references: [id], onDelete: Restrict)
+  emailLogs      EmailLog[]
+  passwordResets PasswordResetToken[]
 
   @@index([role])
   @@index([adminRoleId])
@@ -206,4 +208,41 @@ model AdminRole {
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @db.Timestamptz(3)
   users       User[]
+}
+
+/// One row per outgoing email (src/lib/email). No bodies are stored. status: sent | failed | skipped (SMTP not configured).
+/// dedupeKey (unique) stops the same email from going out twice (double submits, cron re-runs).
+model EmailLog {
+  id        String   @id @default(cuid())
+  kind      String // e.g. contact.notify, join.ack, password.reset_link (src/lib/email/types.ts)
+  toEmail   String
+  subject   String
+  status    String // sent | failed | skipped
+  error     String? // short reason, never secrets
+  messageId String?
+  dedupeKey String?  @unique
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([toEmail, createdAt])
+  @@index([userId])
+}
+
+/// Self-service password reset ("Forgot your password?"). Only the SHA-256 hash of the emailed token is stored.
+/// Single use (usedAt), 60-minute expiry; a new request invalidates the older tokens of that user.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  requestIp String?
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
 }

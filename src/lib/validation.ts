@@ -24,6 +24,16 @@ export function checkPassword(pw: string, email?: string): PwError | null {
 const EMAIL = /^[^\s@"<>(),;:\\[\]]{1,64}@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
 export const normEmail = (e: unknown) => String(e ?? "").trim().toLowerCase();
 export const emailOk = (e: string) => e.length <= limits.email && EMAIL.test(e) && !/\.\./.test(e);
+/**
+ * Counting key for per-address limits and the email send budget (round-8 SEC M1): lower-cased, with a "+tag" in the local
+ * part removed, so x@d, X@d and x+1@d share one counter. For COUNTING ONLY: the address that is stored and emailed never
+ * changes. ADDRESS_KEY_SQL is the same rule for Postgres: regexp_replace(lower(trim(col)), ADDRESS_KEY_SQL.re, ADDRESS_KEY_SQL.to).
+ */
+export function addressKey(e: unknown): string {
+  const a = normEmail(e); const at = a.lastIndexOf("@"); const plus = a.indexOf("+");
+  return plus > 0 && plus < at ? a.slice(0, plus) + a.slice(at) : a;
+}
+export const ADDRESS_KEY_SQL = { re: "^([^@+]+)\\+[^@]*@", to: "\\1@" } as const;
 /** Collapse whitespace, strip control chars; null if empty or over the limit. */
 export function cleanText(v: unknown, max: number): string | null {
   const s = String(v ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();

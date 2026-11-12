@@ -11,6 +11,7 @@ import { safeNextPath } from "@/lib/nextPath";
 import { portalHome } from "@/lib/session";
 import { effectivePermissions } from "@/lib/permissions";
 import { checkPassword, emailOk, normEmail, cleanText, limits, isUniqueViolation, safeLocale } from "@/lib/validation";
+import { notifySignupWelcome } from "@/lib/notify/account";
 
 /**
  * State returned to the sign-in / sign-up forms (useActionState). Errors are returned, not redirected, so the forms keep what
@@ -58,14 +59,14 @@ export async function signup(_: AuthState, fd: FormData): Promise<AuthState> {
   const pwErr = checkPassword(password, email); if (pwErr) return fail(tj(`err_pw_${pwErr}`), "password");
   if (!(await allowAccountCreation().catch(() => true))) return fail(tj("err_rate")); // S1-3 caps, before the bcrypt hash
   const hash = await bcrypt.hash(password, 10); // hashed before the lookup so existing/new emails take the same time
-  let created = false;
+  let created: { id: string; createdAt: Date } | null = null;
   try {
     if (!(await db.user.findUnique({ where: { email } }))) {
-      await db.user.create({ data: { email, name, passwordHash: hash, role: "guest", country: defaultCountry, locale, marketingOptIn: fd.get("marketingOptIn") === "on" } });
-      created = true;
+      created = await db.user.create({ data: { email, name, passwordHash: hash, role: "guest", country: defaultCountry, locale, marketingOptIn: fd.get("marketingOptIn") === "on" }, select: { id: true, createdAt: true } });
     }
   } catch (e) { if (!isUniqueViolation(e)) throw e; } // double submit / race: treat like an existing email
-  if (!created) return fail(tj("err_generic_account"));
+  if (!created) return fail(tj("err_generic_account")); // an existing address gets no email
+  await notifySignupWelcome({ userId: created.id, email, createdAt: created.createdAt }); // never throws; before signIn (it redirects)
   // New accounts are always "guest" (never admin): `next` when present, else the member portal home.
   await signIn("credentials", { email, password, redirectTo: nextTarget(fd, locale) ?? portalHome(locale, "guest") });
   return {};

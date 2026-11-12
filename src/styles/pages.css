@@ -533,6 +533,7 @@
 .auth-wrap .auth-form .alert{margin-bottom:var(--sp-5)}
 .auth-wrap .auth-forgot{margin:calc(-1 * var(--sp-2)) 0 var(--sp-5)}.auth-wrap .auth-forgot a{font-weight:600}
 .auth-wrap .auth-check{margin-bottom:var(--sp-5);font-size:var(--fs-sm)}
+.auth-wrap .auth-hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
 .auth-wrap .auth-join{margin-top:var(--sp-6);padding:var(--sp-4) var(--sp-5);border:1px solid var(--line);border-left:3px solid var(--face-right);border-radius:var(--r-panel);background:var(--white);font-size:var(--fs-sm)}
 .auth-wrap .auth-join p{margin:var(--sp-1) 0 var(--sp-2);color:var(--slate-600)}.auth-wrap .auth-join a{font-weight:600}
 .auth-wrap .auth-signed-actions{display:grid;gap:var(--sp-3)}
