@@ -1,4 +1,5 @@
 "use server";
+import { localeHref } from "@/lib/localePath";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { assertAdminPermission } from "@/lib/rbac";
@@ -14,12 +15,12 @@ import { notifyEventCancelled } from "@/lib/notify/events";
 export async function createEvent(fd: FormData) {
   const { locale, ctx: { user: admin } } = await assertAdminPermission(fd, "events", "create");
   const f = parseEventForm(fd);
-  if (!f) redirect(`/${locale}/admin/events?msg=invalid`);
+  if (!f) redirect(localeHref(locale, `/admin/events?msg=invalid`));
   const slug = slugify(stripStatus(f.title)); // without the "(proposed)" suffix, so the address stays the same once confirmed
   const published = fd.get("publish") === "on";
   const created = await db.event.create({ data: { ...f, slug, published } });
   await db.auditLog.create({ data: { actor: admin.id, action: "event.created", target: created.id } }); // event id: the audit log links it to /admin/events/[id]
-  redirect(`/${locale}/admin/events?msg=${published ? "createdPublished" : "createdDraft"}`);
+  redirect(localeHref(locale, `/admin/events?msg=${published ? "createdPublished" : "createdDraft"}`));
 }
 /** Publish / unpublish from the list. A cancelled event can't be published again until it is restored (detail page). */
 export async function togglePublish(fd: FormData) {
@@ -29,10 +30,10 @@ export async function togglePublish(fd: FormData) {
     // Conditional: only flips the state the admin saw, and never publishes a cancelled event (concurrent cancel).
     const r = await db.event.updateMany({ where: { id: e.id, published: e.published, ...(e.published ? {} : { cancelledAt: null }) }, data: { published: !e.published } });
     if (r.count) await db.auditLog.create({ data: { actor: admin.id, action: e.published ? "event.unpublished" : "event.published", target: e.id } });
-    else if (e.cancelledAt) redirect(`/${locale}/admin/events?msg=cancelledLocked`);
+    else if (e.cancelledAt) redirect(localeHref(locale, `/admin/events?msg=cancelledLocked`));
   }
   const v = String(fd.get("v") ?? ""); // keep the list tab (whitelisted)
-  redirect(`/${locale}/admin/events${["drafts", "past", "all"].includes(v) ? `?v=${v}` : ""}`);
+  redirect(localeHref(locale, `/admin/events${["drafts", "past", "all"].includes(v) ? `?v=${v}` : ""}`));
 }
 
 // ── Event detail page (/admin/events/[id]): edit, cancel/restore, delete, registrations and attendance ──
@@ -44,13 +45,13 @@ function back(locale: string, id: string, fd: FormData, msg: string, anchor = ""
   if (v !== "all") p.set("v", v);
   if (q) p.set("q", q);
   p.set("msg", msg);
-  redirect(`/${locale}/admin/events/${encodeURIComponent(id)}?${p}${anchor}`);
+  redirect(localeHref(locale, `/admin/events/${encodeURIComponent(id)}?${p}${anchor}`));
 }
 /** Permission first (§3.2: events.edit, or events.delete for deleteEvent), then the event re-read from the DB. */
 async function guard(fd: FormData, a: Action) {
   const { locale, ctx: { user: admin } } = await assertAdminPermission(fd, "events", a);
   const id = eventId(fd); const e = id ? await db.event.findUnique({ where: { id } }) : null;
-  if (!e) redirect(`/${locale}/admin/events?msg=notFound`);
+  if (!e) redirect(localeHref(locale, `/admin/events?msg=notFound`));
   return { locale, admin, e };
 }
 
@@ -93,7 +94,7 @@ export async function deleteEvent(fd: FormData) {
   const r = await db.event.deleteMany({ where: { id: e.id, registrations: { none: {} } } });
   if (!r.count) back(locale, e.id, fd, "hasRegistrations", "#danger");
   await db.auditLog.create({ data: { actor: admin.id, action: "event.deleted", target: e.id } });
-  redirect(`/${locale}/admin/events?msg=deleted`);
+  redirect(localeHref(locale, `/admin/events?msg=deleted`));
 }
 
 /**

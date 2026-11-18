@@ -21,7 +21,7 @@ const day = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "nu
 const txt = (m: Mail) => m.text.replace(/\r\n/g, "\n");
 const token = () => `Tk${RUN}${Math.random().toString(36).slice(2, 8)}`;
 
-/** From (env), exactly one To, Reply-To, exact subject, text snippets, absolute /en links, and strings that must never appear. */
+/** From (env), exactly one To, Reply-To, exact subject, text snippets, absolute site links, and strings that must never appear. */
 function expectMail(m: Mail, o: { to: string; replyTo: string; subject: string; text?: string[]; never?: string[] }) {
   expect(m.to, "To").toEqual([o.to.toLowerCase()]);
   expect(m.from, "From").toBe(FROM);
@@ -30,7 +30,7 @@ function expectMail(m: Mail, o: { to: string; replyTo: string; subject: string; 
   for (const s of o.text ?? []) expect(txt(m), `text part contains: ${s}`).toContain(s);
   for (const s of o.never ?? []) for (const [part, v] of [["subject", m.subject], ["text", m.text], ["html", m.html]] as const)
     expect(v, `${part} must not contain: ${s}`).not.toContain(s);
-  expect(m.html, "absolute /en links in the HTML").toContain(`href="${SITE}/en`);
+  expect(m.html, "absolute site links in the HTML").toContain(`href="${SITE}/`);
   expect(m.html).not.toMatch(/href="\/(en|fr)\//); // no relative links
 }
 
@@ -82,7 +82,7 @@ test("contact form: the ADAIG inbox gets the message (Reply-To = sender, escaped
   const message = `Hello <script>alert(1)</script> & welcome ${tok}\nSecond line of the message.`;
   const topicLabel = t("contact.topic_events");
 
-  await page.goto("/en/contact?topic=events");
+  await page.goto("/contact?topic=events");
   await fillContact(page, { name, email, org, message });
   await page.getByRole("button", { name: t("contact.send") }).click();
   await expect(page.locator(".contact-sent")).toContainText(t("contact.sentTitle").trim());
@@ -103,7 +103,7 @@ test("contact form: the ADAIG inbox gets the message (Reply-To = sender, escaped
       `Reply to this email to answer ${name} directly. Your reply goes to ${email}.`,
       `Name: ${name}`, `Email: ${email}`, `Organization: ${org}`, `Topic: ${topicLabel}`,
       "Sent by: Visitor (not signed in)", "Language: English", `Received: ${day(row.createdAt)} at `,
-      `Open Messages: ${SITE}/en/admin/messages`,
+      `Open Messages: ${SITE}/admin/messages`,
     ],
   });
   expect(n.subject, "no personal data in staff subjects").not.toContain(tok.slice(-5));
@@ -113,7 +113,7 @@ test("contact form: the ADAIG inbox gets the message (Reply-To = sender, escaped
   expect(n.html).toContain("E2E &lt;b&gt;Visitor&lt;/b&gt;");
   expect(n.html).not.toContain("<b>Visitor</b>");
   expect(n.html).toContain("E2E Org &amp; Partners");
-  expect(n.html).toContain(`href="${SITE}/en/admin/messages"`);
+  expect(n.html).toContain(`href="${SITE}/admin/messages"`);
 
   // contact.ack → the sender: "Hello," and no echo of the name, organization or message (anti-relay rule).
   const ackSubject = "We’ve received your message";
@@ -125,7 +125,7 @@ test("contact form: the ADAIG inbox gets the message (Reply-To = sender, escaped
       "Thank you for contacting the Association for Data and AI Governance (ADAIG). Your message has reached the ADAIG team, and we’ll reply to this email address. We aim to respond within a few business days.",
       "If you have something to add, you can reply to this email.",
       `Topic: ${topicLabel}`, `Sent: ${day(row.createdAt)} at `,
-      `Read our FAQ: ${SITE}/en/contact`,
+      `Read our FAQ: ${SITE}/contact`,
     ],
     never: [tok, tok.slice(-5), "Visitor", "Partners", "Second line of the message", "<script>"],
   });
@@ -141,7 +141,7 @@ test("contact form: a signed-in member's notification says so and the acknowledg
   const m = await createMember();
   const p = await loginAs(m);
   const tok = token();
-  await p.goto("/en/contact");
+  await p.goto("/contact");
   await fillContact(p, { topic: "membership", message: `E2E member question ${tok}` });
   await p.getByRole("button", { name: t("contact.send") }).click();
   await expect(p.locator(".contact-sent")).toBeVisible();
@@ -159,7 +159,7 @@ test("contact form: a signed-in member's notification says so and the acknowledg
 test("contact form: honeypot hits and rate-limited submissions send no email", async ({ page }) => {
   // Honeypot: the visitor sees the success state, nothing is saved and nothing is sent.
   const bot = uniqueEmail(); const tok = token();
-  await page.goto("/en/contact");
+  await page.goto("/contact");
   await fillContact(page, { name: "E2E Bot", email: bot, topic: "other", message: `E2E bot ${tok}` });
   await page.locator("#cf-web").evaluate((el: HTMLInputElement) => { el.value = "https://spam.example"; });
   await page.getByRole("button", { name: t("contact.send") }).click();
@@ -171,7 +171,7 @@ test("contact form: honeypot hits and rate-limited submissions send no email", a
   for (let i = 0; i < 5; i++)
     await q(`INSERT INTO "ContactMessage" (id, name, email, topic, message, locale) VALUES ($1, 'E2E', $2, 'other', 'E2E earlier message', 'en')`, [e2eId(), limited]);
   const tok2 = token();
-  await page.goto("/en/contact");
+  await page.goto("/contact");
   await fillContact(page, { name: "E2E Sender", email: limited, topic: "other", message: `E2E sixth ${tok2}` });
   await page.getByRole("button", { name: t("contact.send") }).click();
   await expect(page.locator("main").getByRole("alert")).toHaveText(t("contact.errRate"));

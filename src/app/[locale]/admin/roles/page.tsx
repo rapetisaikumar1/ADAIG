@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { can, canManageRole, requireAdminPermission } from "@/lib/rbac";
@@ -22,7 +23,7 @@ export default async function AdminRoles({ params, searchParams }: { params: Pro
   const t = await getTranslations("adminRoles"); const ta = await getTranslations("admin");
   const { msg } = await searchParams;
   const roles = await db.adminRole.findMany({ orderBy: [{ isSystem: "desc" }, { name: "asc" }], include: { _count: { select: { users: true } } } });
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const canCreate = can(ctx, "roles", "create"), canEdit = can(ctx, "roles", "edit"), canUsers = can(ctx, "users", "view");
   const notice = msg && NOTICES[msg] ? { cls: NOTICES[msg], text: t(msg as "msg_deleted") } : null;
   const createBtn = <a className="btn btn-primary btn-sm" href={L("/admin/roles/new")}><Icon name="plus" size={16} />{t("newRole")}</a>;

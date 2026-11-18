@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { auth } from "@/auth";
 import { safeNextPath } from "@/lib/nextPath";
@@ -17,13 +18,13 @@ export default async function Signup({ params, searchParams }: { params: Promise
         {s?.user?.id ? <SignedIn locale={locale} name={s.user.name} email={s.user.email} next={next} page="signup" home={portalHome(locale, s.user.role, s.user.permissions)} /> : <>
           <span className="eyebrow">{tc("myAdaig")}</span>
           <h1>{t("signupTitle")}</h1>
-          <p className="muted auth-sub">{t("haveAccount")} <a href={`/${locale}/login${next ? `?next=${encodeURIComponent(next)}` : ""}`}>{t("signIn")}</a></p>
+          <p className="muted auth-sub">{t("haveAccount")} <a href={localeHref(locale, `/login${next ? `?next=${encodeURIComponent(next)}` : ""}`)}>{t("signIn")}</a></p>
           <SignupForm locale={locale} next={next}
             labels={{ name: t("name"), email: t("email"), password: t("password"), passwordHint: tj("passwordHint"), mkt: tj("mkt"), create: t("createBtn") }} />
           <div className="auth-join">
             <b>{t("joinTitle")}</b>
             <p>{t("joinBody")}</p>
-            <a className="link-arrow" href={`/${locale}/join`}>{t("joinLink")}</a>
+            <a className="link-arrow" href={localeHref(locale, `/join`)}>{t("joinLink")}</a>
           </div>
         </>}
       </div></div>

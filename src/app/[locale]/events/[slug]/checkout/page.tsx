@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { auth } from "@/auth";
@@ -15,11 +16,11 @@ export default async function TicketCheckout({ params, searchParams }: { params:
   const { locale } = await params; setRequestLocale(locale);
   const slug = encodeURIComponent(idParam((await params).slug, 200)); // only used in redirects back to the event page
   const sp = await searchParams; const id = idParam(sp.r), sid = idParam(sp.sid, 255); const t = await getTranslations("events");
-  const s = await auth(); if (!s?.user) redirect(`/${locale}/login?next=${encodeURIComponent(`/${locale}/events/${slug}`)}`); // back to the event after signing in
+  const s = await auth(); if (!s?.user) redirect(localeHref(locale, `/login?next=${encodeURIComponent(localeHref(locale, `/events/${slug}`))}`)); // back to the event after signing in
   const r = id ? await db.registration.findUnique({ where: { id }, include: { event: true } }) : null;
-  if (!r || r.userId !== s.user.id) redirect(`/${locale}/events/${slug}`);
-  if (r.status === "confirmed") redirect(`/${locale}/events/${slug}?registered=1`);
-  if (sid && (await confirmStripeTicket(r.id, sid))) redirect(`/${locale}/events/${slug}?registered=1`);
+  if (!r || r.userId !== s.user.id) redirect(localeHref(locale, `/events/${slug}`));
+  if (r.status === "confirmed") redirect(localeHref(locale, `/events/${slug}?registered=1`));
+  if (sid && (await confirmStripeTicket(r.id, sid))) redirect(localeHref(locale, `/events/${slug}?registered=1`));
   const stripe = !!getStripe(); const mock = await mockAllowed(); const payErr = await paymentsUnavailable(); const cur = r.currency as Currency;
   const v = eventView(r.event, locale);
   const when = v.start.toLocaleDateString(dateLocale(locale), { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: eventTimeZone });
@@ -36,7 +37,7 @@ export default async function TicketCheckout({ params, searchParams }: { params:
         </ul>
         {payErr && <div className="alert alert-danger" role="alert"><Icon name="x-circle" /><div><b>{t("payUnavailable")}</b>{t("payUnavailableBody")}</div></div>}
         {!stripe && mock && <form action={completeMockTicket}><input suppressHydrationWarning type="hidden" name="r" value={r.id} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><button suppressHydrationWarning className="btn btn-accent btn-block">{t("payMock")} {fmt2(r.amountCents, cur, locale)}</button></form>}
-        <p className="small ev-back"><a className="link-tap" href={`/${locale}/events/${slug}`}>← {t("back")}</a></p>
+        <p className="small ev-back"><a className="link-tap" href={localeHref(locale, `/events/${slug}`)}>← {t("back")}</a></p>
       </div>
     </div></section></main>
   );

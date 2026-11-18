@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { loadContent } from "@/lib/content";
 import { Html } from "@/components/SiteChrome";
@@ -27,7 +28,7 @@ export default async function Home({ params }: { params: Promise<{ locale: strin
       <section className="section home-events"><div className="container">
         <div className="section-head reveal">
           <div><span className="eyebrow">{th("upcomingEyebrow")}</span><h2>{t("title")}</h2></div>
-          <a className="link-arrow link-tap" href={`/${locale}/events`}>{th("allEventsLink")}</a>
+          <a className="link-arrow link-tap" href={localeHref(locale, `/events`)}>{th("allEventsLink")}</a>
         </div>
         {events.length ? (
           <div className="grid g2 home-events-grid">{events.map((e) => <EventCard key={e.id} e={e} locale={locale} labels={labels} />)}</div>

@@ -33,7 +33,7 @@ export type RenderEmailInput = {
 const DEFAULT_FOOTER = `You received this email because of an action on your ${ASSOCIATION_SHORT} account or on the ${ASSOCIATION_SHORT} website.`;
 
 export function renderEmail(p: RenderEmailInput): { html: string; text: string } {
-  const home = siteUrl("/en");
+  const home = siteUrl("/");
   const logo = siteUrl("/assets/email-logo.png");
   const inbox = contactInbox();
   const ctaUrl = p.cta ? safeUrl(p.cta.url) : null;
@@ -127,7 +127,7 @@ ${ctaBlock}
 <tr><td class="px" style="padding:20px 40px 8px 40px;font-family:${FONT};font-size:12px;line-height:19px;color:${C.muted};text-align:center;">
 <p style="margin:0 0 8px 0;">${textHtml(footerNote)}</p>
 ${inbox ? `<p style="margin:0 0 8px 0;">Questions? Write to <a href="mailto:${escapeHtml(inbox)}" style="color:${C.teal};text-decoration:underline;">${escapeHtml(inbox)}</a></p>` : ""}
-<p style="margin:0;"><a href="${escapeHtml(home)}" target="_blank" style="color:${C.teal};text-decoration:underline;">${escapeHtml(home.replace(/^https?:\/\//, "").replace(/\/en$/, ""))}</a> &middot; ${ASSOCIATION_NAME}</p>
+<p style="margin:0;"><a href="${escapeHtml(home)}" target="_blank" style="color:${C.teal};text-decoration:underline;">${escapeHtml(home.replace(/^https?:\/\//, "").replace(/\/(en)?$/, ""))}</a> &middot; ${ASSOCIATION_NAME}</p>
 </td></tr>
 </table>
 <!--[if mso]></td></tr></table><![endif]-->

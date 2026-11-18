@@ -63,15 +63,15 @@ test("roles list: Super Admin first with the System badge, a level per module, u
   await createUser({ role: "admin", adminRoleId: role.id });
   const unused = await createAdminRole({ permissions: {} });
 
-  await p.goto("/en/admin/roles");
+  await p.goto("/admin/roles");
   await expect(p.locator("main#main h1").first()).toHaveText(tr("title"));
   await expect(sidebar(p).filter({ hasText: t("adminNav.roles") })).toHaveAttribute("aria-current", "page");
-  await expect(p.locator("main").getByRole("link", { name: tr("newRole") })).toHaveAttribute("href", "/en/admin/roles/new");
+  await expect(p.locator("main").getByRole("link", { name: tr("newRole") })).toHaveAttribute("href", "/admin/roles/new");
 
   const rows = p.locator("main tbody tr");
   await expect(rows.first()).toContainText(SUPER_ADMIN_NAME); // isSystem first
   await expect(rows.first()).toContainText(tr("system"));
-  await expect(rows.first().locator(`a[href="/en/admin/roles/${SUPER}"]`).first()).toBeVisible();
+  await expect(rows.first().locator(`a[href="/admin/roles/${SUPER}"]`).first()).toBeVisible();
 
   const row = rows.filter({ hasText: role.name });
   await expect(row).toHaveCount(1);
@@ -81,8 +81,8 @@ test("roles list: Super Admin first with the System badge, a level per module, u
   for (const [m, lvl] of [["members", "full"], ["events", "custom"], ["messages", "view"], ["users", "none"], ["roles", "none"], ["system", "none"]])
     await expect(cell(row, m), m).toContainText(tr(`lvl_${lvl}`));
   await expect(cell(row, "events")).toContainText(`${tr("act_view")}, ${tr("act_edit")}`); // a Custom level lists its actions
-  await expect(row.locator(`a[href="/en/admin/users?role=${role.id}"]`)).toHaveText(/2 users/);
-  await expect(row.locator(`a[href="/en/admin/roles/${role.id}"]`).first()).toBeVisible();
+  await expect(row.locator(`a[href="/admin/users?role=${role.id}"]`)).toHaveText(/2 users/);
+  await expect(row.locator(`a[href="/admin/roles/${role.id}"]`).first()).toBeVisible();
 
   const emptyRow = rows.filter({ hasText: unused.name });
   await expect(emptyRow).toContainText(/No users/);
@@ -93,7 +93,7 @@ test("roles list: Super Admin first with the System badge, a level per module, u
 
 test("create a role with a description and permission matrix, edit it, delete it @smoke", async ({ adminPage: p }) => {
   const name = uniqueName("Role");
-  await p.goto("/en/admin/roles/new");
+  await p.goto("/admin/roles/new");
   await p.locator("#r-name").fill(name);
   await p.locator("#r-desc").fill("Created by the E2E suite.");
   // The matrix: a checkbox per applicable module × action; not-applicable cells have none.
@@ -106,7 +106,7 @@ test("create a role with a description and permission matrix, edit it, delete it
   await perm(p, "members", "edit").check();
   await perm(p, "events", "view").check();
   await roleForm(p).getByRole("button", { name: tr("create") }).click();
-  await expect(p).toHaveURL(/\/en\/admin\/roles\/[^/?]+\?msg=msg_created/);
+  await expect(p).toHaveURL(/\/admin\/roles\/[^/?]+\?msg=msg_created/);
   await expectNotice(p, tr("msg_created"));
   const id = newRoleId(p.url());
   const created = (await roleById(id))!;
@@ -115,7 +115,7 @@ test("create a role with a description and permission matrix, edit it, delete it
   expect(await auditRows({ action: "admin_role.created", target: id })).toHaveLength(1);
 
   // The list summarises it: Members Custom, Events View, no users.
-  await p.goto("/en/admin/roles");
+  await p.goto("/admin/roles");
   const row = p.locator("main tbody tr", { hasText: name });
   await expect(row.locator(`td[data-label="${tr("mod_members")}"]`)).toContainText(tr("lvl_custom"));
   await expect(row.locator(`td[data-label="${tr("mod_events")}"]`)).toContainText(tr("lvl_view"));
@@ -123,8 +123,8 @@ test("create a role with a description and permission matrix, edit it, delete it
   await expect(row).toContainText(/No users/);
 
   // Edit: the form is prefilled (implied View ticked); rename, new description, Members Edit → off + Messages View on.
-  await row.locator(`a[href="/en/admin/roles/${id}"]`).first().click();
-  await expect(p).toHaveURL(new RegExp(`/en/admin/roles/${id}$`));
+  await row.locator(`a[href="/admin/roles/${id}"]`).first().click();
+  await expect(p).toHaveURL(new RegExp(`/admin/roles/${id}$`));
   await expect(p.locator("#r-name")).toHaveValue(name);
   await expect(p.locator("#r-desc")).toHaveValue("Created by the E2E suite.");
   await expect(perm(p, "members", "view")).toBeChecked();
@@ -137,7 +137,7 @@ test("create a role with a description and permission matrix, edit it, delete it
   await perm(p, "members", "edit").uncheck();
   await perm(p, "messages", "view").check();
   await roleForm(p).getByRole("button", { name: tr("save") }).click();
-  await expect(p).toHaveURL(new RegExp(`/en/admin/roles/${id}\\?msg=msg_saved`));
+  await expect(p).toHaveURL(new RegExp(`/admin/roles/${id}\\?msg=msg_saved`));
   await expectNotice(p, tr("msg_saved"));
   const edited = (await roleById(id))!;
   expect(edited).toMatchObject({ name: renamed, description: "Edited by the E2E suite." });
@@ -146,10 +146,10 @@ test("create a role with a description and permission matrix, edit it, delete it
   expect(await auditRows({ action: "admin_role.permissions_changed", target: id })).toHaveLength(1);
 
   // Delete (unused): confirm box + button → back to the list.
-  await p.goto(`/en/admin/roles/${id}`);
+  await p.goto(`/admin/roles/${id}`);
   await deleteForm(p).locator("input[name=confirm]").check();
   await deleteForm(p).getByRole("button", { name: tr("deleteButton") }).click();
-  await expect(p).toHaveURL(/\/en\/admin\/roles\?msg=msg_deleted/);
+  await expect(p).toHaveURL(/\/admin\/roles\?msg=msg_deleted/);
   await expectNotice(p, tr("msg_deleted"));
   await expect(p.locator("main tbody tr", { hasText: renamed })).toHaveCount(0);
   expect(await roleById(id)).toBeUndefined();
@@ -159,7 +159,7 @@ test("create a role with a description and permission matrix, edit it, delete it
 test("validation: empty or one-letter name, duplicate names (any case, incl. Super Admin), description too long", async ({ adminPage: p }) => {
   const existing = await createAdminRole({ permissions: { members: ["view"] } });
   const before = await count(`SELECT count(*) AS n FROM "AdminRole"`);
-  await p.goto("/en/admin/roles/new");
+  await p.goto("/admin/roles/new");
   await perm(p, "members", "view").check();
   // Let the browser submit what the server must refuse (re-applied before every submit, in case the form re-renders).
   const strip = async () => {
@@ -188,7 +188,7 @@ test("validation: empty or one-letter name, duplicate names (any case, incl. Sup
   await expect(p.locator("#r-desc")).toHaveValue("x".repeat(301));
   await submit();
   await expectFormError(p, tr("err_description"));
-  await expect(p).toHaveURL(/\/en\/admin\/roles\/new$/);
+  await expect(p).toHaveURL(/\/admin\/roles\/new$/);
   expect(await count(`SELECT count(*) AS n FROM "AdminRole"`)).toBe(before);
   expect(await roleByName(fresh)).toBeUndefined();
   expect(await count(`SELECT count(*) AS n FROM "AdminRole" WHERE lower(name) = 'super admin'`)).toBe(1);
@@ -202,7 +202,7 @@ test("validation: empty or one-letter name, duplicate names (any case, incl. Sup
 test("role names: lookalikes of existing roles, hidden characters and mixed alphabets are refused (S5)", async ({ adminPage: p }) => {
   const existing = await createAdminRole({ permissions: { members: ["view"] }, name: `E2E Look ${Date.now().toString(36)}` });
   const before = await count(`SELECT count(*) AS n FROM "AdminRole"`);
-  await p.goto("/en/admin/roles/new");
+  await p.goto("/admin/roles/new");
   await perm(p, "members", "view").check();
   const submit = async (name: string) => {
     await p.locator("#r-name").evaluate((el) => { for (const a of ["required", "minlength", "maxlength", "pattern"]) el.removeAttribute(a); });
@@ -229,12 +229,12 @@ test("role names: lookalikes of existing roles, hidden characters and mixed alph
 
   // Renaming an existing role to a lookalike is refused the same way; keeping its own name is fine.
   const mine = await createAdminRole({ permissions: { members: ["view"] } });
-  await p.goto(`/en/admin/roles/${mine.id}`);
+  await p.goto(`/admin/roles/${mine.id}`);
   await p.locator("#r-name").fill("Super_Admin");
   await roleForm(p).getByRole("button", { name: tr("save") }).click();
   await expectFormError(p, tr("err_nameSimilar", { name: SUPER_ADMIN_NAME }));
   expect((await roleById(mine.id))!.name).toBe(mine.name);
-  await p.goto(`/en/admin/roles/${mine.id}`);
+  await p.goto(`/admin/roles/${mine.id}`);
   await p.locator("#r-desc").fill("Unchanged name, new description");
   await roleForm(p).getByRole("button", { name: tr("save") }).click();
   await expect(p).toHaveURL(/msg=msg_saved/);
@@ -248,9 +248,9 @@ test("editing a role's permissions changes what its signed-in users can do on th
   const msgText = `E2E role edit inbox ${uniqueName("Msg")}`;
   await q(`INSERT INTO "ContactMessage" (id, name, email, topic, message, locale) VALUES ($1, 'E2E', $2, 'other', $3, 'en')`, [e2eId(), uniqueEmail(), msgText]);
 
-  const s = await loginAs(u, { expectUrl: /\/en\/admin\/members$/ });
+  const s = await loginAs(u, { expectUrl: /\/admin\/members$/ });
   await expect(sidebar(s)).toHaveText(NAV(["members", "events", "messages"]));
-  await s.goto("/en/admin/messages");
+  await s.goto("/admin/messages");
   const item = s.locator("li.inbox-item", { hasText: msgText });
   await expect(item).toBeVisible();
   await expect(item.locator("form")).toHaveCount(0); // no messages.edit yet
@@ -258,7 +258,7 @@ test("editing a role's permissions changes what its signed-in users can do on th
   const sv = (await userById(u.id))!.sessionVersion;
 
   // Super Admin: Events off, Messages Edit on.
-  await p.goto(`/en/admin/roles/${role.id}`);
+  await p.goto(`/admin/roles/${role.id}`);
   await perm(p, "events", "view").uncheck();
   await perm(p, "messages", "edit").check();
   await roleForm(p).getByRole("button", { name: tr("save") }).click();
@@ -266,24 +266,24 @@ test("editing a role's permissions changes what its signed-in users can do on th
   expect((await roleById(role.id))!.permissions).toEqual({ members: ["view"], messages: ["view", "edit"] });
 
   // The user's very next request uses the new permissions; the session survives (no sessionVersion bump for role edits).
-  await s.goto("/en/admin/members");
-  await expect(s).toHaveURL(/\/en\/admin\/members$/);
+  await s.goto("/admin/members");
+  await expect(s).toHaveURL(/\/admin\/members$/);
   await expect(sidebar(s)).toHaveText(NAV(["members", "messages"]));
-  await s.goto("/en/admin/events");
-  await expect(s).toHaveURL(/\/en\/admin\/no-access$/);
+  await s.goto("/admin/events");
+  await expect(s).toHaveURL(/\/admin\/no-access$/);
   await expect(s.getByRole("heading", { name: t("admin.noAccessTitle") })).toBeVisible();
   expect((await s.request.get("/api/admin/registrations.csv")).status()).toBe(403);
-  await s.goto("/en/admin/messages");
+  await s.goto("/admin/messages");
   await expect(s.locator("li.inbox-item", { hasText: msgText }).locator("form")).toHaveCount(1); // Mark handled now offered
   expect((await userById(u.id))!.sessionVersion).toBe(sv);
 
   // And back: Events View again → the link returns.
-  await p.goto(`/en/admin/roles/${role.id}`);
+  await p.goto(`/admin/roles/${role.id}`);
   await perm(p, "events", "view").check();
   await roleForm(p).getByRole("button", { name: tr("save") }).click();
   await expect(p).toHaveURL(/msg=msg_saved/);
-  await s.goto("/en/admin/events");
-  await expect(s).toHaveURL(/\/en\/admin\/events$/);
+  await s.goto("/admin/events");
+  await expect(s).toHaveURL(/\/admin\/events$/);
   await expect(sidebar(s)).toHaveText(NAV(["members", "events", "messages"]));
 });
 
@@ -293,7 +293,7 @@ test("Super Admin can't be edited, renamed or deleted (read-only page; forged up
   const before = (await superRow())!;
   expect(before).toMatchObject({ name: SUPER_ADMIN_NAME, isSystem: true });
 
-  await p.goto(`/en/admin/roles/${SUPER}`);
+  await p.goto(`/admin/roles/${SUPER}`);
   await expect(p.locator("main")).toContainText(tr("superNote"));
   // Read-only matrix: every applicable cell ticked and disabled; nothing is submitted (no form, no save).
   await expect(p.locator('main input[id^="perm-"]')).toHaveCount(19); // members 4, events 4, messages 2, users 3, roles 4, system 2
@@ -306,7 +306,7 @@ test("Super Admin can't be edited, renamed or deleted (read-only page; forged up
   // Forged update through another role's real form, re-pointed at the Super Admin role (DOM change + normal submit).
   const other = await createAdminRole({ permissions: { members: ["view"] } });
   // The id is forged last: ticking a checkbox re-renders the form, and React puts its controlled hidden id input back.
-  await p.goto(`/en/admin/roles/${other.id}`);
+  await p.goto(`/admin/roles/${other.id}`);
   await p.locator("#r-name").fill(uniqueName("Hijacked"));
   await perm(p, "events", "view").check();
   await setValue(roleForm(p).locator("input[name=id]"), SUPER);
@@ -315,22 +315,22 @@ test("Super Admin can't be edited, renamed or deleted (read-only page; forged up
   await expectFormError(p, tr("err_systemRole"));
 
   // Forged update posted directly (the form's own progressive-enhancement fields, id + name + permissions forged).
-  await p.goto(`/en/admin/roles/${other.id}`);
+  await p.goto(`/admin/roles/${other.id}`);
   let e = await formEntries(roleForm(p));
   expect(hasActionField(e)).toBe(true);
   e = withEntry(withEntry(withEntry(e, "id", SUPER), "name", "E2E Renamed Super"), "perm", "members:view");
-  const r1 = await post(p.request, `/en/admin/roles/${other.id}`, e);
+  const r1 = await post(p.request, `/admin/roles/${other.id}`, e);
   expect(r1.status()).toBeLessThan(500);
 
   // Forged delete: the other role's delete form re-pointed at the Super Admin role, in the DOM and as a direct post.
-  await p.goto(`/en/admin/roles/${other.id}`);
+  await p.goto(`/admin/roles/${other.id}`);
   await setValue(deleteForm(p).locator("input[name=id]"), SUPER);
   await deleteForm(p).locator("input[name=confirm]").check();
   const del = withEntry(await formEntries(deleteForm(p)), "confirm", "on");
   await deleteForm(p).getByRole("button", { name: tr("deleteButton") }).click();
   await expect(p).toHaveURL(/msg=err_systemRole/);
   await expectNotice(p, tr("err_systemRole"));
-  const r2 = await post(p.request, `/en/admin/roles/${other.id}`, del);
+  const r2 = await post(p.request, `/admin/roles/${other.id}`, del);
   expect(r2.status()).toBe(303);
   expect(r2.headers()["location"]).toMatch(/msg=err_systemRole/);
 
@@ -349,40 +349,40 @@ test("a role in use can't be deleted (UI and forged post); an unused role can", 
   const holder = await createUser({ role: "admin", adminRoleId: used.id });
   const unused = await createAdminRole({ permissions: { events: ["view"] } });
 
-  await p.goto(`/en/admin/roles/${used.id}`);
+  await p.goto(`/admin/roles/${used.id}`);
   const zone = p.locator("#delete");
   await expect(zone).toContainText(/1 user has this role/);
-  await expect(zone.getByRole("link", { name: tr("viewUsers") })).toHaveAttribute("href", `/en/admin/users?role=${used.id}`);
+  await expect(zone.getByRole("link", { name: tr("viewUsers") })).toHaveAttribute("href", `/admin/users?role=${used.id}`);
   const btn = zone.getByRole("button", { name: tr("deleteButton") });
   if (await btn.count()) await expect(btn).toBeDisabled();
 
   // Forged: the unused role's delete form re-pointed at the role in use (direct post, then the DOM route).
-  await p.goto(`/en/admin/roles/${unused.id}`);
+  await p.goto(`/admin/roles/${unused.id}`);
   await deleteForm(p).locator("input[name=confirm]").check();
   const fields = withEntry(withEntry(await formEntries(deleteForm(p)), "id", used.id), "confirm", "on");
   expect(hasActionField(fields)).toBe(true);
-  const r = await post(p.request, `/en/admin/roles/${unused.id}`, fields);
+  const r = await post(p.request, `/admin/roles/${unused.id}`, fields);
   expect(r.status()).toBe(303);
   expect(r.headers()["location"]).toMatch(/msg=err_inUse/);
   await setValue(deleteForm(p).locator("input[name=id]"), used.id);
   await deleteForm(p).getByRole("button", { name: tr("deleteButton") }).click();
-  await expect(p).toHaveURL(new RegExp(`/en/admin/roles/${used.id}\\?msg=err_inUse`));
+  await expect(p).toHaveURL(new RegExp(`/admin/roles/${used.id}\\?msg=err_inUse`));
   await expectNotice(p, tr("err_inUse"));
   expect(await roleById(used.id)).toBeDefined();
   expect((await userById(holder.id))!.adminRoleId).toBe(used.id);
   expect((await auditRows({ action: "admin_role.delete_blocked_in_use", target: used.id })).length).toBeGreaterThanOrEqual(2);
 
   // Without the confirmation box: refused.
-  await p.goto(`/en/admin/roles/${unused.id}`);
+  await p.goto(`/admin/roles/${unused.id}`);
   const noConfirm = (await formEntries(deleteForm(p))).filter(([k]) => k !== "confirm");
-  const r2 = await post(p.request, `/en/admin/roles/${unused.id}`, noConfirm);
+  const r2 = await post(p.request, `/admin/roles/${unused.id}`, noConfirm);
   expect(r2.headers()["location"]).toMatch(/msg=err_confirm/);
   expect(await roleById(unused.id)).toBeDefined();
 
   // The unused role is deleted normally.
   await deleteForm(p).locator("input[name=confirm]").check();
   await deleteForm(p).getByRole("button", { name: tr("deleteButton") }).click();
-  await expect(p).toHaveURL(/\/en\/admin\/roles\?msg=msg_deleted/);
+  await expect(p).toHaveURL(/\/admin\/roles\?msg=msg_deleted/);
   expect(await roleById(unused.id)).toBeUndefined();
 });
 
@@ -394,11 +394,11 @@ test.describe("no privilege escalation", () => {
 
   test("a role editor without members.delete can't grant it: disabled in the matrix, refused when forced on or posted", async ({ loginAs }) => {
     const actor = await createAdmin(ACTOR);
-    const p = await loginAs(actor, { expectUrl: /\/en\/admin\/members$/ });
+    const p = await loginAs(actor, { expectUrl: /\/admin\/members$/ });
     await expect(sidebar(p)).toHaveText(NAV(["members", "users", "roles"]));
 
     // UI: create form. Permissions the actor lacks are disabled; the ones it holds are not.
-    await p.goto("/en/admin/roles/new");
+    await p.goto("/admin/roles/new");
     await expect(perm(p, "members", "view")).toBeEnabled();
     for (const [m, a] of [["members", "create"], ["members", "edit"], ["members", "delete"], ["events", "view"], ["system", "view"]])
       await expect(perm(p, m, a), `${m}:${a}`).toBeDisabled();
@@ -411,29 +411,29 @@ test.describe("no privilege escalation", () => {
     expect(await roleByName(blocked)).toBeUndefined();
 
     // Direct post of the create action with forged perm=members:delete (and events:edit).
-    await p.goto("/en/admin/roles/new");
+    await p.goto("/admin/roles/new");
     const forged = uniqueName("Role");
     await p.locator("#r-name").fill(forged);
     await perm(p, "members", "view").check();
     const base = await formEntries(roleForm(p));
     expect(hasActionField(base)).toBe(true);
-    const r = await post(p.request, "/en/admin/roles/new", [...base, ["perm", "members:delete"], ["perm", "events:edit"]]);
+    const r = await post(p.request, "/admin/roles/new", [...base, ["perm", "members:delete"], ["perm", "events:edit"]]);
     expect(r.status()).toBeLessThan(400);
     expect(await roleByName(forged)).toBeUndefined();
     // Control: the same post without the forged permissions creates the role, so the refusal above is the escalation check.
-    const ok = await post(p.request, "/en/admin/roles/new", base);
+    const ok = await post(p.request, "/admin/roles/new", base);
     expect(ok.status()).toBe(303);
     expect((await roleByName(forged))!.permissions).toEqual({ members: ["view"] });
 
     // UI + direct post: editing a role the actor may manage can't add members.delete either.
     const managed = await createAdminRole({ permissions: { members: ["view"] } });
-    await p.goto(`/en/admin/roles/${managed.id}`);
+    await p.goto(`/admin/roles/${managed.id}`);
     await expect(perm(p, "members", "delete")).toBeDisabled();
     const editBase = await formEntries(roleForm(p));
     await perm(p, "members", "delete").evaluate((el) => { (el as HTMLInputElement).disabled = false; (el as HTMLInputElement).checked = true; });
     await roleForm(p).getByRole("button", { name: tr("save") }).click();
     await expectFormError(p, tr("err_escalation"));
-    const r2 = await post(p.request, `/en/admin/roles/${managed.id}`, [...editBase, ["perm", "members:delete"]]);
+    const r2 = await post(p.request, `/admin/roles/${managed.id}`, [...editBase, ["perm", "members:delete"]]);
     expect(r2.status()).toBeLessThan(400);
     const m = (await roleById(managed.id))!;
     expect(m.permissions).toEqual({ members: ["view"] });
@@ -445,11 +445,11 @@ test.describe("no privilege escalation", () => {
     const actor = await createAdmin(ACTOR);
     const stronger = await createAdminRole({ permissions: { events: ["view"] } }); // something the actor doesn't hold
     const managed = await createAdminRole({ permissions: { members: ["view"] } });
-    const p = await loginAs(actor, { expectUrl: /\/en\/admin\/members$/ });
+    const p = await loginAs(actor, { expectUrl: /\/admin\/members$/ });
 
     // Read-only pages with the matching note, no save / delete.
     for (const [id, note] of [[actor.roleId, tr("ownRoleNote")], [stronger.id, tr("targetNote")]] as const) {
-      await p.goto(`/en/admin/roles/${id}`);
+      await p.goto(`/admin/roles/${id}`);
       await expect(p.locator("main"), id).toContainText(note);
       await expect(p.locator("main").getByRole("button", { name: tr("save") }), id).toHaveCount(0);
       await expect(p.locator("main").getByRole("button", { name: tr("deleteButton") }), id).toHaveCount(0);
@@ -457,18 +457,18 @@ test.describe("no privilege escalation", () => {
 
     // Forged updates: the managed role's form re-pointed at the own role and at the stronger role.
     for (const [id, err] of [[actor.roleId, "err_ownRole"], [stronger.id, "err_target"]] as const) {
-      await p.goto(`/en/admin/roles/${managed.id}`);
+      await p.goto(`/admin/roles/${managed.id}`);
       await p.locator("#r-name").fill(uniqueName("Role"));
       await setValue(roleForm(p).locator("input[name=id]"), id); // last, so no re-render can restore the controlled value
       await roleForm(p).getByRole("button", { name: tr("save") }).click();
       await expectFormError(p, tr(err));
     }
     // Forged deletes (direct posts of the managed role's delete form).
-    await p.goto(`/en/admin/roles/${managed.id}`);
+    await p.goto(`/admin/roles/${managed.id}`);
     await deleteForm(p).locator("input[name=confirm]").check();
     const del = withEntry(await formEntries(deleteForm(p)), "confirm", "on");
     for (const [id, err] of [[actor.roleId, "err_ownRole"], [stronger.id, "err_target"], [SUPER, "err_systemRole"]] as const) {
-      const r = await post(p.request, `/en/admin/roles/${managed.id}`, withEntry(del, "id", id));
+      const r = await post(p.request, `/admin/roles/${managed.id}`, withEntry(del, "id", id));
       expect(r.status(), id).toBe(303);
       expect(r.headers()["location"], id).toMatch(new RegExp(`msg=${err}`));
     }
@@ -481,9 +481,9 @@ test.describe("no privilege escalation", () => {
     const actor = await createAdmin(ACTOR);
     const weaker = await createAdminRole({ permissions: { members: ["view"] } });
     const memberManagerLike = await createAdminRole({ permissions: { members: ALL, events: ["view"], messages: ["view"] } });
-    const p = await loginAs(actor, { expectUrl: /\/en\/admin\/members$/ });
+    const p = await loginAs(actor, { expectUrl: /\/admin\/members$/ });
 
-    await p.goto("/en/admin/users/new");
+    await p.goto("/admin/users/new");
     const select = p.locator("#u-role");
     await expect(select.locator(`option[value="${weaker.id}"]`)).toHaveCount(1);
     await expect(select.locator(`option[value="${actor.roleId}"]`)).toHaveCount(1); // own permissions: allowed
@@ -493,7 +493,7 @@ test.describe("no privilege escalation", () => {
     const form = p.locator("main form", { has: p.locator("#u-email") });
     for (const [roleId, err] of [[SUPER, "err_superOnly"], [memberManagerLike.id, "err_roleNotAllowed"]] as const) {
       const email = uniqueEmail(); const pw = uniquePassword();
-      await p.goto("/en/admin/users/new");
+      await p.goto("/admin/users/new");
       await p.locator("#u-name").fill(uniqueName("Escalation"));
       await p.locator("#u-email").fill(email);
       await p.locator("#u-pw").fill(pw);
@@ -503,7 +503,7 @@ test.describe("no privilege escalation", () => {
       await expectFormError(p, tu(err));
       // Direct post of the same form.
       const e = withEntry(await formEntries(form), "password", pw);
-      const r = await post(p.request, "/en/admin/users/new", withEntry(withEntry(e, "confirm", pw), "roleId", roleId));
+      const r = await post(p.request, "/admin/users/new", withEntry(withEntry(e, "confirm", pw), "roleId", roleId));
       expect(r.status(), roleId).toBeLessThan(400);
       expect(await userByEmail(email), roleId).toBeUndefined();
     }
@@ -515,30 +515,30 @@ test.describe("no privilege escalation", () => {
     const weaker = await createAdminRole({ permissions: { members: ["view"] } });
     const managed = await createUser({ role: "admin", adminRoleId: weaker.id });
     const saBefore = (await userById(sa.id))!;
-    const p = await loginAs(actor, { expectUrl: /\/en\/admin\/members$/ });
+    const p = await loginAs(actor, { expectUrl: /\/admin\/members$/ });
 
     // The Super Admin's page: a note, no role / status / password controls.
-    await p.goto(`/en/admin/users/${sa.id}`);
+    await p.goto(`/admin/users/${sa.id}`);
     await expect(p.locator("main")).toContainText(tu("superNote"));
     await expect(p.locator("main").getByRole("button", { name: tu("changeRole") })).toHaveCount(0);
     await expect(p.locator("main").getByRole("button", { name: tu("pwButton") })).toHaveCount(0);
     await expect(p.locator("main summary, main button").filter({ hasText: tu("deactivate") })).toHaveCount(0);
 
     // Forged: the managed user's forms re-pointed at the Super Admin (uid).
-    await p.goto(`/en/admin/users/${managed.id}`);
+    await p.goto(`/admin/users/${managed.id}`);
     const roleFields = await formEntries(p.locator("#role form").first());
     const statusFields = await formEntries(p.locator("#status form", { has: p.locator("input[name=to]") }).first());
     const pwForm = p.locator("main form", { has: p.locator("input[name=password]") });
     const pwFields = await formEntries(pwForm);
     for (const f of [roleFields, statusFields, pwFields]) expect(hasActionField(f)).toBe(true);
-    const rr = await post(p.request, `/en/admin/users/${managed.id}`, withEntry(withEntry(roleFields, "uid", sa.id), "roleId", weaker.id));
+    const rr = await post(p.request, `/admin/users/${managed.id}`, withEntry(withEntry(roleFields, "uid", sa.id), "roleId", weaker.id));
     expect(rr.status()).toBe(303);
     expect(rr.headers()["location"]).toMatch(/msg=err_superOnly/);
-    const rs = await post(p.request, `/en/admin/users/${managed.id}`, withEntry(withEntry(withEntry(statusFields, "uid", sa.id), "to", "inactive"), "confirm", "on"));
+    const rs = await post(p.request, `/admin/users/${managed.id}`, withEntry(withEntry(withEntry(statusFields, "uid", sa.id), "to", "inactive"), "confirm", "on"));
     expect(rs.status()).toBe(303);
     expect(rs.headers()["location"]).toMatch(/msg=err_superOnly/);
     const newPw = uniquePassword();
-    const rp = await post(p.request, `/en/admin/users/${managed.id}`, withEntry(withEntry(withEntry(pwFields, "uid", sa.id), "password", newPw), "confirm", newPw));
+    const rp = await post(p.request, `/admin/users/${managed.id}`, withEntry(withEntry(withEntry(pwFields, "uid", sa.id), "password", newPw), "confirm", newPw));
     expect(rp.status()).toBeLessThan(400);
     // The same password reset through the real form with the uid changed in the DOM.
     await pwForm.locator("input[name=password]").fill(newPw);

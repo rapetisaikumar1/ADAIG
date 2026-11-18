@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -32,7 +33,7 @@ export default async function Join({ params, searchParams }: { params: Promise<{
   // BUG-033: already a member / application in progress → dashboard
   if (u) await expireUnpaid(u.id);
   const open = u ? await db.membership.findFirst({ where: { userId: u.id, status: { in: ["pending", "pending_verification", "active"] } }, orderBy: { createdAt: "desc" } }) : null;
-  if (open && open.status !== "pending") redirect(`/${locale}/my/billing?already=1`);
+  if (open && open.status !== "pending") redirect(localeHref(locale, `/my/billing?already=1`));
   const legacyOrder = open; // unpaid order from the old payment flow: can be cancelled; submitting the application replaces it
   const msg = sp.msg;
   const [first, ...rest] = (u?.name ?? "").split(" ");

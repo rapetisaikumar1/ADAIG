@@ -19,8 +19,8 @@ import { t, re } from "../support/i18n";
 /* ── helpers ───────────────────────────────────────────────────────────────────── */
 
 const tu = (k: string, v?: Record<string, string | number>) => t(`adminUsers.${k}`, v);
-const userPage = (p: Page, id: string) => p.goto(`/en/admin/users/${encodeURIComponent(id)}`);
-const listPage = (p: Page, query = "") => p.goto(`/en/admin/users${query}`);
+const userPage = (p: Page, id: string) => p.goto(`/admin/users/${encodeURIComponent(id)}`);
+const listPage = (p: Page, query = "") => p.goto(`/admin/users${query}`);
 /** Page-level notice from `?msg=` (success → role=status, error → role=alert), as on the member account page. */
 const notice = (p: Page) => p.locator("main .alert").first();
 const rows = (p: Page) => p.locator("main table tbody tr");
@@ -62,7 +62,7 @@ async function sidebarLinks(p: Page, isMobile: boolean) {
 const navText = (keys: string[]) => keys.map((k) => re(t(`adminNav.${k}`)));
 
 async function submitLogin(p: Page, email: string, password: string) {
-  await p.goto("/en/login");
+  await p.goto("/login");
   await p.locator("#le").fill(email);
   await p.locator("#lp").fill(password);
   await p.locator("main form").getByRole("button", { name: t("auth.signIn") }).click();
@@ -84,7 +84,7 @@ const submitCreate = (p: Page) => createForm(p).getByRole("button", { name: tu("
 /** A refused create: the error in an alert, the typed name/email/role kept, both password fields empty, nothing created. */
 async function expectCreateRefused(p: Page, errKey: string, v: { name: string; email: string; roleId: string; password: string }, opts: { keepEmail?: boolean; keepRole?: boolean } = {}) {
   await expect(createForm(p).getByRole("alert").filter({ hasText: tu(errKey) }).first()).toBeVisible();
-  await expect(p).toHaveURL(/\/en\/admin\/users\/new$/);
+  await expect(p).toHaveURL(/\/admin\/users\/new$/);
   await expect(p.locator("#u-name")).toHaveValue(v.name);
   if (opts.keepEmail !== false) await expect(p.locator("#u-email")).toHaveValue(v.email);
   if (opts.keepRole !== false) await expect(p.locator("#u-role")).toHaveValue(v.roleId);
@@ -143,7 +143,7 @@ test("users list: Admin Portal accounts only, search, status tabs with counts, r
 
   await listPage(p);
   await expect(p.getByRole("heading", { level: 1 })).toHaveText(tu("title"));
-  await expect(p.getByRole("link", { name: tu("newUser") })).toHaveAttribute("href", "/en/admin/users/new");
+  await expect(p.getByRole("link", { name: tu("newUser") })).toHaveAttribute("href", "/admin/users/new");
   expect(await p.content(), "no password hashes in the page").not.toMatch(BCRYPT_RE);
 
   // Search (name or email, case-insensitive): the three admins, never the member.
@@ -155,7 +155,7 @@ test("users list: Admin Portal accounts only, search, status tabs with counts, r
   for (const u of [a1, a2]) await expect(row(p, u.email).getByText(tu("active"), { exact: true })).toBeVisible();
   await expect(row(p, a3.email).getByText(tu("inactive"), { exact: true })).toBeVisible();
   await expect(row(p, a1.email)).toContainText(role.name);
-  await expect(row(p, a1.email).getByRole("link", { name: a1.name })).toHaveAttribute("href", `/en/admin/users/${a1.id}`);
+  await expect(row(p, a1.email).getByRole("link", { name: a1.name })).toHaveAttribute("href", `/admin/users/${a1.id}`);
   await expect(row(p, a1.email).getByRole("link", { name: tu("manage") })).toBeVisible();
 
   // Tabs count within the current search; the Inactive tab lists only the deactivated account.
@@ -206,7 +206,7 @@ test("create a user without an invitation: they can sign in right away @smoke", 
 
   await listPage(p);
   await p.getByRole("link", { name: tu("newUser") }).click();
-  await expect(p).toHaveURL(/\/en\/admin\/users\/new$/);
+  await expect(p).toHaveURL(/\/admin\/users\/new$/);
   await expect(p.locator("#u-pw")).toHaveAttribute("type", "password");
   await expect(p.locator("#u-pw2")).toHaveAttribute("type", "password");
   await expect(p.locator("#u-pw")).toHaveAttribute("autocomplete", "new-password");
@@ -219,7 +219,7 @@ test("create a user without an invitation: they can sign in right away @smoke", 
 
   await fillCreate(p, v);
   await submitCreate(p);
-  await expect(p).toHaveURL(/\/en\/admin\/users\/[^/?#]+\?msg=msg_created/);
+  await expect(p).toHaveURL(/\/admin\/users\/[^/?#]+\?msg=msg_created/);
   await expect(notice(p)).toHaveText(tu("msg_created"));
   expect(p.url()).not.toContain(v.password);
   expect(await p.content(), "the password is never shown").not.toContain(v.password);
@@ -228,7 +228,7 @@ test("create a user without an invitation: they can sign in right away @smoke", 
   const u = (await userByEmail(v.email))!;
   expect(u).toMatchObject({ name: v.name, role: "admin", active: true, adminRoleId: role.id, sessionVersion: 0 });
   expect(u.passwordHash).toMatch(/^\$2[aby]\$/);
-  expect(p.url()).toContain(`/en/admin/users/${u.id}?`);
+  expect(p.url()).toContain(`/admin/users/${u.id}?`);
   await expect(p.getByRole("heading", { level: 1 })).toContainText(v.name);
   await expect(p.locator("main")).toContainText(role.name);
   expect(await auditRows({ action: "admin_user.created", target: `${u.id} (role: ${role.id})` })).toHaveLength(1);
@@ -242,7 +242,7 @@ test("create a user without an invitation: they can sign in right away @smoke", 
 
   // No invitation step: the typed password works now, and the new user lands on their role's admin home.
   const s = await newPage();
-  await uiLogin(s, { email: v.email, password: v.password }, { expectUrl: /\/en\/admin\/members$/ });
+  await uiLogin(s, { email: v.email, password: v.password }, { expectUrl: /\/admin\/members$/ });
   await expect(s.locator("header.admin-header")).toBeVisible();
   await expect(await sidebarLinks(s, isMobile)).toHaveText(navText(["members", "events", "messages"]));
 });
@@ -250,11 +250,11 @@ test("create a user without an invitation: they can sign in right away @smoke", 
 test("create user: the landing page follows the role (events-only → Events; Super Admin → Members with Users and Roles)", async ({ adminPage: p, newPage }) => {
   const events = await createAdminRole({ permissions: ROLE_PRESETS.eventsOnly });
   for (const [roleId, home, nav] of [
-    [events.id, /\/en\/admin\/events$/, ["events"]],
-    [SUPER_ADMIN_ROLE_ID, /\/en\/admin\/members$/, ["members", "events", "messages", "users", "roles"]],
+    [events.id, /\/admin\/events$/, ["events"]],
+    [SUPER_ADMIN_ROLE_ID, /\/admin\/members$/, ["members", "events", "messages", "users", "roles"]],
   ] as const) {
     const v = { name: uniqueName("Staff"), email: uniqueEmail(), password: uniquePassword(), roleId };
-    await p.goto("/en/admin/users/new");
+    await p.goto("/admin/users/new");
     await fillCreate(p, v);
     await submitCreate(p);
     await expect(p).toHaveURL(/\?msg=msg_created/);
@@ -269,7 +269,7 @@ test("create user: validation keeps the typed name, email and role but never the
   const role = await createAdminRole({ permissions: VIEWER });
   const base = () => ({ name: uniqueName("Staff"), email: uniqueEmail(), password: uniquePassword(), roleId: role.id });
   const attempt = async (v: NewUser, errKey: string, prep?: () => Promise<void>, keepRole = true) => {
-    await p.goto("/en/admin/users/new");
+    await p.goto("/admin/users/new");
     await noValidate(createForm(p));
     if (prep) await prep();
     await fillCreate(p, v);
@@ -303,7 +303,7 @@ test("create user: an email used by any account (member, guest, admin, any case)
     ["Super Admin", SEED.admin2], ["other case", guest.email.toUpperCase()],
   ] as const) {
     const v = { name: uniqueName("Staff"), email, password: uniquePassword(), roleId: role.id };
-    await p.goto("/en/admin/users/new");
+    await p.goto("/admin/users/new");
     await fillCreate(p, v);
     await submitCreate(p);
     await expectCreateRefused(p, "err_emailTaken", v, { keepEmail: false });
@@ -359,7 +359,7 @@ test("edit name and email; duplicates and invalid emails are refused; the new em
   const s = await newPage();
   await submitLogin(s, u.email, u.password);
   await expectLoginRefused(s, t("auth.invalid"));
-  await uiLogin(s, { email, password: u.password }, { expectUrl: /\/en\/admin\/members$/ });
+  await uiLogin(s, { email, password: u.password }, { expectUrl: /\/admin\/members$/ });
 });
 
 /* ── role change ───────────────────────────────────────────────────────────────── */
@@ -367,7 +367,7 @@ test("edit name and email; duplicates and invalid emails are refused; the new em
 test("change role: the user's open session ends on their next request and the new access applies", async ({ adminPage: p, loginAs, newPage }) => {
   const u = await createAdmin(VIEWER);
   const target = await createAdminRole({ permissions: { events: ["view", "create", "edit", "delete"], users: ["view"] } });
-  const session = await loginAs(u, { expectUrl: /\/en\/admin\/members$/ });
+  const session = await loginAs(u, { expectUrl: /\/admin\/members$/ });
   const sv = (await userById(u.id))!.sessionVersion;
 
   await userPage(p, u.id);
@@ -387,23 +387,23 @@ test("change role: the user's open session ends on their next request and the ne
   await expect(p.locator("main")).toContainText(target.name);
 
   // The open session is rejected on its next request.
-  await session.goto("/en/admin/members");
-  await expect(session).toHaveURL(/\/en\/login/);
+  await session.goto("/admin/members");
+  await expect(session).toHaveURL(/\/login/);
   expect((await session.request.get("/api/admin/members.csv")).status()).toBe(403);
 
   // Signing in again gives the new role's access: Events + Users, landing on Events; Members is refused.
   const s = await newPage();
-  await uiLogin(s, u, { expectUrl: /\/en\/admin\/events$/ });
+  await uiLogin(s, u, { expectUrl: /\/admin\/events$/ });
   await expect(await sidebarLinks(s, false)).toHaveText(navText(["events", "users"]));
-  await s.goto("/en/admin/members");
-  await expect(s).toHaveURL(/\/en\/admin\/no-access$/);
+  await s.goto("/admin/members");
+  await expect(s).toHaveURL(/\/admin\/no-access$/);
 });
 
 /* ── deactivate / reactivate ───────────────────────────────────────────────────── */
 
 test("deactivate: open session rejected, sign-in refused with the generic error; reactivate restores access", async ({ adminPage: p, loginAs, newPage }) => {
   const u = await createAdmin(VIEWER);
-  const session = await loginAs(u, { expectUrl: /\/en\/admin\/members$/ });
+  const session = await loginAs(u, { expectUrl: /\/admin\/members$/ });
   const sv = (await userById(u.id))!.sessionVersion;
 
   await userPage(p, u.id);
@@ -428,8 +428,8 @@ test("deactivate: open session rejected, sign-in refused with the generic error;
   expect(await auditFor("admin_user.deactivated", u.id)).toHaveLength(1);
 
   // The open session dies on its next request (pages and APIs).
-  await session.goto("/en/admin/events");
-  await expect(session).toHaveURL(/\/en\/login/);
+  await session.goto("/admin/events");
+  await expect(session).toHaveURL(/\/login/);
   expect((await session.request.get("/api/admin/members.csv")).status()).toBe(403);
 
   // The right password gets exactly the wrong-password message (no account-existence leak).
@@ -455,7 +455,7 @@ test("deactivate: open session rejected, sign-in refused with the generic error;
   await expect(notice(p)).toHaveText(tu("msg_activated"));
   expect((await userById(u.id))!.active).toBe(true);
   expect(await auditFor("admin_user.activated", u.id)).toHaveLength(1);
-  await uiLogin(s, u, { expectUrl: /\/en\/admin\/members$/ });
+  await uiLogin(s, u, { expectUrl: /\/admin\/members$/ });
   await expect(s.locator("header.admin-header")).toBeVisible();
 });
 
@@ -463,7 +463,7 @@ test("deactivate: open session rejected, sign-in refused with the generic error;
 
 test("password reset by an admin: policy and mismatch errors; old password fails, new works, session ends, never echoed", async ({ adminPage: p, loginAs, newPage }) => {
   const u = await createAdmin(VIEWER);
-  const session = await loginAs(u, { expectUrl: /\/en\/admin\/members$/ });
+  const session = await loginAs(u, { expectUrl: /\/admin\/members$/ });
   const before = (await userById(u.id))!;
 
   await userPage(p, u.id);
@@ -508,13 +508,13 @@ test("password reset by an admin: policy and mismatch errors; old password fails
   expect(await p.content()).not.toContain(newPassword);
 
   // The user's existing session is signed out.
-  await session.goto("/en/admin/members");
-  await expect(session).toHaveURL(/\/en\/login/);
+  await session.goto("/admin/members");
+  await expect(session).toHaveURL(/\/login/);
   // Old password refused, new one accepted.
   const s = await newPage();
   await submitLogin(s, u.email, u.password);
   await expectLoginRefused(s, t("auth.invalid"), { email: u.email });
-  await uiLogin(s, { email: u.email, password: newPassword }, { expectUrl: /\/en\/admin\/members$/ });
+  await uiLogin(s, { email: u.email, password: newPassword }, { expectUrl: /\/admin\/members$/ });
 });
 
 /* ── unlock ────────────────────────────────────────────────────────────────────── */
@@ -533,7 +533,7 @@ test("a locked admin user shows as Locked and can be unlocked", async ({ adminPa
   await expect(notice(p)).toHaveText(tu("msg_unlocked"));
   expect(await one(`SELECT key FROM "LoginThrottle" WHERE key = $1`, [`e:${u.email}`])).toBeUndefined();
   expect(await auditRows({ action: "auth.account_unlocked", target: u.id })).toHaveLength(1);
-  await uiLogin(page, u, { expectUrl: /\/en\/admin\/members$/ });
+  await uiLogin(page, u, { expectUrl: /\/admin\/members$/ });
 });
 
 /* ── protections ───────────────────────────────────────────────────────────────── */
@@ -574,20 +574,20 @@ test("self: no role, status or password controls on your own page; forged self-c
   expect(after).toMatchObject({ role: "admin", active: true, adminRoleId: SUPER_ADMIN_ROLE_ID, sessionVersion: me.sessionVersion, passwordHash: me.passwordHash });
   expect(await userById(other.id)).toMatchObject({ active: true, adminRoleId: viewerRole, passwordHash: otherBefore.passwordHash, sessionVersion: otherBefore.sessionVersion });
   // Still signed in (the seed session was not touched).
-  await p.goto("/en/admin/users");
-  await expect(p).toHaveURL(/\/en\/admin\/users$/);
+  await p.goto("/admin/users");
+  await expect(p).toHaveURL(/\/admin\/users$/);
 });
 
 test("the last active Super Admin cannot be deactivated, demoted or deleted", async ({ loginAs }) => {
   // A member's real "Delete my account" form, replayed by the admin below (admin profiles have no delete form any more).
   const member = await createMember();
   const mp = await loginAs(member);
-  await mp.goto("/en/my/profile");
+  await mp.goto("/my/profile");
   const delFields = (await formEntries(mp.locator("form.mbr-danger"))).filter(([k]) => k !== "password" && k !== "confirm");
 
   const x = await createUser({ role: "admin" }); // Super Admin
   const other = await createAdmin(VIEWER);
-  const xp = await loginAs(x, { expectUrl: /\/en\/admin\/members$/ });
+  const xp = await loginAs(x, { expectUrl: /\/admin\/members$/ });
   const restore = await deactivateOtherSuperAdmins(x.id);
   try {
     expect(await count(`SELECT count(*) AS n FROM "User" WHERE role = 'admin' AND active AND "adminRoleId" = $1`, [SUPER_ADMIN_ROLE_ID])).toBe(1);
@@ -606,14 +606,14 @@ test("the last active Super Admin cannot be deactivated, demoted or deleted", as
     await deactivateForm(xp).getByRole("button", { name: tu("deactivateYes") }).click();
     await expect(xp).toHaveURL(/msg=err_(self|lastSuperAdmin)/);
     // Self-deletion: Admin Portal accounts can't delete themselves at all (round-7 S1): no delete form, a note instead…
-    await xp.goto("/en/my/profile");
+    await xp.goto("/my/profile");
     await expect(xp.locator("main #dp")).toHaveCount(0);
     await expect(xp.locator(".mbr-admin-close")).toContainText(t("profile.adminCloseNote"));
     // …and a forged post of the member's delete form (with the admin's correct password) is refused with del=admin.
-    const r = await postForm(xp.request, "/en/my/profile", [...delFields, ["password", x.password], ["confirm", "on"]]);
+    const r = await postForm(xp.request, "/my/profile", [...delFields, ["password", x.password], ["confirm", "on"]]);
     expect(r.status()).toBe(303);
-    expect(r.headers()["location"]).toMatch(/\/en\/my\/profile\?del=admin$/);
-    await xp.goto("/en/my/profile?del=admin");
+    expect(r.headers()["location"]).toMatch(/\/my\/profile\?del=admin$/);
+    await xp.goto("/my/profile?del=admin");
     await expect(xp.locator(".mbr-admin-close").getByRole("alert")).toHaveText(t("profile.deleteAdminBlocked"));
     expect(await userById(x.id)).toMatchObject({ role: "admin", active: true, adminRoleId: SUPER_ADMIN_ROLE_ID, deletedAt: null, email: x.email });
     expect((await auditRows({ action: "account.delete_blocked_admin", target: x.id })).length).toBeGreaterThanOrEqual(1);
@@ -632,12 +632,12 @@ test("you can't edit, re-role, deactivate or reset a more powerful user (UI hidd
     const r = (await userById(id))!; return { name: r.name, email: r.email, active: r.active, adminRoleId: r.adminRoleId, passwordHash: r.passwordHash, sessionVersion: r.sessionVersion };
   }));
   const before = await snap();
-  const a = await loginAs(actor, { expectUrl: /\/en\/admin\/members$/ });
+  const a = await loginAs(actor, { expectUrl: /\/admin\/members$/ });
 
   // List: "Manage" for the weaker user, "View" for the stronger ones.
-  await a.goto(`/en/admin/users?q=${encodeURIComponent(weak.email)}`);
+  await a.goto(`/admin/users?q=${encodeURIComponent(weak.email)}`);
   await expect(row(a, weak.email).getByRole("link", { name: tu("manage") })).toBeVisible();
-  await a.goto(`/en/admin/users?q=${encodeURIComponent(strong.email)}`);
+  await a.goto(`/admin/users?q=${encodeURIComponent(strong.email)}`);
   await expect(row(a, strong.email).getByRole("link", { name: tu("view") })).toBeVisible();
 
   // Their pages are read-only with the reason.
@@ -698,10 +698,10 @@ test("peers: equal permissions can't manage each other (UI read-only, forged det
     const r = (await userById(id))!; return { name: r.name, email: r.email, active: r.active, adminRoleId: r.adminRoleId, passwordHash: r.passwordHash, sessionVersion: r.sessionVersion };
   }));
   const before = await snap();
-  const a = await loginAs(actor, { expectUrl: /\/en\/admin\/members$/ });
+  const a = await loginAs(actor, { expectUrl: /\/admin\/members$/ });
 
   for (const peer of [peerSameRole, peerEqual]) {
-    await a.goto(`/en/admin/users?q=${encodeURIComponent(peer.email)}`);
+    await a.goto(`/admin/users?q=${encodeURIComponent(peer.email)}`);
     await expect(row(a, peer.email).getByRole("link", { name: tu("view") })).toBeVisible();
     await userPage(a, peer.id);
     await expect(a.locator("main")).toContainText(tu("peerNote"));
@@ -747,7 +747,7 @@ test("peers: equal permissions can't manage each other (UI read-only, forged det
 test("own page: the sign-in email is read-only, the name stays editable; a forged own-email change is refused — S2", async ({ loginAs }) => {
   const me = await createAdmin({ users: ["view", "create", "edit"], members: ["view"] });
   const other = await createAdmin({ members: ["view"] });
-  const p = await loginAs(me, { expectUrl: /\/en\/admin\/members$/ });
+  const p = await loginAs(me, { expectUrl: /\/admin\/members$/ });
 
   await userPage(p, me.id);
   await expect(p.locator("#details input[name=email]:not([readonly]):not([disabled]):not([type=hidden])"), "no editable email field").toHaveCount(0);
@@ -777,9 +777,9 @@ test("separation: admins are not in Members, members are not in Users, and Membe
   const admin = await createAdmin(VIEWER);
   const member = await createMember();
 
-  await p.goto(`/en/admin/members?q=${encodeURIComponent(admin.email)}`);
+  await p.goto(`/admin/members?q=${encodeURIComponent(admin.email)}`);
   await expect(p.locator("main table tbody tr", { hasText: admin.email })).toHaveCount(0);
-  for (const path of [`/en/admin/members/${admin.id}`, `/en/admin/users/${member.id}`]) {
+  for (const path of [`/admin/members/${admin.id}`, `/admin/users/${member.id}`]) {
     const r = await p.goto(path);
     expect(r?.status(), path).toBe(404);
     await expect(p.getByRole("heading", { level: 1 }), path).toHaveText(t("errors.notFoundTitle"));
@@ -789,7 +789,7 @@ test("separation: admins are not in Members, members are not in Users, and Membe
   await expect(rows(p)).toHaveCount(0);
 
   // Members → New account with an admin's email is refused.
-  await p.goto("/en/admin/members/new");
+  await p.goto("/admin/members/new");
   await expect(p.locator("#n-role")).toHaveCount(0);
   await p.locator("#n-name").fill(uniqueName("Created"));
   await p.locator("#n-email").fill(admin.email);
@@ -799,7 +799,7 @@ test("separation: admins are not in Members, members are not in Users, and Membe
 
   // A forged role=admin on Members → New account still creates a guest.
   const email = uniqueEmail();
-  await p.goto("/en/admin/members/new");
+  await p.goto("/admin/members/new");
   await p.locator("#n-name").fill(uniqueName("Created"));
   await p.locator("#n-email").fill(email);
   await p.locator("main form", { has: p.locator("#n-email") }).evaluate((f) => {

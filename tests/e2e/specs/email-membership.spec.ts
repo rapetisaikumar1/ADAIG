@@ -32,7 +32,7 @@ function expectMail(m: Mail, o: { to: string; replyTo: string; subject: string; 
   for (const s of o.text ?? []) expect(txt(m), `text part contains: ${s}`).toContain(s);
   for (const s of o.never ?? []) for (const [part, v] of [["subject", m.subject], ["text", m.text], ["html", m.html]] as const)
     expect(v, `${part} must not contain: ${s}`).not.toContain(s);
-  expect(m.html, "absolute /en links in the HTML").toContain(`href="${SITE}/en`);
+  expect(m.html, "absolute site links in the HTML").toContain(`href="${SITE}/`);
   expect(m.html).not.toMatch(/href="\/(en|fr)\//);
 }
 
@@ -77,7 +77,7 @@ const applicant = (): Applicant => {
 };
 
 async function fillApplication(page: Page, a: Applicant, opts: { tier: string; institution?: string; signedIn?: boolean }) {
-  await page.goto(`/en/join?tier=${opts.tier}`);
+  await page.goto(`/join?tier=${opts.tier}`);
   await expect(page.locator("#tier")).toHaveValue(opts.tier);
   await page.locator("#fn").fill(a.first);
   await page.locator("#ln").fill(a.last);
@@ -99,7 +99,7 @@ test("join (new account): acknowledgement to the applicant, notification to the 
   const a = applicant(); const name = `${a.first} ${a.last}`;
   await fillApplication(page, a, { tier: "professional" });
   await page.getByRole("button", { name: t("join.submit") }).click();
-  await expect(page).toHaveURL(/\/en\/my\/billing\?applied=1$/);
+  await expect(page).toHaveURL(/\/my\/billing\?applied=1$/);
   const u = (await userByEmail(a.email))!;
   const [m] = await membershipsOf(u.id);
   const created = (await membershipDates(m.id))!.createdAt;
@@ -115,7 +115,7 @@ test("join (new account): acknowledgement to the applicant, notification to the 
       "Nothing has been charged: there is no payment when you apply.",
       "We’ve also created your ADAIG account. Sign in with this email address and the password you chose to follow your application.",
       "Tier: Professional", "Status: Under review", `Submitted: ${day(created)}`, `Account email: ${a.email}`,
-      `View My membership: ${SITE}/en/my/billing`,
+      `View My membership: ${SITE}/my/billing`,
     ],
     never: [a.password, a.last, "Partners", "proof of enrollment"],
   });
@@ -130,7 +130,7 @@ test("join (new account): acknowledgement to the applicant, notification to the 
       `${name} applied for Professional membership. The application is waiting for review in Admin → Members.`,
       `Name: ${name}`, `Email: ${a.email}`, "Tier: Professional", `Organization: ${a.org}`, "Country: United States",
       "Account: New account created with this application", `Submitted: ${day(created)} at `,
-      `Review the application: ${SITE}/en/admin/members/${encodeURIComponent(u.id)}#memberships`,
+      `Review the application: ${SITE}/admin/members/${encodeURIComponent(u.id)}#memberships`,
     ],
     never: [a.password],
   });
@@ -143,7 +143,7 @@ test("join (new account): acknowledgement to the applicant, notification to the 
   await expectLogSent(`join.notify:${m.id}`, { kind: "join.notify", to: INBOX, subject: notifySubject, userId: null });
 
   // Approve → membership.approved ("Hello {name},", tier, dates, My membership).
-  await adminPage.goto(`/en/admin/members?f=pending&q=${encodeURIComponent(a.email)}`);
+  await adminPage.goto(`/admin/members?f=pending&q=${encodeURIComponent(a.email)}`);
   await adminPage.locator("tbody tr", { hasText: a.email }).getByRole("button", { name: `${t("admin.approve")}: ${name}` }).click();
   await expect(adminPage).toHaveURL(/msg=approved/);
   const d = (await membershipDates(m.id))!;
@@ -155,7 +155,7 @@ test("join (new account): acknowledgement to the applicant, notification to the 
       "Welcome to the Association for Data and AI Governance (ADAIG). Your application has been approved, and your Professional membership is now active.",
       "Membership fees aren’t paid online.",
       "Tier: Professional", "Status: Active", `Member since: ${day(d.startsAt)}`, `Renewal date: ${day(d.renewsAt)}`,
-      `Go to My membership: ${SITE}/en/my/billing`,
+      `Go to My membership: ${SITE}/my/billing`,
     ],
     never: [a.password],
   });
@@ -184,7 +184,7 @@ test("join (student): the acknowledgement mentions eligibility; a rejection emai
   expectMail(n, { to: INBOX, replyTo: a.email, subject: "New membership application: Student", text: ["Institution: E2E University & College"] });
   expect(n.html).toContain("E2E University &amp; College");
 
-  await adminPage.goto(`/en/admin/members/${u.id}`);
+  await adminPage.goto(`/admin/members/${u.id}`);
   await adminPage.locator("#memberships summary", { hasText: t("admin.reject") }).click();
   await adminPage.locator(`#rr-${m.id}`).fill(reason);
   await adminPage.getByRole("button", { name: t("admin.confirmReject") }).click();
@@ -200,7 +200,7 @@ test("join (student): the acknowledgement mentions eligibility; a rejection emai
       `Reason: ${reason}.`,
       "Your ADAIG account stays open as a free account.",
       "Tier: Student", "Status: Not approved", `Applied on: ${day(created)}`,
-      `View My membership: ${SITE}/en/my/billing`,
+      `View My membership: ${SITE}/my/billing`,
     ],
     never: [a.password],
   });
@@ -281,7 +281,7 @@ test.describe("daily cron emails", () => {
         `Your Professional membership was due for renewal on ${day(due.renewsAt)}. Renewal isn’t handled online: the ADAIG team will contact you about renewing.`,
         `Your membership stays active during a 30-day grace period. If it isn’t renewed by ${day(lapseOn)}, it will lapse.`,
         "Tier: Professional", `Renewal date: ${day(due.renewsAt)}`, `Grace period ends: ${day(lapseOn)}`,
-        `Go to My membership: ${SITE}/en/my/billing`,
+        `Go to My membership: ${SITE}/my/billing`,
       ],
     });
     const [row] = await logsLike(`membership.renewal_due:${due.membershipId}:%`);
@@ -323,7 +323,7 @@ test.describe("daily cron emails", () => {
           "Your ADAIG account stays open as a free guest account", // both are guests now
           "The ADAIG team can renew your membership for you.",
           "Tier: Professional", "Status: Lapsed", `Renewal was due: ${day(who.renewsAt)}`,
-          `Contact the ADAIG team: ${SITE}/en/contact?topic=membership`,
+          `Contact the ADAIG team: ${SITE}/contact?topic=membership`,
         ],
       });
       await expectLogSent(`membership.lapsed:${key}`, { kind: "membership.lapsed", to: who.email, subject: LAPSED, userId: who.id });

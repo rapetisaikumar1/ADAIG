@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { evLabel } from "@/config/site";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
@@ -45,10 +46,10 @@ export default async function Events({ params, searchParams }: { params: Promise
         <div className="ev-results">
           {/* the count stays announced; with no results the empty state below says it, so the count is visually hidden */}
           <span className={events.length ? "ev-count" : "sr-only"} role="status">{t("count", { count: events.length })}</span>
-          {filtered && events.length > 0 && <a className="btn btn-ghost btn-sm" href={`/${locale}/events`}><Icon name="x" size={16} />{t("clear")}</a>}
+          {filtered && events.length > 0 && <a className="btn btn-ghost btn-sm" href={localeHref(locale, `/events`)}><Icon name="x" size={16} />{t("clear")}</a>}
         </div>
         {events.length === 0 ? (
-          <EmptyState title={t("empty")} action={<a className="btn btn-secondary" href={`/${locale}/events`}>{t("clear")}</a>}><a className="link-arrow" href={`/${locale}/contact?topic=events`}>{t("questions")}</a></EmptyState>
+          <EmptyState title={t("empty")} action={<a className="btn btn-secondary" href={localeHref(locale, `/events`)}>{t("clear")}</a>}><a className="link-arrow" href={localeHref(locale, `/contact?topic=events`)}>{t("questions")}</a></EmptyState>
         ) : (
           <>
             {upcoming.length > 0 && <><h2 className="sr-only">{t("upcomingTitle")}</h2><div className="grid g3 ev-grid">{upcoming.map((e) => <EventCard key={e.id} e={e} locale={locale} labels={labels} />)}</div></>}
@@ -60,7 +61,7 @@ export default async function Events({ params, searchParams }: { params: Promise
         )}
       </div></section>
       <section className="section bg-mist ev-how"><div className="container split is-4-8">
-        <div><span className="eyebrow">{t("howEyebrow")}</span><h2>{t("howTitle")}</h2><p><a className="link-arrow link-tap" href={`/${locale}/contact?topic=events`}>{t("questions")}</a></p></div>
+        <div><span className="eyebrow">{t("howEyebrow")}</span><h2>{t("howTitle")}</h2><p><a className="link-arrow link-tap" href={localeHref(locale, `/contact?topic=events`)}>{t("questions")}</a></p></div>
         <ol className="num-list">
           <li><h3>{t("how1t")}</h3><p>{t("how1b")}</p></li>
           <li><h3>{t("how2t")}</h3><p>{t("how2b")}</p></li>

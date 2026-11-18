@@ -9,22 +9,22 @@ test.describe("event search", () => {
   test("is case-insensitive and searches titles, French summaries and locations @smoke", async ({ page }) => {
     const word = token(); const frWord = token();
     const e = await createEvent({ title: `E2E Governance ${word} clinic`, summaryFr: `Résumé ${frWord}`, location: `Lab ${word}` });
-    await page.goto(`/en/events?q=${word.toLowerCase()}`);
+    await page.goto(`/events?q=${word.toLowerCase()}`);
     await expect(page.locator(".ev-results")).toContainText("1 event");
     await expect(page.locator(".event-card").getByRole("link", { name: e.title })).toBeVisible();
     await page.locator("#es").fill(word.toUpperCase());
     await page.getByRole("button", { name: t("events.apply") }).click();
     await expect(page).toHaveURL(new RegExp(`q=${word.toUpperCase()}`));
     await expect(page.locator(".event-card").getByRole("link", { name: e.title })).toBeVisible();
-    await page.goto(`/en/events?q=${encodeURIComponent(frWord.toLowerCase())}`);
+    await page.goto(`/events?q=${encodeURIComponent(frWord.toLowerCase())}`);
     await expect(page.locator(".event-card").getByRole("link", { name: e.title })).toBeVisible();
     // A type filter that does not match → empty state with a "clear" link.
-    await page.goto(`/en/events?q=${word}&type=Conference`);
+    await page.goto(`/events?q=${word}&type=Conference`);
     await expect(page.getByRole("heading", { name: t("events.empty") })).toBeVisible();
   });
 
   test("seed events are found regardless of case", async ({ page }) => {
-    await page.goto("/en/events?q=RISK%20REGISTER");
+    await page.goto("/events?q=RISK%20REGISTER");
     await expect(page.locator(".event-card").getByRole("link", { name: /risk register/i })).toBeVisible();
   });
 
@@ -32,10 +32,10 @@ test.describe("event search", () => {
     const word = token();
     const draft = await createEvent({ title: `E2E Draft ${word}`, published: false });
     const cancelled = await createEvent({ title: `E2E Cancelled ${word}`, cancelledAt: new Date() });
-    await page.goto(`/en/events?q=${word}`);
+    await page.goto(`/events?q=${word}`);
     await expect(page.getByRole("heading", { name: t("events.empty") })).toBeVisible();
     for (const e of [draft, cancelled]) {
-      const r = await page.goto(`/en/events/${e.slug}`);
+      const r = await page.goto(`/events/${e.slug}`);
       expect(r?.status(), e.title).toBe(404);
     }
   });
@@ -45,7 +45,7 @@ test.describe("event detail", () => {
   test("shows times in Eastern time and the French title/summary on /fr", async ({ page }) => {
     // 2027-03-10 15:00 UTC = 10:00 AM EST (before the DST switch on 2027-03-14).
     const e = await createEvent({ title: `E2E Detail ${token()}`, titleFr: `E2E Détail ${token()}`, summaryFr: "Résumé de test.", startsAt: new Date("2027-03-10T15:00:00Z"), durationMin: 90, cpe: 1.5 });
-    await page.goto(`/en/events/${e.slug}`);
+    await page.goto(`/events/${e.slug}`);
     await expect(page.locator("h1")).toHaveText(e.title);
     const dl = page.locator(".ev-dl");
     await expect(dl).toContainText("Wednesday, March 10, 2027");
@@ -62,7 +62,7 @@ test.describe("event detail", () => {
     const m = await createMember();
     const e = await createEvent({ title: `E2E Idea ${token()} (proposed)` });
     const p = await loginAs(m);
-    await p.goto(`/en/events/${e.slug}`);
+    await p.goto(`/events/${e.slug}`);
     await expect(p.locator("h1")).toHaveText(e.title.replace(" (proposed)", ""));
     await expect(p.locator(".ev-reg")).toContainText(t("events.regOpensLater"));
     await expect(p.locator(".ev-reg form")).toHaveCount(0);
@@ -74,7 +74,7 @@ test.describe("registration", () => {
     const m = await createMember();
     const e = await createEvent({ title: `E2E Free ${token()}`, memberPriceCents: 0, publicPriceCents: 4900 });
     const p = await loginAs(m);
-    await p.goto(`/en/events/${e.slug}`);
+    await p.goto(`/events/${e.slug}`);
     await expect(p.locator(".ev-prices .is-mine")).toContainText(t("events.free"));
     await p.getByRole("button", { name: t("events.registerFree") }).click();
     await expect(p).toHaveURL(/registered=1/);
@@ -83,9 +83,9 @@ test.describe("registration", () => {
     expect(r).toMatchObject({ status: "confirmed", ticket: "member", amountCents: 0 });
     expect(await auditRows({ action: "event.registered_free", target: r!.id })).toHaveLength(1);
     // Registering again is idempotent (still one row).
-    await p.goto(`/en/events/${e.slug}`);
+    await p.goto(`/events/${e.slug}`);
     await expect(p.locator(".ev-reg form")).toHaveCount(0);
-    await p.goto("/en/my/events");
+    await p.goto("/my/events");
     await expect(p.locator(".mbr-events")).toContainText(e.title);
     expect((await q(`SELECT id FROM "Registration" WHERE "userId" = $1`, [m.id])).length).toBe(1);
   });
@@ -94,9 +94,9 @@ test.describe("registration", () => {
     const g = await createUser({ role: "guest" });
     const e = await createEvent({ title: `E2E Paid ${token()}`, memberPriceCents: 0, publicPriceCents: 2500 });
     const p = await loginAs(g);
-    await p.goto(`/en/events/${e.slug}`);
+    await p.goto(`/events/${e.slug}`);
     await p.getByRole("button", { name: new RegExp(`${t("events.payAndRegister")}.*25`) }).click();
-    await expect(p).toHaveURL(new RegExp(`/en/events/${e.slug}/checkout\\?r=`));
+    await expect(p).toHaveURL(new RegExp(`/events/${e.slug}/checkout\\?r=`));
     await expect(p.locator(".ev-checkout")).toContainText(e.title);
     await expect(p.locator(".ev-checkout")).toContainText("US$25.00");
     const r = await one<{ status: string; ticket: string; amountCents: number }>(`SELECT * FROM "Registration" WHERE "userId" = $1 AND "eventId" = $2`, [g.id, e.id]);
@@ -107,7 +107,7 @@ test.describe("registration", () => {
     const g = await createUser({ role: "guest" });
     const e = await createEvent({ title: `E2E Members only ${token()}`, publicPriceCents: null });
     const p = await loginAs(g);
-    await p.goto(`/en/events/${e.slug}`);
+    await p.goto(`/events/${e.slug}`);
     await expect(p.locator(".ev-reg")).toContainText(t("events.tbcBlocked"));
     await expect(p.locator(".ev-reg form")).toHaveCount(0);
   });

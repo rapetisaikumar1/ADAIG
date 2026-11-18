@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations } from "next-intl/server";
 import { signOutToSwitch } from "./actions";
 import { ClearAdminDrafts } from "@/app/[locale]/admin/_components/ClearAdminDrafts";
@@ -14,7 +15,7 @@ export async function SignedIn({ locale, name, email, next, page, home }: { loca
         {next && <a className="btn btn-primary btn-block" href={next}>{t("continueNext")}</a>}
         <a className={`btn ${next ? "btn-secondary" : "btn-primary"} btn-block`} href={home}>{t("toDashboard")}</a>
       </div>
-      {page === "signup" && <div className="auth-join"><b>{t("joinTitle")}</b><p>{t("signedInJoinBody")}</p><a className="link-arrow" href={`/${locale}/join`}>{t("joinLink")}</a></div>}
+      {page === "signup" && <div className="auth-join"><b>{t("joinTitle")}</b><p>{t("signedInJoinBody")}</p><a className="link-arrow" href={localeHref(locale, `/join`)}>{t("joinLink")}</a></div>}
       <form action={signOutToSwitch} className="auth-switch">
         <input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="page" value={page} />
         {next && <input suppressHydrationWarning type="hidden" name="next" value={next} />}

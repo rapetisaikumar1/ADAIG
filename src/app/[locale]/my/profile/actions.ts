@@ -1,4 +1,5 @@
 "use server";
+import { localeHref } from "@/lib/localePath";
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import bcrypt from "bcryptjs";
@@ -45,9 +46,9 @@ function locationFields(fd: FormData, cur: { country: string; province: string |
   return { data: { country, province } };
 }
 export async function saveProfile(fd: FormData) {
-  const locale = safeLocale(fd.get("locale")); const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login`);
+  const locale = safeLocale(fd.get("locale")); const s = await auth(); if (!s?.user?.id) redirect(localeHref(locale, `/login`));
   const cur = await db.user.findUnique({ where: { id: s.user.id }, select: { country: true, province: true, role: true } });
-  if (!cur || cur.role === "deleted") redirect(`/${locale}/login`);
+  if (!cur || cur.role === "deleted") redirect(localeHref(locale, `/login`));
   const { data, tooLong, bad } = profileFields(fd);
   const loc = locationFields(fd, cur); if (loc.bad) bad.push(loc.bad);
   // Explicit field list: the id comes from the session only; email, role and membership fields are never read from the form.
@@ -56,7 +57,7 @@ export async function saveProfile(fd: FormData) {
   } });
   await db.auditLog.create({ data: { actor: s.user.id, action: "profile.updated", target: s.user.id } });
   const q = [tooLong.length && `long=${tooLong.join(",")}`, bad.length && `bad=${bad.join(",")}`].filter(Boolean).join("&");
-  redirect(`/${locale}/my/profile?${q || "saved=1"}`);
+  redirect(localeHref(locale, `/my/profile?${q || "saved=1"}`));
 }
 
 /**
@@ -66,11 +67,11 @@ export async function saveProfile(fd: FormData) {
  * included) and the member signs in again with the new password.
  */
 export async function changePassword(fd: FormData) {
-  const locale = safeLocale(fd.get("locale")); const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login`);
-  const back = (e: string): never => redirect(`/${locale}/my/profile?pw=${e}#h-pw`);
+  const locale = safeLocale(fd.get("locale")); const s = await auth(); if (!s?.user?.id) redirect(localeHref(locale, `/login`));
+  const back = (e: string): never => redirect(localeHref(locale, `/my/profile?pw=${e}#h-pw`));
   const current = String(fd.get("currentPassword") ?? ""), next = String(fd.get("newPassword") ?? ""), confirm = String(fd.get("confirmPassword") ?? "");
   const u = await db.user.findUnique({ where: { id: s.user.id }, select: { id: true, email: true, role: true, passwordHash: true } });
-  if (!u || u.role === "deleted") redirect(`/${locale}/login`);
+  if (!u || u.role === "deleted") redirect(localeHref(locale, `/login`));
   if (!current) back("wrong");
   if (next !== confirm) back("mismatch");
   const pwErr = checkPassword(next, u.email); if (pwErr) back(pwErr);
@@ -89,7 +90,7 @@ export async function changePassword(fd: FormData) {
   const a = await db.auditLog.create({ data: { actor: u.id, action: "auth.password_changed", target: u.id }, select: { id: true, createdAt: true } });
   await notifyPasswordChanged({ userId: u.id, email: u.email, at: a.createdAt, via: "profile", auditId: a.id }); // never throws
   await signOut({ redirect: false });
-  redirect(`/${locale}/login?pw=changed`);
+  redirect(localeHref(locale, `/login?pw=changed`));
 }
 
 /**
@@ -100,10 +101,10 @@ export async function changePassword(fd: FormData) {
  * "del:<userId>" (src/lib/rateLimit.ts), so they never lock or unlock sign-in → ?del=locked while locked.
  */
 export async function deleteAccount(fd: FormData) {
-  const locale = safeLocale(fd.get("locale")); const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login`);
+  const locale = safeLocale(fd.get("locale")); const s = await auth(); if (!s?.user?.id) redirect(localeHref(locale, `/login`));
   const u = await db.user.findUnique({ where: { id: s.user.id } });
-  if (!u || u.role === "deleted") redirect(`/${locale}/login`);
-  const back = (e: string): never => redirect(`/${locale}/my/profile?del=${e}`);
+  if (!u || u.role === "deleted") redirect(localeHref(locale, `/login`));
+  const back = (e: string): never => redirect(localeHref(locale, `/my/profile?del=${e}`));
   if (u.role === "admin") {
     await db.auditLog.create({ data: { actor: u.id, action: "account.delete_blocked_admin", target: u.id } });
     back("admin");
@@ -118,9 +119,9 @@ export async function deleteAccount(fd: FormData) {
   const r = await deleteUserAccount(u.id, { actor: u.id, action: "account.deleted_by_member" }); // u.email read above, before anonymization
   if (r === "lastAdmin") {
     await db.auditLog.create({ data: { actor: u.id, action: "admin.delete_blocked_last_admin", target: u.id } });
-    redirect(`/${locale}/my/profile?del=lastAdmin`);
+    redirect(localeHref(locale, `/my/profile?del=lastAdmin`));
   }
   if (r === "deleted") await notifyAccountDeleted({ userId: u.id, email: u.email, variant: "self", at: new Date() }); // never throws
   await signOut({ redirect: false });
-  redirect(`/${locale}/login?deleted=1`);
+  redirect(localeHref(locale, `/login?deleted=1`));
 }

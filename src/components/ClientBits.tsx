@@ -61,7 +61,7 @@ export function AreaChrome({ admin, site }: { admin: React.ReactNode; site: Reac
 /** Utility links (Chapters, Careers, Contact): rendered in the top bar and again inside the mobile menu panel (V3-1). */
 export function UtilLinks({ items }: { items: Item[] }) {
   const pathname = usePathname();
-  return <>{items.map((i) => <a key={i.href} href={i.href} aria-current={pathname === i.href.replace(/^\/(en|fr)/, "") ? "page" : undefined}>{i.label}</a>)}</>;
+  return <>{items.map((i) => <a key={i.href} href={i.href} aria-current={pathname === i.href.replace(/^\/(en|fr)(?=\/|$)/, "") ? "page" : undefined}>{i.label}</a>)}</>;
 }
 
 /**
@@ -115,7 +115,7 @@ export function HeaderNav({ items, label, menuLabel, closeLabel, children }: { i
       </button>
       <nav ref={navRef} id="primary-nav" className={open ? "nav open" : "nav"} aria-label={label}>
         {items.map((i) => {
-          const p = i.href.replace(/^\/(en|fr)/, "");
+          const p = i.href.replace(/^\/(en|fr)(?=\/|$)/, "");
           return <a key={i.href} href={i.href} aria-current={isActive(p, pathname) ? "page" : undefined}>{i.label}</a>;
         })}
         {children}

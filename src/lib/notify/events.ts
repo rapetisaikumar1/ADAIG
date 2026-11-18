@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { db } from "@/lib/db";
 import { sendEmail, renderEmail, siteUrl, contactInbox } from "@/lib/email";
 import type { EmailFact } from "@/lib/email";
@@ -13,7 +14,7 @@ import { eventAccessInfo } from "@/components/EventAccessInfo";
  */
 
 const locale = "en";
-const L = (path: string) => siteUrl(`/${locale}${path}`);
+const L = (path: string) => siteUrl(localeHref(locale, `${path}`));
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: eventTimeZone }); // December 8, 2026
 const weekdayDay = (d: Date) => d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: eventTimeZone }); // Tuesday, December 8, 2026
 const weekdayShort = (d: Date) => d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: eventTimeZone }); // Tuesday, December 8

@@ -1,4 +1,5 @@
 "use client";
+import { localeHref } from "@/lib/localePath";
 import { useActionState, useEffect, useRef, useState, startTransition, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { subdivisionsFor, countries, defaultCountry, defaultProvince, type Locale } from "@/config/site";
@@ -46,7 +47,7 @@ export function JoinForm({ locale, tiers, directoryOptInDefault, initialTier, si
             <li><b>{t("next2Title")}</b><span>{t("next2")}</span></li>
             <li><b>{t("next3Title")}</b><span>{t("next3")}</span></li>
           </ol>
-          <p className="small muted join-next-help">{t("questions")} <a href={`/${locale}/contact?topic=membership`}>{t("contactUs")}</a></p>
+          <p className="small muted join-next-help">{t("questions")} <a href={localeHref(locale, `/contact?topic=membership`)}>{t("contactUs")}</a></p>
         </section>
         <form action={action} onSubmit={submit} aria-labelledby="dh" className="join-form">
           <input suppressHydrationWarning type="hidden" name="locale" value={locale} />
@@ -58,7 +59,7 @@ export function JoinForm({ locale, tiers, directoryOptInDefault, initialTier, si
           <fieldset className="fieldset join-sec"><legend>{t("secMembership")}</legend>
             <div className={fcls("tier")}><label htmlFor="tier">{t("tierLabel")}</label>
               <select suppressHydrationWarning id="tier" name="tier" value={tier} onChange={(e) => setTier(e.target.value)} aria-invalid={bad("tier") || undefined} aria-describedby={desc("tier", "tier-hint")}>{tiers.map((x) => <option key={x.id} value={x.id}>{x.name[locale]}</option>)}</select>
-              <span className="hint" id="tier-hint">{tt.description[locale]} <a href={`/${locale}/membership`}>{t("compareTiers")}</a></span>
+              <span className="hint" id="tier-hint">{tt.description[locale]} <a href={localeHref(locale, `/membership`)}>{t("compareTiers")}</a></span>
               {fieldErr("tier")}
             </div>
           </fieldset>
@@ -101,7 +102,7 @@ export function JoinForm({ locale, tiers, directoryOptInDefault, initialTier, si
 
           <div className="form-actions join-actions">
             <button suppressHydrationWarning className="btn btn-accent" disabled={pending} aria-busy={pending || undefined}>{pending ? t("submitting") : t("submit")}</button>
-            <a href={`/${locale}/membership`} className="btn btn-ghost">{t("back")}</a>
+            <a href={localeHref(locale, `/membership`)} className="btn btn-ghost">{t("back")}</a>
           </div>
           <p className="small muted join-nocharge"><Icon name="info" size={18} />{t("noPayment")}</p>
         </form>
@@ -114,7 +115,7 @@ export function JoinForm({ locale, tiers, directoryOptInDefault, initialTier, si
           <li><b>{t("next2Title")}</b><span>{t("next2")}</span></li>
           <li><b>{t("next3Title")}</b><span>{t("next3")}</span></li>
         </ol>
-        <p className="small muted join-next-help">{t("questions")} <a href={`/${locale}/contact?topic=membership`}>{t("contactUs")}</a></p>
+        <p className="small muted join-next-help">{t("questions")} <a href={localeHref(locale, `/contact?topic=membership`)}>{t("contactUs")}</a></p>
       </div></aside>
     </div>
   );

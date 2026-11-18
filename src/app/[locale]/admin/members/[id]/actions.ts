@@ -1,4 +1,5 @@
 "use server";
+import { localeHref } from "@/lib/localePath";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -25,12 +26,12 @@ async function guard(fd: FormData, a: Action) {
 }
 /** Back to the account page. The id always comes from the DB, never straight from the form. */
 function back(locale: string, userId: string, msg: string, anchor = ""): never {
-  redirect(`/${locale}/admin/members/${encodeURIComponent(userId)}?msg=${msg}${anchor ? `#${anchor}` : ""}`);
+  redirect(localeHref(locale, `/admin/members/${encodeURIComponent(userId)}?msg=${msg}${anchor ? `#${anchor}` : ""}`));
 }
 /** Target user from the form's uid (must exist, not be deleted and not be an admin account), else back to the list. */
 async function targetUser(fd: FormData, locale: string) {
   const u = await db.user.findUnique({ where: { id: idParam(fd.get("uid")) } });
-  if (!u || !isMembersTarget(u.role)) redirect(`/${locale}/admin/members?msg=notFound`);
+  if (!u || !isMembersTarget(u.role)) redirect(localeHref(locale, `/admin/members?msg=notFound`));
   return u;
 }
 
@@ -71,7 +72,7 @@ export async function setUserRole(fd: FormData) {
   const derived = (await db.membership.count({ where: { userId: u.id, status: "active" } })) ? "member" : "guest";
   if (role !== derived) back(locale, u.id, derived === "member" ? "err_roleHasMembership" : "err_roleNeedsMembership", "account");
   const r = await changeRole(u.id, role as (typeof ROLES)[number]); // refuses admin and deleted rows inside its row lock
-  if (r === "notFound") redirect(`/${locale}/admin/members?msg=notFound`);
+  if (r === "notFound") redirect(localeHref(locale, `/admin/members?msg=notFound`));
   if (r === "changed") await db.auditLog.create({ data: { actor: admin.id, action: "admin.role_changed", target: u.id } });
   back(locale, u.id, r === "changed" ? "msg_roleChanged" : "msg_noChange", "account");
 }
@@ -113,14 +114,14 @@ export async function deleteUser(fd: FormData) {
   const r = await deleteUserAccount(u.id, { actor: admin.id, action: "account.deleted_by_admin" });
   // u.email comes from targetUser (read before the anonymization). Never throws.
   if (r === "deleted") await notifyAccountDeleted({ userId: u.id, email: u.email, variant: "staff", at: new Date() });
-  redirect(`/${locale}/admin/members?msg=accountDeleted`);
+  redirect(localeHref(locale, `/admin/members?msg=accountDeleted`));
 }
 
 /* ── memberships ── */
 const STAFF_MSG: Record<StaffResult, string> = { ok: "msg_membershipSaved", stale: "err_stale", openExists: "err_openExists", invalid: "err_invalid" };
 async function membershipOf(fd: FormData, locale: string) {
   const m = await db.membership.findUnique({ where: { id: idParam(fd.get("id")) }, include: { user: { select: { role: true } } } });
-  if (!m || m.user.role === "admin") redirect(`/${locale}/admin/members?msg=notFound`); // D1: an admin's membership is not managed here
+  if (!m || m.user.role === "admin") redirect(localeHref(locale, `/admin/members?msg=notFound`)); // D1: an admin's membership is not managed here
   if (m.user.role === "deleted") back(locale, m.userId, "err_deleted", "memberships");
   return m;
 }
@@ -161,7 +162,7 @@ export async function addCpe(fd: FormData) {
 export async function updateCpe(fd: FormData) {
   const { locale, admin } = await guard(fd, "edit");
   const e = await db.cpeEntry.findUnique({ where: { id: idParam(fd.get("id")) }, include: { user: { select: { role: true } } } });
-  if (!e || e.user.role === "admin") redirect(`/${locale}/admin/members?msg=notFound`); // D1: an admin's CPE is not managed here
+  if (!e || e.user.role === "admin") redirect(localeHref(locale, `/admin/members?msg=notFound`)); // D1: an admin's CPE is not managed here
   if (fd.get("op") === "remove") {
     if ((await db.cpeEntry.deleteMany({ where: { id: e.id } })).count) await db.auditLog.create({ data: { actor: admin.id, action: "cpe.entry_removed", target: e.userId } });
     back(locale, e.userId, "msg_cpeRemoved", "cpe");

@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { requireAdminPermission } from "@/lib/rbac";
@@ -55,7 +56,7 @@ export default async function AdminAudit({ params, searchParams }: { params: Pro
     <div className="app adm"><AdminNav locale={locale} current="/admin/audit" />
       <main id="main" tabIndex={-1} className="app-main adm-audit">
         <AdminHead title={t("title")} lead={t("lead")} actions={<a className="btn btn-secondary btn-sm" href={`/api/admin/audit.csv${qs({ p: 1 })}`}><Icon name="download" size={16} />{t("exportCsv")}</a>} />
-        <form className="panel adm-filterbar" method="get" action={`/${locale}/admin/audit`} role="search" aria-label={t("filters")}>
+        <form className="panel adm-filterbar" method="get" action={localeHref(locale, `/admin/audit`)} role="search" aria-label={t("filters")}>
           <div className="field"><label htmlFor="au-a">{t("action")}</label>
             <select suppressHydrationWarning id="au-a" name="a" defaultValue={f.a}>
               <option value="">{t("allActions")}</option>
@@ -72,10 +73,10 @@ export default async function AdminAudit({ params, searchParams }: { params: Pro
           <div className="field adm-filter-wide"><label htmlFor="au-target">{t("target")}</label><input suppressHydrationWarning id="au-target" name="target" type="search" defaultValue={f.target} maxLength={200} placeholder={t("targetPh")} /></div>
           <div className="field"><label htmlFor="au-from">{t("from")} <span className="hint">({t("et")})</span></label><input suppressHydrationWarning id="au-from" name="from" type="date" defaultValue={f.from} /></div>
           <div className="field"><label htmlFor="au-to">{t("to")} <span className="hint">({t("et")})</span></label><input suppressHydrationWarning id="au-to" name="to" type="date" defaultValue={f.to} /></div>
-          <div className="adm-filterbar-actions"><button suppressHydrationWarning className="btn btn-primary btn-sm">{t("apply")}</button>{filtered && <a className="btn btn-secondary btn-sm" href={`/${locale}/admin/audit`}>{t("reset")}</a>}</div>
+          <div className="adm-filterbar-actions"><button suppressHydrationWarning className="btn btn-primary btn-sm">{t("apply")}</button>{filtered && <a className="btn btn-secondary btn-sm" href={localeHref(locale, `/admin/audit`)}>{t("reset")}</a>}</div>
         </form>
         <p className="small muted adm-count" role="status">{total === 1 ? t("showingOne") : total ? t("showing", { first, last, total }) : null}</p>
-        {rows.length === 0 ? <AdminEmpty title={filtered ? t("noResults") : t("empty")} action={filtered ? <a className="btn btn-secondary btn-sm" href={`/${locale}/admin/audit`}>{t("reset")}</a> : undefined} /> : (
+        {rows.length === 0 ? <AdminEmpty title={filtered ? t("noResults") : t("empty")} action={filtered ? <a className="btn btn-secondary btn-sm" href={localeHref(locale, `/admin/audit`)}>{t("reset")}</a> : undefined} /> : (
         <div className="table-wrap" tabIndex={0} role="region" aria-label={ta("scrollRegion", { name: t("tableLabel") })}>
           <table className="adm-table adm-stack adm-stack-2 adm-table-audit"><caption className="sr-only">{t("title")}</caption>
             <thead><tr><th scope="col">{t("when")}</th><th scope="col">{t("action")}</th><th scope="col">{t("actor")}</th><th scope="col">{t("target")}</th></tr></thead>
@@ -93,9 +94,9 @@ export default async function AdminAudit({ params, searchParams }: { params: Pro
         </div>)}
         {pages > 1 && (
           <nav aria-label={t("pagination")} className="adm-pager">
-            {page > 1 ? <a className="btn btn-secondary btn-sm" href={`/${locale}/admin/audit${qs({ p: page - 1 })}`} rel="prev">← {t("newer")}</a> : <span />}
+            {page > 1 ? <a className="btn btn-secondary btn-sm" href={localeHref(locale, `/admin/audit${qs({ p: page - 1 })}`)} rel="prev">← {t("newer")}</a> : <span />}
             <span className="small muted">{t("pageOf", { page, pages })}</span>
-            {page < pages ? <a className="btn btn-secondary btn-sm" href={`/${locale}/admin/audit${qs({ p: page + 1 })}`} rel="next">{t("older")} →</a> : <span />}
+            {page < pages ? <a className="btn btn-secondary btn-sm" href={localeHref(locale, `/admin/audit${qs({ p: page + 1 })}`)} rel="next">{t("older")} →</a> : <span />}
           </nav>
         )}
       </main>

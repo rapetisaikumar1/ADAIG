@@ -51,7 +51,7 @@ const { html, text } = renderEmail({
     { label: "SMTP server", value: `${c.host}:${c.port}` },
     { label: "From", value: c.from ?? "" },
   ],
-  cta: { label: "Open the website", url: siteUrl("/en") },
+  cta: { label: "Open the website", url: siteUrl("/") },
   footerNote: "You received this email because someone ran the ADAIG email test (npm run email:test) with your address.",
 });
 const r = await deliver({ to, subject: "ADAIG email test", html, text, replyTo: c.contactTo ?? undefined });

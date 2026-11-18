@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { requireUser, activeMembership } from "@/lib/session";
@@ -23,7 +24,7 @@ export default async function Directory({ params, searchParams }: { params: Prom
   const { locale } = await params; setRequestLocale(locale);
   const u = await requireUser(locale); const t = await getTranslations("member.directoryPage");
   const q = searchParam((await searchParams).q, 80); // control characters (Postgres rejects NUL) → spaces
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   await membershipHousekeeping(u.id); // lazy: a membership past the renewal grace period lapses before access is checked
   const isAdmin = u.role === "admin";
   const canBrowse = !isAdmin && !!(await activeMembership(u.id));

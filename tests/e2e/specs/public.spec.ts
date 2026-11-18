@@ -4,7 +4,7 @@
  * and CSP nonce, health check, removed routes, staff-only design pages, no language switch (French not offered since round 6b).
  */
 import { test, expect, watchConsole } from "../fixtures";
-import { msg } from "../support/i18n";
+import { lp, msg } from "../support/i18n";
 
 const PUBLIC_PATHS = [
   "", "/about", "/principles", "/governance", "/community", "/chapters", "/resources", "/news", "/advocacy", "/careers",
@@ -17,7 +17,7 @@ test.describe("public pages", () => {
     for (const p of PUBLIC_PATHS) {
       test(`${locale}${p || "/"} renders without errors or overflow at 390px`, async ({ page }) => {
         const errors = watchConsole(page);
-        const res = await page.goto(`/${locale}${p}`, { waitUntil: "load" });
+        const res = await page.goto(lp(locale, p), { waitUntil: "load" });
         expect(res?.status(), "HTTP status").toBe(200);
         await expect(page.locator("html")).toHaveAttribute("lang", locale);
         await expect(page.locator("main#main")).toBeVisible();
@@ -32,22 +32,22 @@ test.describe("public pages", () => {
 
 test("root redirects to the default locale @smoke", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveURL(/\/en$/);
+  await expect(page).toHaveURL(/\/$/);
   await expect(page.locator('main#main')).toBeVisible();
-  await expect(page.locator('a[href="/en/join"]', { hasText: msg("chrome.join") }).first()).toBeAttached(); // in the menu on phones
+  await expect(page.locator('a[href="/join"]', { hasText: msg("chrome.join") }).first()).toBeAttached(); // in the menu on phones
 });
 
 test("main navigation: Advisory Board opens /governance and is the active item there; the footer no longer links it", async ({ page }) => {
   for (const locale of ["en", "fr"] as const) {
     const nav = page.locator("#primary-nav");
-    await page.goto(`/${locale}`);
+    await page.goto(lp(locale));
     const item = nav.getByRole("link", { name: msg("chrome.advisoryBoard", {}, locale), exact: true });
-    await expect(item).toHaveAttribute("href", `/${locale}/governance`);
+    await expect(item).toHaveAttribute("href", lp(locale, "/governance"));
     // Order: right after About.
     await expect(nav.locator("a").nth(0)).toHaveText(msg("chrome.about", {}, locale));
     await expect(nav.locator("a").nth(1)).toHaveText(msg("chrome.advisoryBoard", {}, locale));
     await item.click();
-    await expect(page).toHaveURL(new RegExp(`/${locale}/governance$`));
+    await expect(page).toHaveURL(new RegExp(`${lp(locale, "/governance")}$`));
     await expect(page.locator("main#main h1").first()).toBeVisible();
     await expect(nav.locator("a[aria-current=page]")).toHaveCount(1);
     await expect(nav.locator("a[aria-current=page]")).toHaveText(msg("chrome.advisoryBoard", {}, locale));
@@ -56,16 +56,16 @@ test("main navigation: Advisory Board opens /governance and is the active item t
     await expect(page.getByRole("navigation", { name: msg("chrome.breadcrumbAria", {}, locale) })).toHaveCount(0);
     await expect(page.locator(".breadcrumb, .breadcrumbs, .crumbs")).toHaveCount(0);
     // Footer: no plain link to the governance page (the "Code of ethics" anchor link remains).
-    await expect(page.locator(`.site-footer a[href="/${locale}/governance"]`)).toHaveCount(0);
+    await expect(page.locator(`.site-footer a[href="${lp(locale, "/governance")}"]`)).toHaveCount(0);
     await expect(page.locator(".site-footer").getByRole("link", { name: /board|conseil/i })).toHaveCount(0);
   }
   // About stays the active item on its own pages.
-  await page.goto("/en/about");
+  await page.goto("/about");
   await expect(page.locator("#primary-nav a[aria-current=page]")).toHaveText(msg("chrome.about"));
 });
 
 test("governance page: board designations and officer roles", async ({ page }) => {
-  await page.goto("/en/governance");
+  await page.goto("/governance");
   const person = (name: string) => page.locator(".ab-person", { has: page.locator("h4", { hasText: name }) });
   await expect(person("Carlos Solari")).toContainText("Chairman – Advisory Board");
   await expect(person("Sowmya Kandregula")).toContainText("Advisory Board Member");
@@ -74,7 +74,7 @@ test("governance page: board designations and officer roles", async ({ page }) =
 });
 
 test("security headers and per-request CSP nonce", async ({ request }) => {
-  const a = await request.get("/en"); const b = await request.get("/en");
+  const a = await request.get("/"); const b = await request.get("/");
   expect(a.status()).toBe(200);
   const h = a.headers();
   expect(h["strict-transport-security"]).toContain("max-age=");
@@ -110,20 +110,20 @@ test("API routes get the strict fallback CSP; /api/health reports the database",
 });
 
 test("removed and unknown routes return 404", async ({ request }) => {
-  // (/en/admin/content*: the Content admin was removed in round 7; visitors get the public 404, admins the admin 404.)
-  for (const p of ["/en/certifications", "/en/learning", "/en/verify", "/en/mfa", "/en/my/credentials", "/en/my/learning", "/en/admin/credentialing", "/en/admin/content", "/en/admin/content/home/en", "/fr/certifications", "/en/no-such-page"]) {
+  // (/admin/content*: the Content admin was removed in round 7; visitors get the public 404, admins the admin 404.)
+  for (const p of ["/certifications", "/learning", "/verify", "/mfa", "/my/credentials", "/my/learning", "/admin/credentialing", "/admin/content", "/admin/content/home/en", "/fr/certifications", "/no-such-page"]) {
     const r = await request.get(p, { maxRedirects: 0 });
     expect(r.status(), p).toBe(404);
   }
-  // An unknown locale prefix is treated as a path under the default locale (/de/about → /en/de/about) and ends in 404.
+  // An unknown locale prefix is just an unknown path under the default (unprefixed) English site and ends in 404.
   expect((await request.get("/de/about")).status()).toBe(404);
 });
 
 test.describe("design reference pages are admin-only", () => {
-  for (const p of ["/en/design/brand", "/en/design/components"]) {
+  for (const p of ["/design/brand", "/design/components"]) {
     test(`${p}: visitors and members are sent home, admins see it`, async ({ page, memberPage, adminPage }) => {
-      await page.goto(p); await expect(page).toHaveURL(/\/en$/);
-      await memberPage.goto(p); await expect(memberPage).toHaveURL(/\/en$/);
+      await page.goto(p); await expect(page).toHaveURL(/\/$/);
+      await memberPage.goto(p); await expect(memberPage).toHaveURL(/\/$/);
       const res = await adminPage.goto(p);
       expect(res?.status()).toBe(200);
       await expect(adminPage).toHaveURL(new RegExp(`${p}$`));
@@ -142,7 +142,7 @@ test("no language switch is shown, and / with Accept-Language fr stays English @
     await expect(page.getByRole("button", { name: /Français|^FR\b/ })).toHaveCount(0);
     await expect(page.locator(".lang, .nav-lang")).toHaveCount(0);
   };
-  await page.goto("/en/events?q=risk&type=Webinar");
+  await page.goto("/events?q=risk&type=Webinar");
   await expect(page.locator("#es")).toHaveValue("risk");
   await noSwitch();
   // Utility bar: exactly Chapters, Careers, Contact.
@@ -153,17 +153,18 @@ test("no language switch is shown, and / with Accept-Language fr stays English @
   await expect(page.locator("#primary-nav .nav-util a")).toHaveText([msg("chrome.chapters"), msg("chrome.careers"), msg("chrome.contact")]);
   await noSwitch();
 
-  // A French browser (or an old NEXT_LOCALE=fr cookie) lands on /en; no hreflang link header points at /fr.
+  // A French browser (or an old NEXT_LOCALE=fr cookie) gets the English home at "/" (English URLs have no /en prefix since
+  // round 10; no redirect to /fr); no hreflang link header points at /fr.
   for (const headers of [{ "accept-language": "fr-CA,fr;q=0.9" }, { cookie: "NEXT_LOCALE=fr" }] as Record<string, string>[]) {
     const r = await request.get("/", { headers, maxRedirects: 0 });
-    expect(r.status(), JSON.stringify(headers)).toBe(307);
-    expect(new URL(r.headers()["location"], "http://x").pathname, JSON.stringify(headers)).toBe("/en");
+    expect(r.status(), JSON.stringify(headers)).toBe(200);
+    expect(await r.text(), JSON.stringify(headers)).toContain('<html lang="en"');
   }
-  const en = await request.get("/en", { headers: { "accept-language": "fr" } });
+  const en = await request.get("/", { headers: { "accept-language": "fr" } });
   expect(en.headers()["link"] ?? "").not.toContain('hreflang="fr"');
   await page.setExtraHTTPHeaders({ "accept-language": "fr" });
   await page.goto("/");
-  await expect(page).toHaveURL(/\/en$/);
+  await expect(page).toHaveURL(/\/$/);
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   // /fr URLs still work when opened directly (kept for future use), just unlinked.
   const fr = await page.goto("/fr/events");
@@ -174,7 +175,7 @@ test("no language switch is shown, and / with Accept-Language fr stays English @
 
 test("mobile menu opens and closes @smoke", async ({ page, isMobile }) => {
   test.skip(!isMobile, "the menu toggle is only shown on small screens");
-  await page.goto("/en");
+  await page.goto("/");
   const toggle = page.locator(".nav-toggle");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");

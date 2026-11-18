@@ -11,7 +11,7 @@ import { SEED } from "../support/env";
 import { t } from "../support/i18n";
 
 const tm = (k: string, v?: Record<string, string | number>) => t(`adminMembers.${k}`, v);
-const account = (p: Page, id: string) => p.goto(`/en/admin/members/${id}`);
+const account = (p: Page, id: string) => p.goto(`/admin/members/${id}`);
 const notice = (p: Page) => p.locator("main .alert").first();
 /** The "Temporary password" form on the account page. */
 const pwForm = (p: Page) => p.getByRole("form", { name: tm("pwTitle") });
@@ -133,15 +133,15 @@ test("temporary password: the old session is signed out and only the new passwor
   expect(audit).toHaveLength(1);
 
   // The member's existing session no longer works.
-  await session.goto("/en/my/dashboard");
-  await expect(session).toHaveURL(/\/en\/login/);
+  await session.goto("/my/dashboard");
+  await expect(session).toHaveURL(/\/login/);
   // Old password refused, new password accepted.
   const fresh = await newPage();
-  await fresh.goto("/en/login");
+  await fresh.goto("/login");
   await fresh.locator("#le").fill(u.email); await fresh.locator("#lp").fill(u.password);
   await fresh.locator("main form").getByRole("button", { name: t("auth.signIn") }).click();
   await expectLoginRefused(fresh, t("auth.invalid"), { email: u.email });
-  await uiLogin(fresh, { email: u.email, password: newPassword }, { expectUrl: /\/en\/my\/billing$/ });
+  await uiLogin(fresh, { email: u.email, password: newPassword }, { expectUrl: /\/my\/billing$/ });
   await expect(fresh.locator(".app-head")).toContainText(u.name);
 });
 
@@ -159,7 +159,7 @@ test("generated temporary password and weak typed passwords", async ({ adminPage
 
 test("new account with a generated password and a membership", async ({ adminPage: p, newPage }) => {
   const email = uniqueEmail(); const name = uniqueName("Created");
-  await p.goto("/en/admin/members/new");
+  await p.goto("/admin/members/new");
   await p.locator("#n-name").fill(name);
   await p.locator("#n-email").fill(email);
   await p.locator("#n-org").fill("E2E Offline Org");
@@ -175,13 +175,13 @@ test("new account with a generated password and a membership", async ({ adminPag
   expect((await membershipsOf(u!.id))[0]).toMatchObject({ status: "active", tierId: "professional" });
   expect(await auditRows({ action: "admin.account_created", target: u!.id })).toHaveLength(1);
   // Duplicate email is refused.
-  await p.goto("/en/admin/members/new");
+  await p.goto("/admin/members/new");
   await p.locator("#n-name").fill(name); await p.locator("#n-email").fill(email);
   await p.locator("main form").getByRole("button", { name: tm("createButton") }).click();
   await expect(p.locator("main .alert-danger")).toHaveText(tm("err_emailTaken"));
   // The generated password works.
   const s = await newPage();
-  await uiLogin(s, { email, password }, { expectUrl: /\/en\/my\/billing$/ });
+  await uiLogin(s, { email, password }, { expectUrl: /\/my\/billing$/ });
   await expect(membershipCard(s)).toContainText("Professional");
 });
 
@@ -190,13 +190,13 @@ test("delete an account (anonymized, financial records kept)", async ({ adminPag
   await account(p, m.id);
   await p.locator("#delete input[name=confirm]").check();
   await p.getByRole("button", { name: tm("deleteButton") }).click();
-  await expect(p).toHaveURL(/\/en\/admin\/members\?msg=accountDeleted/);
+  await expect(p).toHaveURL(/\/admin\/members\?msg=accountDeleted/);
   await expect(notice(p)).toHaveText(tm("list_accountDeleted"));
   expect(await userById(m.id)).toMatchObject({ role: "deleted", email: `deleted-${m.id}@deleted.invalid`, name: "Deleted member" });
   expect((await membershipsOf(m.id))[0].status).toBe("cancelled");
   expect(await auditRows({ action: "account.deleted_by_admin", target: m.id })).toHaveLength(1);
   // The deleted account is no longer listed; its page shows the deleted notice only.
-  await p.goto(`/en/admin/members?q=${encodeURIComponent(m.email)}`);
+  await p.goto(`/admin/members?q=${encodeURIComponent(m.email)}`);
   await expect(p.locator("tbody tr", { hasText: m.email })).toHaveCount(0);
   await account(p, m.id);
   await expect(p.locator("main")).toContainText(tm("deletedTitle"));
@@ -213,7 +213,7 @@ test("members never shows admin accounts and Members actions refuse admin target
   const admin = (await userById((await createUser({ role: "admin", jobTitle: "E2E Staff" })).id))!;
   expect(admin.role).toBe("admin");
   for (const email of [admin.email, SEED.admin, SEED.admin2]) {
-    await p.goto(`/en/admin/members?q=${encodeURIComponent(email)}`);
+    await p.goto(`/admin/members?q=${encodeURIComponent(email)}`);
     await expect(p.locator("tbody tr", { hasText: email }), email).toHaveCount(0);
   }
 
@@ -224,14 +224,14 @@ test("members never shows admin accounts and Members actions refuse admin target
   await p.locator("#p-job").fill(`E2E Forged ${RUN}`);
   await repoint(p.locator("#profile"));
   await p.getByRole("button", { name: tm("saveProfile") }).click();
-  await expect(p).toHaveURL(/\/en\/admin\/members\?msg=notFound/);
+  await expect(p).toHaveURL(/\/admin\/members\?msg=notFound/);
   await expect(notice(p)).toHaveText(tm("list_notFound"));
 
   await account(p, other.id);
   await repoint(p.locator("#delete"));
   await p.locator("#delete input[name=confirm]").check();
   await p.getByRole("button", { name: tm("deleteButton") }).click();
-  await expect(p).toHaveURL(/\/en\/admin\/members\?msg=notFound/);
+  await expect(p).toHaveURL(/\/admin\/members\?msg=notFound/);
 
   await account(p, other.id);
   await repoint(pwForm(p));

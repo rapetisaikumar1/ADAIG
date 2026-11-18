@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations } from "next-intl/server";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { getAdminContext } from "@/lib/rbac";
@@ -15,7 +16,7 @@ export async function AdminTools({ locale }: { locale: string }) {
   const t = await getTranslations("adminTools");
   const perms = (await getAdminContext())?.permissions;
   const sees = (m: Module) => canPerm(perms, m, "view");
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const tools = ([
     ["/admin/members", "members", "users", "members"], ["/admin/events", "events", "calendar", "events"], ["/admin/messages", "messages", "inbox", "messages"],
     ["/admin/users", "users", "id-badge", "users"], ["/admin/roles", "roles", "key", "roles"],

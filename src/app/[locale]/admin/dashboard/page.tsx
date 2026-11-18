@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { requireAdminPermission, can } from "@/lib/rbac";
@@ -38,7 +39,7 @@ export default async function AdminDash({ params }: { params: Promise<{ locale: 
   const dl = dateLocale(locale);
   const day = (d: Date | null | undefined) => d ? d.toLocaleDateString(dl, { day: "numeric", month: "short", year: "numeric", timeZone: eventTimeZone }) : "—";
   const stamp = (d: Date) => `${d.toLocaleString(dl, { dateStyle: "medium", timeStyle: "short", timeZone: eventTimeZone })} ${t("et")}`;
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const logLabel = (a: string) => auditLabel(t, a); // "auth.login_failed" → admin.log.auth_login_failed
   const colon = locale === "fr" ? "\u00a0: " : ": ";
   const member = (u: { id: string; name: string }) => canMembers ? <a href={L(`/admin/members/${u.id}`)}>{u.name}</a> : <span>{u.name}</span>;

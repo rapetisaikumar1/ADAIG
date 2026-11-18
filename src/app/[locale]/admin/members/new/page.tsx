@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations, getMessages, setRequestLocale } from "next-intl/server";
 import { requireAdminPermission } from "@/lib/rbac";
@@ -17,7 +18,7 @@ export default async function AdminNewAccount({ params }: { params: Promise<{ lo
   return (
     <div className="app adm"><AdminNav locale={locale} current="/admin/members" />
       <main id="main" tabIndex={-1} className="app-main adm-mbr">
-        <AdminHead back={{ href: `/${locale}/admin/members`, label: t("membersTitle") }} title={tm("newAccount")} lead={tm("newHint")} />
+        <AdminHead back={{ href: localeHref(locale, `/admin/members`), label: t("membersTitle") }} title={tm("newAccount")} lead={tm("newHint")} />
         {/* The form is a client component: give it only the admin message namespaces it uses. */}
         <NextIntlClientProvider messages={Object.fromEntries(Object.entries(await getMessages()).filter(([k]) => k === "admin" || k === "adminMembers"))}>
           <NewAccountForm locale={locale} tiers={tiers} minDay={renewalDayValue(new Date(Date.now() + 864e5))} directoryDefault={await directoryOptInDefault()} />

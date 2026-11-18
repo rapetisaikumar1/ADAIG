@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { requireUser, activeMembership } from "@/lib/session";
 import { limits } from "@/lib/validation";
@@ -51,7 +52,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const errKeys = (Object.keys(FIELD_ID) as ErrField[]).filter((f) => errs[f]); // in form order
   const fieldErr = (f: ErrField) => errs[f] && <span className="error-msg" id={errs[f].id}>{errs[f].text}</span>;
   const fcls = (f: ErrField) => `field${errs[f] ? " error" : ""}`;
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const msFacts = ms?.m ? membershipDates(ms.m, (k) => tb(k), locale) : [];
   return (
     <div className={isAdmin ? "app adm" : "app"}>{isAdmin ? <AdminNav locale={locale} current="/my/profile" /> : <MemberNav locale={locale} current="/my/profile" />}<TabBarFocus />

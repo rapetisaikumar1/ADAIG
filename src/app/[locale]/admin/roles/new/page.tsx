@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations, getMessages, setRequestLocale } from "next-intl/server";
 import { requireAdminPermission } from "@/lib/rbac";
@@ -13,7 +14,7 @@ export default async function AdminNewRole({ params }: { params: Promise<{ local
   const { locale } = await params; setRequestLocale(locale);
   const ctx = await requireAdminPermission(locale, "roles", "create");
   const t = await getTranslations("adminRoles");
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   return (
     <div className="app adm"><AdminNav locale={locale} current="/admin/roles" />
       <main id="main" tabIndex={-1} className="app-main rl-page">

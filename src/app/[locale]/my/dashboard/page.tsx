@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { redirect } from "next/navigation";
 import type { Locale } from "@/config/site";
 import { safeLocale } from "@/lib/validation";
@@ -14,5 +15,5 @@ export default async function Dashboard({ params, searchParams }: { params: Prom
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(await searchParams)) for (const x of Array.isArray(v) ? v : v === undefined ? [] : [v]) qs.append(k, x);
   const q = qs.toString();
-  redirect(`/${locale}/my/billing${q ? `?${q}` : ""}`);
+  redirect(localeHref(locale, `/my/billing${q ? `?${q}` : ""}`));
 }

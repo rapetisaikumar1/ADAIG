@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { findValidToken } from "@/lib/passwordReset";
@@ -27,7 +28,7 @@ export default async function ResetPassword({ params, searchParams }: { params: 
           password: t("resetNew"), hint: t("resetHint"), confirm: t("resetConfirm"), submit: t("resetSubmit"), saving: t("resetSaving"),
           invalidTitle: t("resetInvalidTitle"), invalidBody: t("resetInvalidBody"), requestNew: t("resetRequestNew"),
         }} />
-        <p className="small auth-forgot" style={{ marginTop: "var(--sp-5)" }}>{/* below the button here, not above it as on /login */}<a href={`/${locale}/login`}>{t("backToSignIn")}</a></p>
+        <p className="small auth-forgot" style={{ marginTop: "var(--sp-5)" }}>{/* below the button here, not above it as on /login */}<a href={localeHref(locale, `/login`)}>{t("backToSignIn")}</a></p>
       </div></div>
       {/* After the form in the DOM so the h1 is the first heading; CSS puts the panel first on wide screens (as on /login). */}
       <AuthSide variant="login" />

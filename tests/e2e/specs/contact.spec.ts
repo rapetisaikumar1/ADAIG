@@ -19,7 +19,7 @@ async function fillContact(page: Page, v: { name?: string; email?: string; org?:
 test("a visitor's message reaches Admin → Messages, is marked handled and reopened", async ({ page, adminPage }) => {
   const text = `E2E message ${RUN} ${Math.random().toString(36).slice(2)} — please call me back.`;
   const name = uniqueName("Visitor"); const email = uniqueEmail();
-  await page.goto("/en/contact?topic=events");
+  await page.goto("/contact?topic=events");
   await expect(page.locator("#cf-topic")).toHaveValue("events");
   await fillContact(page, { name, email, org: "E2E Org", message: text });
   await page.getByRole("button", { name: t("contact.send") }).click();
@@ -29,7 +29,7 @@ test("a visitor's message reaches Admin → Messages, is marked handled and reop
   expect(m).toMatchObject({ status: "new", topic: "events", locale: "en", userId: null, name, organization: "E2E Org" });
   expect(await auditRows({ action: "contact.message_received", target: m!.id })).toHaveLength(1);
 
-  await adminPage.goto("/en/admin/messages");
+  await adminPage.goto("/admin/messages");
   const item = adminPage.locator("li.inbox-item", { hasText: text });
   await expect(item).toHaveClass(/is-new/);
   await expect(item).toContainText(email);
@@ -42,7 +42,7 @@ test("a visitor's message reaches Admin → Messages, is marked handled and reop
   expect(handled!.status).toBe("handled");
   expect(handled!.handledBy).toBeTruthy();
 
-  await adminPage.goto("/en/admin/messages?f=handled");
+  await adminPage.goto("/admin/messages?f=handled");
   const h = adminPage.locator("li.inbox-item", { hasText: text });
   await h.getByRole("button", { name: t("inbox.reopen") }).click();
   await expect(adminPage).toHaveURL(/msg=reopened/);
@@ -56,7 +56,7 @@ test("a visitor's message reaches Admin → Messages, is marked handled and reop
 
 test("the honeypot field silently drops bot submissions", async ({ page }) => {
   const text = `E2E bot ${RUN} ${Math.random().toString(36).slice(2)} buy now`;
-  await page.goto("/en/contact");
+  await page.goto("/contact");
   await fillContact(page, { name: "Bot", email: uniqueEmail(), topic: "other", message: text });
   await page.locator("#cf-web").evaluate((el: HTMLInputElement) => { el.value = "https://spam.example"; });
   await page.getByRole("button", { name: t("contact.send") }).click();
@@ -69,7 +69,7 @@ test("more than 5 messages per email per hour are refused", async ({ page }) => 
   for (let i = 0; i < 5; i++)
     await q(`INSERT INTO "ContactMessage" (id, name, email, topic, message, locale) VALUES ($1, 'E2E', $2, 'other', 'E2E earlier message', 'en')`, [e2eId(), email]);
   const text = `E2E sixth ${RUN} ${Math.random().toString(36).slice(2)}`;
-  await page.goto("/en/contact");
+  await page.goto("/contact");
   await fillContact(page, { name: "E2E Sender", email, topic: "other", message: text });
   await page.getByRole("button", { name: t("contact.send") }).click();
   await expect(page.locator("main").getByRole("alert")).toHaveText(t("contact.errRate"));

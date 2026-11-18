@@ -11,7 +11,7 @@ import { eventTimeZone } from "@/lib/time";
 
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: eventTimeZone });
 const dayTime = (d: Date) => `${day(d)} at ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: eventTimeZone })} ET`;
-const L = (path: string) => siteUrl(`/en${path}`);
+const L = (path: string) => siteUrl(path || "/"); // English URLs have no /en prefix
 /** The new address as shown to the OLD one: first character of the local part, then •••@domain. */
 export const maskEmail = (email: string) => { const at = email.lastIndexOf("@"); return at < 1 ? "•••" : `${email.slice(0, 1)}•••@${email.slice(at + 1)}`; };
 const fail = (kind: string, e: unknown) => console.error(`[notify] ${kind}: ${e instanceof Error ? e.name : "error"}`);

@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Locale } from "@/config/site";
 import { getTiers } from "@/lib/settings";
@@ -36,16 +37,16 @@ export default async function Membership({ params }: { params: Promise<{ locale:
               <ul className="checks">{tier.benefits.map((b, i) => <li key={i}>{b[locale]}</li>)}</ul>
               {tier.requiresVerification && <p className="tier-note">{t("studentNote")}</p>}
               <div className="card-foot">
-                <a href={`/${locale}/join?tier=${tier.id}`} className={`btn ${tier.featured ? "btn-highlight" : "btn-secondary"} btn-block`} aria-label={t("applyFor", { tier: tier.name[locale] })}>{t("apply")}</a>
+                <a href={localeHref(locale, `/join?tier=${tier.id}`)} className={`btn ${tier.featured ? "btn-highlight" : "btn-secondary"} btn-block`} aria-label={t("applyFor", { tier: tier.name[locale] })}>{t("apply")}</a>
               </div>
             </article>
           ))}
         </div>
         {/* How joining works — the same three steps the application form shows ("What happens next"). */}
         <section className="mship-how" aria-labelledby="mship-how-h">
-          <div className="mship-how-head section-head"><h2 id="mship-how-h">{tj("nextTitle")}</h2><p className="small muted mship-how-help">{tj("questions")} <a href={`/${locale}/contact?topic=membership`}>{tj("contactUs")}</a></p></div>
+          <div className="mship-how-head section-head"><h2 id="mship-how-h">{tj("nextTitle")}</h2><p className="small muted mship-how-help">{tj("questions")} <a href={localeHref(locale, `/contact?topic=membership`)}>{tj("contactUs")}</a></p></div>
           <ol className="num-list" style={{ ["--cols" as string]: 3 }}>
-            <li><h3>{tj("next1Title")}</h3><p>{t.rich("howApplyBody", { link: (c) => <a href={`/${locale}/join`}>{c}</a> })}</p></li>
+            <li><h3>{tj("next1Title")}</h3><p>{t.rich("howApplyBody", { link: (c) => <a href={localeHref(locale, `/join`)}>{c}</a> })}</p></li>
             <li><h3>{tj("next2Title")}</h3><p>{tj("next2")}</p></li>
             <li><h3>{tj("next3Title")}</h3><p>{tj("next3")}</p></li>
           </ol>

@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { evLabel } from "@/config/site";
 import { Fragment } from "react";
 import type { Event } from "@/generated/prisma/client";
@@ -107,7 +108,7 @@ export function EventCard({ e, locale, labels: given, membersFreeLabel, band = t
             <span className={eventTypeBadgeClass}>{evLabel(e.type, locale)}</span>
             {status}
           </div>
-          <h3><a className="card-link is-stretched" href={`/${locale}/events/${e.slug}`}>{v.title}</a></h3>
+          <h3><a className="card-link is-stretched" href={localeHref(locale, `/events/${e.slug}`)}>{v.title}</a></h3>
           {v.planned && <p className="ev-tbc">{labels.dateTbc}</p>}
           <p className="ev-meta meta">{meta.map((m, i) => <Fragment key={i}>{i > 0 && " "}<span>{m}</span></Fragment>)}</p>
         </div>

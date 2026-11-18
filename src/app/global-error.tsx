@@ -1,4 +1,5 @@
 "use client";
+import { localeHref } from "@/lib/localePath";
 import { useEffect } from "react";
 import "./globals.css";
 import { fontVars } from "@/lib/fonts";
@@ -23,7 +24,7 @@ export default function GlobalError({ error, retry }: { error: unknown; retry: (
         <title>{`${c.title} · ADAIG`}</title>
         <header className="nf-bare"><div className="container">
           {/* eslint-disable-next-line @next/next/no-img-element -- static brand SVG */}
-          <a href={`/${locale}`}><img src="/assets/logo-reverse.svg" alt="ADAIG" width={186} height={44} /></a>
+          <a href={localeHref(locale)}><img src="/assets/logo-reverse.svg" alt="ADAIG" width={186} height={44} /></a>
         </div></header>
         <main id="main" tabIndex={-1} className="nf-page">
           <section className="page-hero art-404 nf-hero"><div className="container">
@@ -31,7 +32,7 @@ export default function GlobalError({ error, retry }: { error: unknown; retry: (
             <p className="lead">{c.body}</p>
             <div className="btn-row">
               <button suppressHydrationWarning type="button" className="btn btn-primary" onClick={() => retry()}>{c.retry}</button>
-              <a className="btn btn-secondary" href={`/${locale}`}>{c.home}</a>
+              <a className="btn btn-secondary" href={localeHref(locale)}>{c.home}</a>
             </div>
             {digest && <p className="small muted nf-ref">{c.ref} {digest}</p>}
           </div></section>

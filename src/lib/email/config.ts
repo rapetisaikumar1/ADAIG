@@ -77,7 +77,7 @@ export function contactInbox(): string | null {
 }
 
 /**
- * Absolute URL on the public site: NEXT_PUBLIC_SITE_URL → APP_URL → http://localhost:3000. Pass the path with its locale ("/en/…").
+ * Absolute URL on the public site: NEXT_PUBLIC_SITE_URL → APP_URL → http://localhost:3000. Pass the public path (English has no prefix: "/login", "/my/billing").
  * In production (NODE_ENV=production) links are always https: an http origin is upgraded unless its host is localhost
  * (round-8 SEC M2: reset tokens never travel in clear text). scripts/check-env.mjs also fails the build when
  * NEXT_PUBLIC_SITE_URL is not https or its host differs from APP_URL's.

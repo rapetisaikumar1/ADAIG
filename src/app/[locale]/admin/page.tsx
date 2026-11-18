@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { redirect } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { requireAdminContext } from "@/lib/rbac";
@@ -7,5 +8,5 @@ import { adminHomePath } from "@/lib/permissions";
 export default async function AdminIndex({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params; setRequestLocale(locale);
   const ctx = await requireAdminContext(locale);
-  redirect(`/${locale}${adminHomePath(ctx.permissions)}`);
+  redirect(localeHref(locale, `${adminHomePath(ctx.permissions)}`));
 }

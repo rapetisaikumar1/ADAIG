@@ -32,33 +32,33 @@ const n = (b: boolean) => (b ? 1 : 0);
 /** `noAccess`: the no-access page heading (a role without any tool gets its own wording). */
 type Case = { label: string; perms: Perms; nav: string[]; home: string; noAccess: string };
 const CASES: Case[] = [
-  { label: "Member Manager", perms: ROLE_PRESETS.memberManager, nav: ["members", "events", "messages"], home: "/en/admin/members", noAccess: "admin.noAccessTitle" },
-  { label: "Event Manager", perms: ROLE_PRESETS.eventManager, nav: ["members", "events", "messages"], home: "/en/admin/members", noAccess: "admin.noAccessTitle" },
-  { label: "Viewer", perms: ROLE_PRESETS.viewer, nav: ["members", "events", "messages"], home: "/en/admin/members", noAccess: "admin.noAccessTitle" },
-  { label: "No permissions", perms: ROLE_PRESETS.none, nav: [], home: "/en/admin/no-access", noAccess: "admin.noAccessNoneTitle" },
+  { label: "Member Manager", perms: ROLE_PRESETS.memberManager, nav: ["members", "events", "messages"], home: "/admin/members", noAccess: "admin.noAccessTitle" },
+  { label: "Event Manager", perms: ROLE_PRESETS.eventManager, nav: ["members", "events", "messages"], home: "/admin/members", noAccess: "admin.noAccessTitle" },
+  { label: "Viewer", perms: ROLE_PRESETS.viewer, nav: ["members", "events", "messages"], home: "/admin/members", noAccess: "admin.noAccessTitle" },
+  { label: "No permissions", perms: ROLE_PRESETS.none, nav: [], home: "/admin/no-access", noAccess: "admin.noAccessNoneTitle" },
 ];
 const homeRe = (home: string) => new RegExp(`${home.replace(/[/]/g, "\\/")}$`);
 
 /** Every admin page and the permission it needs (SPEC §3.2). */
 const PAGES = (ids: { member: string; event: string; admin: string }): [string, string, string][] => [
-  ["/en/admin/members", "members", "view"],
-  ["/en/admin/members/new", "members", "create"],
-  [`/en/admin/members/${ids.member}`, "members", "view"],
-  ["/en/admin/events", "events", "view"],
-  [`/en/admin/events/${ids.event}`, "events", "view"],
-  ["/en/admin/messages", "messages", "view"],
-  ["/en/admin/users", "users", "view"],
-  ["/en/admin/users/new", "users", "create"],
-  [`/en/admin/users/${ids.admin}`, "users", "view"],
-  ["/en/admin/roles", "roles", "view"],
-  ["/en/admin/roles/new", "roles", "create"],
-  [`/en/admin/roles/${SUPER_ADMIN_ROLE_ID}`, "roles", "view"],
-  ["/en/admin/dashboard", "system", "view"],
-  ["/en/admin/settings", "system", "view"],
-  ["/en/admin/audit", "system", "view"],
-  ["/en/admin/system", "system", "view"],
-  ["/en/admin/corporate", "system", "view"],
-  ["/en/admin/chapter", "system", "view"],
+  ["/admin/members", "members", "view"],
+  ["/admin/members/new", "members", "create"],
+  [`/admin/members/${ids.member}`, "members", "view"],
+  ["/admin/events", "events", "view"],
+  [`/admin/events/${ids.event}`, "events", "view"],
+  ["/admin/messages", "messages", "view"],
+  ["/admin/users", "users", "view"],
+  ["/admin/users/new", "users", "create"],
+  [`/admin/users/${ids.admin}`, "users", "view"],
+  ["/admin/roles", "roles", "view"],
+  ["/admin/roles/new", "roles", "create"],
+  [`/admin/roles/${SUPER_ADMIN_ROLE_ID}`, "roles", "view"],
+  ["/admin/dashboard", "system", "view"],
+  ["/admin/settings", "system", "view"],
+  ["/admin/audit", "system", "view"],
+  ["/admin/system", "system", "view"],
+  ["/admin/corporate", "system", "view"],
+  ["/admin/chapter", "system", "view"],
 ];
 
 /* ── helpers ───────────────────────────────────────────────────────────────────── */
@@ -73,7 +73,7 @@ async function expectSidebar(p: Page, mods: string[]) {
 }
 async function expectNoAccess(p: Page, path: string, heading = "admin.noAccessTitle") {
   const r = await p.goto(path);
-  await expect(p, path).toHaveURL(/\/en\/admin\/no-access$/);
+  await expect(p, path).toHaveURL(/\/admin\/no-access$/);
   expect(r?.status(), path).toBe(200);
   await expect(p.locator("main#main h1"), path).toHaveText(t(heading));
   await expect(p.locator("header.admin-header"), path).toBeVisible(); // still inside the admin shell
@@ -110,10 +110,10 @@ const publishForm = (p: Page, title: string) => p.locator("form", { has: p.getBy
 /* ── sidebar, landing, direct URLs ─────────────────────────────────────────────── */
 
 test("Super Admin: all five modules in the sidebar, /admin goes to Members", async ({ adminPage: p }) => {
-  await p.goto("/en/admin");
-  await expect(p).toHaveURL(/\/en\/admin\/members$/);
+  await p.goto("/admin");
+  await expect(p).toHaveURL(/\/admin\/members$/);
   await expectSidebar(p, ["members", "events", "messages", "users", "roles"]);
-  await expect(p.locator("a.admin-header__brand")).toHaveAttribute("href", "/en/admin/members");
+  await expect(p.locator("a.admin-header__brand")).toHaveAttribute("href", "/admin/members");
 });
 
 for (const c of CASES) {
@@ -123,7 +123,7 @@ for (const c of CASES) {
     const p = await loginAs(u, { expectUrl: homeRe(c.home) });
     await expectSidebar(p, c.nav);
     await expect(p.locator("a.admin-header__brand")).toHaveAttribute("href", c.home);
-    await p.goto("/en/admin");
+    await p.goto("/admin");
     await expect(p).toHaveURL(homeRe(c.home));
 
     for (const [path, m, a] of PAGES({ member: member.id, event: event.id, admin: other.id })) {
@@ -133,18 +133,18 @@ for (const c of CASES) {
 
     if (c.nav.length) {
       // Some access: the no-access page explains and links to the admin home.
-      await p.goto("/en/admin/no-access");
+      await p.goto("/admin/no-access");
       await expect(p.locator("main")).toContainText(ta("noAccessBody"));
       await expect(p.locator("main").getByRole("link", { name: ta("adminHome") })).toHaveAttribute("href", c.home);
     } else {
       // Empty role: lands on no-access with the "no tools" text; Profile & privacy still works inside the admin shell.
-      await p.goto("/en/admin/no-access");
+      await p.goto("/admin/no-access");
       await expect(p.locator("main")).toContainText(ta("noAccessNone"));
       await expect(p.locator("main").getByRole("link", { name: ta("adminHome") })).toHaveCount(0);
-      await expect(p.locator(`main a[href="/en/my/profile"]`).first()).toBeVisible();
-      const r = await p.goto("/en/my/profile");
+      await expect(p.locator(`main a[href="/my/profile"]`).first()).toBeVisible();
+      const r = await p.goto("/my/profile");
       expect(r?.status()).toBe(200);
-      await expect(p).toHaveURL(/\/en\/my\/profile$/);
+      await expect(p).toHaveURL(/\/my\/profile$/);
       await expect(p.locator("header.admin-header")).toBeVisible();
       await expectSidebar(p, []);
     }
@@ -154,24 +154,24 @@ for (const c of CASES) {
 test("admin home: login and /admin land on the first permitted module (Members, Events, Messages, Users, Roles, Overview), else no-access", async ({ loginAs }) => {
   test.setTimeout(150_000);
   const cases: [Perms, string][] = [
-    [{ members: ["view"] }, "/en/admin/members"],
-    [ROLE_PRESETS.eventsOnly, "/en/admin/events"],
-    [{ messages: ["view", "edit"] }, "/en/admin/messages"],
-    [{ users: ["view"] }, "/en/admin/users"],
-    [{ roles: ["view"], users: ["view"] }, "/en/admin/users"],
-    [{ roles: ["view"] }, "/en/admin/roles"],
-    [{ system: ["view"] }, "/en/admin/dashboard"],
-    [{ events: ["view"], system: ["view", "edit"] }, "/en/admin/events"],
-    [{}, "/en/admin/no-access"],
+    [{ members: ["view"] }, "/admin/members"],
+    [ROLE_PRESETS.eventsOnly, "/admin/events"],
+    [{ messages: ["view", "edit"] }, "/admin/messages"],
+    [{ users: ["view"] }, "/admin/users"],
+    [{ roles: ["view"], users: ["view"] }, "/admin/users"],
+    [{ roles: ["view"] }, "/admin/roles"],
+    [{ system: ["view"] }, "/admin/dashboard"],
+    [{ events: ["view"], system: ["view", "edit"] }, "/admin/events"],
+    [{}, "/admin/no-access"],
   ];
   for (const [perms, home] of cases) {
     const label = `${JSON.stringify(perms)} → ${home}`;
     const p = await loginAs(await createAdmin(perms), { expectUrl: homeRe(home) });
     await expect(p.locator("a.admin-header__brand"), label).toHaveAttribute("href", home);
-    await p.goto("/en/admin");
+    await p.goto("/admin");
     await expect(p, label).toHaveURL(homeRe(home));
     // Public pages: the account link goes to the same admin home.
-    await p.goto("/en");
+    await p.goto("/");
     const links = p.locator(".site-header").getByRole("link", { name: t("chrome.myAdaig"), includeHidden: true });
     await expect(links.first(), label).toBeAttached();
     for (const l of await links.all()) await expect(l, label).toHaveAttribute("href", home);
@@ -192,19 +192,19 @@ for (const c of CASES.filter((x) => x.nav.length)) {
     const p = await loginAs(await createAdmin(P), { expectUrl: homeRe(c.home) });
 
     // Members list: New account (create), approve / reject / unlock (edit); the CSV (view) always.
-    await p.goto(`/en/admin/members?f=pending&q=${enc(applicant.email)}`);
+    await p.goto(`/admin/members?f=pending&q=${enc(applicant.email)}`);
     await expect(p.locator("main tbody tr", { hasText: applicant.email })).toHaveCount(1);
     await expect(p.locator("main").getByRole("link", { name: tm("newAccount") })).toHaveCount(n(can(P, "members", "create")));
     await expect(p.locator(`main a[href^="/api/admin/members.csv"]`)).toHaveCount(1);
     await expect(p.getByRole("button", { name: `${ta("approve")}: ${applicant.name}` })).toHaveCount(n(can(P, "members", "edit")));
     await expect(p.locator(`summary[aria-label="${ta("reject")}: ${applicant.name}"]`)).toHaveCount(n(can(P, "members", "edit")));
-    await p.goto(`/en/admin/members?q=${enc(locked.email)}`);
+    await p.goto(`/admin/members?q=${enc(locked.email)}`);
     const lockedRow = p.locator("main tbody tr", { hasText: locked.email });
     await expect(lockedRow.getByText(ta("locked"), { exact: true })).toBeVisible();
     await expect(lockedRow.locator("form button")).toHaveCount(n(can(P, "members", "edit")));
 
     // Member account page: profile save, temporary password, membership controls, CPE (edit); delete zone (delete).
-    await p.goto(`/en/admin/members/${member.id}`);
+    await p.goto(`/admin/members/${member.id}`);
     await expect(p.getByRole("button", { name: tm("saveProfile") })).toHaveCount(n(can(P, "members", "edit")));
     await expect(p.locator("#pw-new")).toHaveCount(n(can(P, "members", "edit")));
     await expect(p.locator("#memberships summary", { hasText: tm("changeTier") })).toHaveCount(n(can(P, "members", "edit")));
@@ -213,17 +213,17 @@ for (const c of CASES.filter((x) => x.nav.length)) {
     if (!can(P, "members", "edit") && !can(P, "members", "delete")) await expect(p.locator("main form"), "read-only account page").toHaveCount(0);
 
     // Events: "+ New event" (create), publish (edit); event page edit form (edit), delete (delete); the CSV (view) always.
-    await p.goto("/en/admin/events");
-    await expect(p.locator(`main a[href="/en/admin/events/${draft.id}"]`).first()).toBeVisible();
+    await p.goto("/admin/events");
+    await expect(p.locator(`main a[href="/admin/events/${draft.id}"]`).first()).toBeVisible();
     await expect(p.locator("#new-event")).toHaveCount(n(can(P, "events", "create")));
     await expect(publishForm(p, draft.title)).toHaveCount(n(can(P, "events", "edit")));
-    await p.goto(`/en/admin/events/${draft.id}`);
+    await p.goto(`/admin/events/${draft.id}`);
     await expect(p.locator("#e-ti")).toHaveCount(n(can(P, "events", "edit")));
     await expect(p.locator("#danger summary", { hasText: te("deleteBtn") })).toHaveCount(n(can(P, "events", "delete")));
     await expect(p.locator(`main a[href^="/api/admin/events/${draft.id}/registrations.csv"]`)).toHaveCount(1);
 
     // Messages: Mark handled (edit); the CSV (view) always.
-    await p.goto("/en/admin/messages");
+    await p.goto("/admin/messages");
     const item = p.locator("li.inbox-item", { hasText: msgText });
     await expect(item).toBeVisible();
     await expect(item.locator("form")).toHaveCount(n(can(P, "messages", "edit")));
@@ -232,19 +232,19 @@ for (const c of CASES.filter((x) => x.nav.length)) {
 }
 
 test("Overview & system with view only: Settings is read-only; tools and CSVs follow the permissions", async ({ loginAs }) => {
-  const p = await loginAs(await createAdmin({ system: ["view"] }), { expectUrl: /\/en\/admin\/dashboard$/ });
+  const p = await loginAs(await createAdmin({ system: ["view"] }), { expectUrl: /\/admin\/dashboard$/ });
   await expectSidebar(p, []);
-  await p.goto("/en/admin/settings");
-  await expect(p).toHaveURL(/\/en\/admin\/settings$/);
+  await p.goto("/admin/settings");
+  await expect(p).toHaveURL(/\/admin\/settings$/);
   await expect(p.locator("main")).toContainText(ta("readOnly"));
   // Read-only values as text (no inputs, no forms): the tier card is still there, its name field is not.
   await expect(p.locator("#tier-student")).toBeVisible();
   await expect(p.locator("#t-student-ne")).toHaveCount(0);
   await expect(p.locator("main form")).toHaveCount(0);
   await expect(p.locator("main form").getByRole("button")).toHaveCount(0);
-  await p.goto("/en/admin/dashboard");
+  await p.goto("/admin/dashboard");
   await expect(p.locator(`main a[href="/api/admin/audit.csv"]`)).toBeVisible();
-  for (const href of ["/api/admin/members.csv", "/api/admin/registrations.csv", "/api/admin/messages.csv", "/en/admin/members", "/en/admin/events", "/en/admin/messages"])
+  for (const href of ["/api/admin/members.csv", "/api/admin/registrations.csv", "/api/admin/messages.csv", "/admin/members", "/admin/events", "/admin/messages"])
     await expect(p.locator(`main a[href="${href}"]`), href).toHaveCount(0);
 });
 
@@ -253,7 +253,7 @@ test("Overview & system with view only: Settings is read-only; tools and CSVs fo
 test("server actions refuse forged submissions from a Viewer: DB unchanged, each refusal audited (control: the Super Admin's replay works)", async ({ adminPage: p, loginAs }) => {
   test.setTimeout(120_000);
   const viewer = await createAdmin(ROLE_PRESETS.viewer);
-  const vp = await loginAs(viewer, { expectUrl: /\/en\/admin\/members$/ });
+  const vp = await loginAs(viewer, { expectUrl: /\/admin\/members$/ });
   const applicant = await createUser(); await createMembership(applicant.id, { status: "pending_verification" });
   const victim = await createMember();
   const draft = await createEvent({ published: false });
@@ -263,14 +263,14 @@ test("server actions refuse forged submissions from a Viewer: DB unchanged, each
   const evTitle = uniqueName("Event"); const newEmail = uniqueEmail(); const pw = uniquePassword(); const roleName = uniqueName("Role");
 
   // Capture every form as the Super Admin (nothing is submitted here).
-  await p.goto(`/en/admin/members?f=pending&q=${enc(applicant.email)}`);
+  await p.goto(`/admin/members?f=pending&q=${enc(applicant.email)}`);
   const approve = await formEntries(p.locator("form", { has: p.getByRole("button", { name: `${ta("approve")}: ${applicant.name}` }) }));
-  await p.goto(`/en/admin/members/${victim.id}`);
+  await p.goto(`/admin/members/${victim.id}`);
   await p.locator("#p-job").fill("E2E Forged Job");
   const profile = await formEntries(p.locator("form#profile"));
   await p.locator("#delete input[name=confirm]").check();
   const delAccount = await formEntries(p.locator("#delete"));
-  await p.goto("/en/admin/events");
+  await p.goto("/admin/events");
   await p.locator("#new-event summary").click();
   const nf = p.locator("#new-event form");
   await nf.locator("#ti").fill(evTitle); await nf.locator("#su").fill("Forged by the E2E suite.");
@@ -279,41 +279,41 @@ test("server actions refuse forged submissions from a Viewer: DB unchanged, each
   await nf.locator("#mp").fill("0"); await nf.locator("#pp").fill("10");
   const createEv = await formEntries(nf);
   const publish = await formEntries(publishForm(p, draft.title));
-  await p.goto(`/en/admin/events/${doomed.id}`);
+  await p.goto(`/admin/events/${doomed.id}`);
   const delEvent = await formEntries(p.locator("#danger form").filter({ hasText: te("deleteYes") }));
-  await p.goto("/en/admin/messages");
+  await p.goto("/admin/messages");
   const handle = await formEntries(p.locator("li.inbox-item", { hasText: msgText }).locator("form"));
-  await p.goto("/en/admin/settings");
+  await p.goto("/admin/settings");
   await p.locator("#t-student-ne").fill(`E2E Hacked ${RUN}`);
   const tier = await formEntries(p.locator("#tier-student"));
-  await p.goto("/en/admin/users/new");
+  await p.goto("/admin/users/new");
   await p.locator("#u-name").fill(uniqueName("Forged")); await p.locator("#u-email").fill(newEmail);
   await p.locator("#u-pw").fill(pw); await p.locator("#u-pw2").fill(pw); await p.locator("#u-role").selectOption(viewer.roleId);
   const createUserF = await formEntries(p.locator("main form", { has: p.locator("#u-email") }));
-  await p.goto("/en/admin/roles/new");
+  await p.goto("/admin/roles/new");
   await p.locator("#r-name").fill(roleName); await p.locator("#perm-members-view").check();
   const createRoleF = await formEntries(p.locator("main form", { has: p.locator("#r-name") }));
   for (const e of [approve, profile, delAccount, createEv, publish, delEvent, handle, tier, createUserF, createRoleF])
     expect(e.some(([k]) => k.startsWith("$ACTION_"))).toBe(true);
 
-  // Redirect-style actions: 303 → /en/admin/no-access.
+  // Redirect-style actions: 303 → /admin/no-access.
   const redirectStyle: [string, string, Entries][] = [
-    ["/en/admin/members", "approve application", approve],
-    [`/en/admin/members/${victim.id}`, "save member profile", profile],
-    [`/en/admin/members/${victim.id}`, "delete member account", delAccount],
-    ["/en/admin/events", "create event", createEv],
-    ["/en/admin/events", "publish event", publish],
-    [`/en/admin/events/${doomed.id}`, "delete event", delEvent],
-    ["/en/admin/messages", "mark message handled", handle],
-    ["/en/admin/settings", "save membership tier", tier],
+    ["/admin/members", "approve application", approve],
+    [`/admin/members/${victim.id}`, "save member profile", profile],
+    [`/admin/members/${victim.id}`, "delete member account", delAccount],
+    ["/admin/events", "create event", createEv],
+    ["/admin/events", "publish event", publish],
+    [`/admin/events/${doomed.id}`, "delete event", delEvent],
+    ["/admin/messages", "mark message handled", handle],
+    ["/admin/settings", "save membership tier", tier],
   ];
   for (const [path, what, e] of redirectStyle) {
     const r = await post(vp.request, path, e);
     expect(r.status(), what).toBe(303);
-    expect(r.headers()["location"], what).toMatch(/\/en\/admin\/no-access$/);
+    expect(r.headers()["location"], what).toMatch(/\/admin\/no-access$/);
   }
   // useActionState actions answer with their form state (no redirect to a success page).
-  for (const [path, what, e] of [["/en/admin/users/new", "create user", createUserF], ["/en/admin/roles/new", "create role", createRoleF]] as const) {
+  for (const [path, what, e] of [["/admin/users/new", "create user", createUserF], ["/admin/roles/new", "create role", createRoleF]] as const) {
     const r = await post(vp.request, path, e);
     expect(r.status(), what).toBeLessThan(400);
     expect(r.headers()["location"] ?? "", what).not.toMatch(/\/admin\/(users|roles)\/[^/?]+\?msg=msg_created/);
@@ -334,11 +334,11 @@ test("server actions refuse forged submissions from a Viewer: DB unchanged, each
     ["members.edit", "members.edit", "members.delete", "events.create", "events.edit", "events.delete", "messages.edit", "system.edit", "users.create", "roles.create"].sort());
 
   // Control: the same replays by the Super Admin take effect (so the refusals above are permission checks).
-  expect((await post(p.request, "/en/admin/events", publish)).status()).toBe(303);
+  expect((await post(p.request, "/admin/events", publish)).status()).toBe(303);
   expect((await eventById(draft.id))!.published).toBe(true);
-  expect((await post(p.request, "/en/admin/messages", handle)).status()).toBe(303);
+  expect((await post(p.request, "/admin/messages", handle)).status()).toBe(303);
   expect(await messageStatus(msgId)).toBe("handled");
-  expect((await post(p.request, "/en/admin/roles/new", createRoleF)).status()).toBe(303);
+  expect((await post(p.request, "/admin/roles/new", createRoleF)).status()).toBe(303);
   expect((await roleByName(roleName))!.permissions).toEqual({ members: ["view"] });
 });
 
@@ -364,44 +364,44 @@ test("forms re-targeted in the DOM to a forbidden action id are refused (edit-wi
   const victim = await createMember();
   const draft = await createEvent({ published: false });
   // The forbidden actions' ids and fields, as the Super Admin's pages render them.
-  await adminPage.goto(`/en/admin/members/${victim.id}`);
+  await adminPage.goto(`/admin/members/${victim.id}`);
   await adminPage.locator("#delete input[name=confirm]").check();
   const del = await formEntries(adminPage.locator("#delete"));
-  await adminPage.goto("/en/admin/events");
+  await adminPage.goto("/admin/events");
   const pub = await formEntries(publishForm(adminPage, draft.title));
   for (const e of [del, pub]) expect(e.some(([k]) => k.startsWith("$ACTION_ID_"))).toBe(true);
 
   // (1) Members View + Edit, no Delete: the account page's own profile form, re-pointed at the delete action.
   const editor = await createAdmin({ members: ["view", "edit"] });
-  const xp = await loginAs(editor, { expectUrl: /\/en\/admin\/members$/ });
-  await xp.goto(`/en/admin/members/${victim.id}`);
+  const xp = await loginAs(editor, { expectUrl: /\/admin\/members$/ });
+  await xp.goto(`/admin/members/${victim.id}`);
   await expect(xp.locator("#delete")).toHaveCount(0);
   const r1 = await retargetAndPost(xp, xp.locator("form#profile"), del);
-  expect(r1.url).toMatch(/\/en\/admin\/no-access$/);
+  expect(r1.url).toMatch(/\/admin\/no-access$/);
   expect(await deniedTargets(editor.id)).toEqual(["members.delete"]);
 
   // (2) Event Manager (Members: View): a form injected into the read-only account page, carrying the delete action.
   const em = await createAdmin(ROLE_PRESETS.eventManager);
-  const ep = await loginAs(em, { expectUrl: /\/en\/admin\/members$/ });
-  await ep.goto(`/en/admin/members/${victim.id}`);
+  const ep = await loginAs(em, { expectUrl: /\/admin\/members$/ });
+  await ep.goto(`/admin/members/${victim.id}`);
   await expect(ep.locator("main form")).toHaveCount(0);
   const r2 = await retargetAndPost(ep, null, del);
-  expect(r2.url).toMatch(/\/en\/admin\/no-access$/);
+  expect(r2.url).toMatch(/\/admin\/no-access$/);
   expect(await deniedTargets(em.id)).toEqual(["members.delete"]);
 
   // (3) Member Manager (Events: View): the publish action injected into the read-only events list.
   const mm = await createAdmin(ROLE_PRESETS.memberManager);
-  const mp = await loginAs(mm, { expectUrl: /\/en\/admin\/members$/ });
-  await mp.goto("/en/admin/events");
+  const mp = await loginAs(mm, { expectUrl: /\/admin\/members$/ });
+  await mp.goto("/admin/events");
   await expect(publishForm(mp, draft.title)).toHaveCount(0);
   const r3 = await retargetAndPost(mp, null, pub);
-  expect(r3.url).toMatch(/\/en\/admin\/no-access$/);
+  expect(r3.url).toMatch(/\/admin\/no-access$/);
   expect(await deniedTargets(mm.id)).toEqual(["events.edit"]);
 
   expect(await userById(victim.id)).toMatchObject({ role: "member", deletedAt: null });
   expect((await eventById(draft.id))!.published).toBe(false);
   // Control: the same in-page post by the Super Admin publishes the event.
-  await adminPage.goto("/en/admin/events");
+  await adminPage.goto("/admin/events");
   const r4 = await retargetAndPost(adminPage, null, pub);
   expect(r4.url).not.toMatch(/no-access/);
   expect((await eventById(draft.id))!.published).toBe(true);
@@ -425,7 +425,7 @@ test("CSV exports answer 403 without the module's view permission (and 200 with 
   ];
   for (const [label, perms] of roles) {
     const u = await createAdmin(perms);
-    const p = await loginAs(u, { expectUrl: /\/en\/admin\/(members|events|dashboard|no-access)$/ });
+    const p = await loginAs(u, { expectUrl: /\/admin\/(members|events|dashboard|no-access)$/ });
     const denied: string[] = [];
     for (const [url, m] of API) {
       const r = await p.request.get(url);
@@ -448,19 +448,19 @@ test("CSV exports answer 403 without the module's view permission (and 200 with 
 
 test("a deactivated admin is blocked everywhere: pages, Profile, APIs, server actions, session, sign-in", async ({ adminPage, loginAs, newPage }) => {
   const u = await createAdmin(ROLE_PRESETS.eventManager);
-  const s = await loginAs(u, { expectUrl: /\/en\/admin\/members$/ });
+  const s = await loginAs(u, { expectUrl: /\/admin\/members$/ });
   const draft = await createEvent({ published: false });
-  await adminPage.goto("/en/admin/events");
+  await adminPage.goto("/admin/events");
   const publish = await formEntries(publishForm(adminPage, draft.title));
   expect((await s.request.get("/api/admin/members.csv")).status()).toBe(200);
-  await s.goto("/en/admin/events");
+  await s.goto("/admin/events");
   await expect(publishForm(s, draft.title)).toHaveCount(1);
 
   await setActive(u.id, false); // DB only: no sessionVersion bump, so the app's `active` checks alone must end the session
 
-  for (const path of ["/en/admin", "/en/admin/members", "/en/admin/events", "/en/admin/no-access", "/en/my/profile", "/en/my/billing"]) {
+  for (const path of ["/admin", "/admin/members", "/admin/events", "/admin/no-access", "/my/profile", "/my/billing"]) {
     await s.goto(path);
-    await expect(s, path).toHaveURL(/\/en\/login/);
+    await expect(s, path).toHaveURL(/\/login/);
     await expect(s.locator("header.admin-header"), path).toHaveCount(0);
   }
   for (const url of ["/api/admin/members.csv", "/api/admin/registrations.csv", "/api/admin/messages.csv"])
@@ -468,16 +468,16 @@ test("a deactivated admin is blocked everywhere: pages, Profile, APIs, server ac
   expect((await s.request.get("/api/me/export")).status()).toBe(401);
   const session = await (await s.request.get("/api/auth/session")).json().catch(() => null) as { user?: unknown } | null;
   expect(session?.user).toBeUndefined();
-  const r = await post(s.request, "/en/admin/events", publish);
+  const r = await post(s.request, "/admin/events", publish);
   expect(r.status()).toBe(303);
-  expect(r.headers()["location"]).toMatch(/\/en\/login/);
+  expect(r.headers()["location"]).toMatch(/\/login/);
   expect((await eventById(draft.id))!.published).toBe(false);
-  await s.goto("/en");
+  await s.goto("/");
   await expect(s.locator(".site-header").getByRole("link", { name: t("chrome.myAdaig"), includeHidden: true })).toHaveCount(0);
 
   // Signing in again with the right password: the same generic error as a wrong password (no account-state leak).
   const f = await newPage();
-  await f.goto("/en/login");
+  await f.goto("/login");
   await f.locator("#le").fill(u.email); await f.locator("#lp").fill(u.password);
   await f.locator("main form").getByRole("button", { name: t("auth.signIn") }).click();
   await expectLoginRefused(f, t("auth.invalid"), { email: u.email });
@@ -487,12 +487,12 @@ test("a deactivated admin is blocked everywhere: pages, Profile, APIs, server ac
 
 test("a deactivated member account is blocked too (sign-in and existing session)", async ({ loginAs, newPage }) => {
   const m = await createMember();
-  const s = await loginAs(m, { expectUrl: /\/en\/my\/billing$/ });
+  const s = await loginAs(m, { expectUrl: /\/my\/billing$/ });
   await setActive(m.id, false);
-  await s.goto("/en/my/billing");
-  await expect(s).toHaveURL(/\/en\/login/);
+  await s.goto("/my/billing");
+  await expect(s).toHaveURL(/\/login/);
   const f = await newPage();
-  await f.goto("/en/login");
+  await f.goto("/login");
   await f.locator("#le").fill(m.email); await f.locator("#lp").fill(m.password);
   await f.locator("main form").getByRole("button", { name: t("auth.signIn") }).click();
   await expectLoginRefused(f, t("auth.invalid"), { email: m.email });
@@ -502,7 +502,7 @@ test("a deactivated member account is blocked too (sign-in and existing session)
 
 test("Members never shows admin accounts, and Members actions refuse admin targets (Member Manager vs a Super Admin)", async ({ loginAs }) => {
   const mm = await createAdmin(ROLE_PRESETS.memberManager);
-  const p = await loginAs(mm, { expectUrl: /\/en\/admin\/members$/ });
+  const p = await loginAs(mm, { expectUrl: /\/admin\/members$/ });
   const sa = await createUser({ role: "admin" }); // an e2e Super Admin, also holding a pending application
   const saMembership = await createMembership(sa.id, { status: "pending_verification" });
   const victim = await createMember();
@@ -510,56 +510,56 @@ test("Members never shows admin accounts, and Members actions refuse admin targe
   const saBefore = (await userById(sa.id))!;
 
   // List, pending queue and CSV: no admin accounts.
-  for (const url of [`/en/admin/members?q=${enc(sa.email)}`, `/en/admin/members?f=pending&q=${enc(sa.email)}`, `/en/admin/members?q=${enc(SEED.admin)}`]) {
+  for (const url of [`/admin/members?q=${enc(sa.email)}`, `/admin/members?f=pending&q=${enc(sa.email)}`, `/admin/members?q=${enc(SEED.admin)}`]) {
     await p.goto(url);
     await expect(p.locator("main tbody tr"), url).toHaveCount(0);
   }
-  await p.goto(`/en/admin/members?q=${enc(victim.email)}`);
+  await p.goto(`/admin/members?q=${enc(victim.email)}`);
   await expect(p.locator("main tbody tr", { hasText: victim.email })).toHaveCount(1);
   const csv = await (await p.request.get("/api/admin/members.csv")).text();
   expect(csv).toContain(victim.email);
   expect(csv).not.toContain(sa.email);
   expect(csv).not.toContain(SEED.admin);
   // The account page of an admin is the admin 404.
-  const r404 = await p.goto(`/en/admin/members/${sa.id}`);
+  const r404 = await p.goto(`/admin/members/${sa.id}`);
   expect(r404?.status()).toBe(404);
   await expect(p.locator("main#main h1")).toHaveText(t("errors.notFoundTitle"));
   await expect(p.locator("header.admin-header")).toBeVisible();
 
   // Temporary password (members action) re-pointed at the Super Admin: in the DOM, then posted directly.
-  await p.goto(`/en/admin/members/${victim.id}`);
+  await p.goto(`/admin/members/${victim.id}`);
   const pwForm = p.getByRole("form", { name: tm("pwTitle") });
   await p.locator("#pw-new").fill(uniquePassword());
   await setValue(pwForm.locator("input[name=uid]"), sa.id); // last, so no re-render can restore the controlled value
   await pwForm.getByRole("button", { name: tm("pwButton") }).click();
   await expect(pwForm.getByRole("alert")).toHaveText(tm("err_notFound"));
   await expect(pwForm.locator("code")).toHaveCount(0);
-  await p.goto(`/en/admin/members/${victim.id}`);
+  await p.goto(`/admin/members/${victim.id}`);
   const pwEntries = withEntry(withEntry(await formEntries(pwForm), "uid", sa.id), "password", uniquePassword());
-  expect((await post(p.request, `/en/admin/members/${victim.id}`, pwEntries)).status()).toBeLessThan(400);
+  expect((await post(p.request, `/admin/members/${victim.id}`, pwEntries)).status()).toBeLessThan(400);
 
   // Profile save and account deletion re-pointed at the Super Admin.
   const profile = withEntry(withEntry(await formEntries(p.locator("form#profile")), "uid", sa.id), "name", "E2E Hijacked Admin");
-  const rp = await post(p.request, `/en/admin/members/${victim.id}`, profile);
+  const rp = await post(p.request, `/admin/members/${victim.id}`, profile);
   expect(rp.status()).toBe(303);
-  expect(rp.headers()["location"]).toMatch(/\/en\/admin\/members\?msg=notFound/);
+  expect(rp.headers()["location"]).toMatch(/\/admin\/members\?msg=notFound/);
   await p.locator("#delete input[name=confirm]").check();
   const del = withEntry(await formEntries(p.locator("#delete")), "uid", sa.id);
-  const rd = await post(p.request, `/en/admin/members/${victim.id}`, del);
+  const rd = await post(p.request, `/admin/members/${victim.id}`, del);
   expect(rd.status()).toBe(303);
   expect(rd.headers()["location"]).toMatch(/msg=notFound/);
   // Approving the admin's application through another applicant's approve form.
-  await p.goto(`/en/admin/members?f=pending&q=${enc(applicant.email)}`);
+  await p.goto(`/admin/members?f=pending&q=${enc(applicant.email)}`);
   const approve = withEntry(await formEntries(p.locator("form", { has: p.getByRole("button", { name: `${ta("approve")}: ${applicant.name}` }) })), "id", saMembership);
-  const ra = await post(p.request, "/en/admin/members", approve);
+  const ra = await post(p.request, "/admin/members", approve);
   expect(ra.status()).toBe(303);
   expect(ra.headers()["location"]).toMatch(/msg=notFound/);
   // Unlock (members action) on a locked admin.
   await lock(sa.email);
   const locked = await createMember(); await lock(locked.email);
-  await p.goto(`/en/admin/members?q=${enc(locked.email)}`);
+  await p.goto(`/admin/members?q=${enc(locked.email)}`);
   const unlock = withEntry(await formEntries(p.locator("main tbody tr", { hasText: locked.email }).locator("form").first()), "id", sa.id);
-  await post(p.request, "/en/admin/members", unlock);
+  await post(p.request, "/admin/members", unlock);
   expect(await one(`SELECT key FROM "LoginThrottle" WHERE key = $1`, [`e:${sa.email}`])).toBeDefined();
 
   const saAfter = (await userById(sa.id))!;
@@ -570,20 +570,20 @@ test("Members never shows admin accounts, and Members actions refuse admin targe
 
 test("admins can't apply for membership on /join (Q4): notice instead of the form, and a forged application is refused", async ({ loginAs }) => {
   const admin = await createUser({ role: "admin" });
-  const ap = await loginAs(admin, { expectUrl: /\/en\/admin\/members$/ });
-  await ap.goto("/en/join");
+  const ap = await loginAs(admin, { expectUrl: /\/admin\/members$/ });
+  await ap.goto("/join");
   await expect(ap.locator("main").getByRole("status").filter({ hasText: t("join.err_adminAccount") })).toBeVisible();
   await expect(ap.locator("main form, #tier")).toHaveCount(0);
 
   // A signed-in guest's application form, posted with the admin's session.
   const g = await createUser();
-  const gp = await loginAs(g, { expectUrl: /\/en\/my\/billing$/ });
-  await gp.goto("/en/join?tier=professional");
+  const gp = await loginAs(g, { expectUrl: /\/my\/billing$/ });
+  await gp.goto("/join?tier=professional");
   await gp.locator("#pr").selectOption("NY");
   const form = gp.locator("form", { has: gp.locator("#tier") });
   const e = await formEntries(form);
   expect(e.some(([k]) => k.startsWith("$ACTION_"))).toBe(true);
-  const r = await post(ap.request, "/en/join", e);
+  const r = await post(ap.request, "/join", e);
   expect(r.status()).toBeLessThan(500);
   expect(r.headers()["location"] ?? "").not.toMatch(/applied=1/);
   expect(await membershipsOf(admin.id)).toHaveLength(0);
@@ -595,7 +595,7 @@ test("admins can't apply for membership on /join (Q4): notice instead of the for
 
 test("the member portal is unaffected for a member: pages, menu, data export; admin pages and APIs stay closed", async ({ loginAs }) => {
   const m = await createMember();
-  const p = await loginAs(m, { expectUrl: /\/en\/my\/billing$/ });
+  const p = await loginAs(m, { expectUrl: /\/my\/billing$/ });
   await expect(p.locator("main#main h1")).toHaveText(t("member.billingPage.title"));
   await expect(p.locator("header.admin-header")).toHaveCount(0);
   const nav = p.getByRole("navigation", { name: t("member.navAria") });
@@ -608,9 +608,9 @@ test("the member portal is unaffected for a member: pages, menu, data export; ad
     await expect(p.locator("header.admin-header"), href).toHaveCount(0);
     await expect(p.getByRole("navigation", { name: t("member.navAria") }), href).toBeVisible();
   }
-  for (const path of ["/en/admin", "/en/admin/members", "/en/admin/users", "/en/admin/users/new", "/en/admin/roles", "/en/admin/roles/new", "/en/admin/no-access"]) {
+  for (const path of ["/admin", "/admin/members", "/admin/users", "/admin/users/new", "/admin/roles", "/admin/roles/new", "/admin/no-access"]) {
     await p.goto(path);
-    await expect(p, path).toHaveURL(/\/en\/my\/billing$/);
+    await expect(p, path).toHaveURL(/\/my\/billing$/);
   }
   for (const url of ["/api/admin/members.csv", "/api/admin/messages.csv", "/api/admin/audit.csv"])
     expect((await p.request.get(url)).status(), url).toBe(403);
@@ -619,7 +619,7 @@ test("the member portal is unaffected for a member: pages, menu, data export; ad
   expect(session.user?.role).toBe("member");
   expect(session.user?.permissions ?? null).toBeNull();
   // Already a member: /join goes to My membership as before.
-  await p.goto("/en/join");
-  await expect(p).toHaveURL(/\/en\/my\/billing\?already=1/);
+  await p.goto("/join");
+  await expect(p).toHaveURL(/\/my\/billing\?already=1/);
   expect((await userById(m.id))!.adminRoleId).toBeNull();
 });

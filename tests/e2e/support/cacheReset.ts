@@ -20,7 +20,7 @@ export async function resetOverridesViaUi(added: { settings: string[] }): Promis
     const page = await ctx.newPage();
     page.on("dialog", (d) => d.accept().catch(() => {}));
     for (const key of added.settings) {
-      await page.goto("/en/admin/settings");
+      await page.goto("/admin/settings");
       if (key.startsWith("tier.")) await page.locator(`#tier-${key.slice(5)}`).getByRole("button", { name: msg("adminSettings.resetTier") }).click();
       else if (key === "site.contact") await page.locator("#site").getByRole("button", { name: msg("adminSettings.resetSite") }).click();
       else if (key === "ops") await page.locator("#ops").getByRole("button", { name: msg("adminSettings.resetOps") }).click();

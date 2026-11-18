@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations, getMessages, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
@@ -16,7 +17,7 @@ export default async function AdminNewUser({ params }: { params: Promise<{ local
   const t = await getTranslations("adminUsers");
   const roles = roleOrder((await db.adminRole.findMany({ select: { id: true, name: true, description: true, isSystem: true, permissions: true } })).filter((r) => canAssignRole(ctx, r)))
     .map((r) => ({ id: r.id, name: r.name, description: r.description, super: isSuperRole(r.id) }));
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   return (
     <div className="app adm"><AdminNav locale={locale} current="/admin/users" />
       <main id="main" tabIndex={-1} className="app-main adm-users acc-new-user">

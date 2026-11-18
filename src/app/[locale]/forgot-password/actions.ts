@@ -1,4 +1,5 @@
 "use server";
+import { localeHref } from "@/lib/localePath";
 import bcrypt from "bcryptjs";
 import { headers } from "next/headers";
 import { after } from "next/server";
@@ -95,5 +96,5 @@ export async function resetPassword(_: ResetState, fd: FormData): Promise<ResetS
   await clearFailures(found.user.email); // a locked account can sign in with the new password straight away
   await notifyPasswordChanged({ userId: found.user.id, email: found.user.email, at: now, via: "reset_link", auditId });
   if ((await auth())?.user) await signOut({ redirect: false });
-  redirect(`/${locale}/login?reset=done`);
+  redirect(localeHref(locale, `/login?reset=done`));
 }

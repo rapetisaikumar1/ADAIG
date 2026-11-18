@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { auth } from "@/auth";
 import { safeNextPath } from "@/lib/nextPath";
@@ -23,8 +24,8 @@ export default async function Login({ params, searchParams }: { params: Promise<
           <span className="eyebrow">{tc("myAdaig")}</span>
           <h1>{t("signIn")}</h1>
           <p className="muted auth-sub">{t.rich("newHereRich", {
-            signup: (c) => <a href={withNext(`/${locale}/signup`)}>{c}</a>,
-            join: (c) => <a href={`/${locale}/join`}>{c}</a>,
+            signup: (c) => <a href={withNext(localeHref(locale, `/signup`))}>{c}</a>,
+            join: (c) => <a href={localeHref(locale, `/join`)}>{c}</a>,
           })}</p>
           {deleted && <FocusOnLoad><div className="alert alert-success" role="status"><Icon name="check-circle" /><div>{tp("deleted")}</div></div></FocusOnLoad>}
           {pw === "changed" && <FocusOnLoad><div className="alert alert-success" role="status"><Icon name="check-circle" /><div>{tp("pwChanged")}</div></div></FocusOnLoad>}

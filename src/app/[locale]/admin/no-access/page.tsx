@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AdminNav } from "@/components/AppShell";
 import { Icon } from "@/components/ui/Icon";
@@ -26,8 +27,8 @@ export default async function AdminNoAccess({ params }: { params: Promise<{ loca
           {ctx.role && <p className="adm-noaccess-role"><Icon name="key" size={16} />{t("noAccessRole", { role: ctx.role.name })}</p>}
           <div className="adm-noaccess-actions">
             {none
-              ? <a className="btn btn-primary" href={`/${locale}/my/profile`}><Icon name="user" size={18} />{tn("profile")}</a>
-              : <a className="btn btn-primary" href={`/${locale}${home}`}><Icon name="home" size={18} />{t("adminHome")}</a>}
+              ? <a className="btn btn-primary" href={localeHref(locale, `/my/profile`)}><Icon name="user" size={18} />{tn("profile")}</a>
+              : <a className="btn btn-primary" href={localeHref(locale, `${home}`)}><Icon name="home" size={18} />{t("adminHome")}</a>}
           </div>
         </section>
       </main>

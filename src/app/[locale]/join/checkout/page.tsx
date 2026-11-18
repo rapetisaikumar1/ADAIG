@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { redirect } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
 import { auth } from "@/auth";
@@ -14,9 +15,9 @@ import { confirmStripe } from "@/lib/stripeReturn";
 export default async function Checkout({ params, searchParams }: { params: Promise<{ locale: Locale }>; searchParams: Promise<{ m?: string | string[]; sid?: string | string[] }> }) {
   const { locale } = await params; setRequestLocale(locale);
   const sp = await searchParams; const id = idParam(sp.m), sid = idParam(sp.sid, 255); // invalid → "order not found" / unpaid
-  const s = await auth(); if (!s?.user) redirect(`/${locale}/login`);
+  const s = await auth(); if (!s?.user) redirect(localeHref(locale, `/login`));
   const m = id ? await db.membership.findUnique({ where: { id } }) : null;
-  if (!m || m.userId !== s.user.id) redirect(`/${locale}/my/billing?msg=orderNotFound`);
-  if (m.status === "pending" && sid && (await confirmStripe(m.id, sid))) redirect(`/${locale}/my/billing?welcome=1`);
-  redirect(`/${locale}/my/billing${m.status === "cancelled" || m.status === "expired" ? "?msg=orderClosed" : ""}`);
+  if (!m || m.userId !== s.user.id) redirect(localeHref(locale, `/my/billing?msg=orderNotFound`));
+  if (m.status === "pending" && sid && (await confirmStripe(m.id, sid))) redirect(localeHref(locale, `/my/billing?welcome=1`));
+  redirect(localeHref(locale, `/my/billing${m.status === "cancelled" || m.status === "expired" ? "?msg=orderClosed" : ""}`));
 }

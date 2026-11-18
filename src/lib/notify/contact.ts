@@ -8,7 +8,7 @@ import { eventTimeZone } from "@/lib/time";
 
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: eventTimeZone });
 const dayTime = (d: Date) => `${day(d)} at ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: eventTimeZone })} ET`;
-const L = (p: string) => siteUrl("/en" + p);
+const L = (p: string) => siteUrl(p || "/"); // English URLs have no /en prefix
 
 export type ContactEmailData = {
   id: string; name: string; email: string; organization: string | null;

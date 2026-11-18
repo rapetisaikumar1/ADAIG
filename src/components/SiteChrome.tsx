@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { portalHome } from "@/lib/session";
@@ -7,7 +8,7 @@ import { Icon } from "./ui/Icon";
 export async function SiteHeader({ locale }: { locale: string }) {
   const t = await getTranslations("chrome");
   const s = await auth();
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const home = s?.user ? portalHome(locale, s.user.role, s.user.permissions) : "";
   const initials = s?.user?.name?.split(" ").map((x) => x[0]).slice(0, 2).join("").toUpperCase();
   // Signed in: one account link to the visitor's portal home — the admin portal for admins, "My membership" for everyone else
@@ -60,7 +61,7 @@ export async function SiteFooter({ locale }: { locale: string }) {
   const t = await getTranslations("footer");
   const tc = await getTranslations("chrome");
   const s = await auth();
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const col = (title: string, links: [string, string][]) => (
     <nav className="footer-col" aria-label={title}><h2>{title}</h2><ul>{links.map(([href, label]) => <li key={href}><a href={L(href)}>{label}</a></li>)}</ul></nav>
   );

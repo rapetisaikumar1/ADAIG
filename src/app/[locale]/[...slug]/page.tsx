@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -32,7 +33,7 @@ export default async function ContentPage({ params }: { params: Promise<{ locale
   if (!file) notFound();
   if (DESIGN[key]) {
     const s = await auth();
-    if (s?.user?.role !== "admin") redirect(`/${locale}`);
+    if (s?.user?.role !== "admin") redirect(localeHref(locale));
   }
   const c = await loadContent(file, locale); if (!c) notFound();
   // /legal: mark the section being read in the "On this page" index (client-side, progressive).

@@ -1,4 +1,5 @@
 "use server";
+import { localeHref } from "@/lib/localePath";
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { assertAdminPermission } from "@/lib/rbac";
@@ -17,7 +18,7 @@ const MAX = { tierName: 60, tierDescription: 300, benefit: 200, benefits: 12, or
 type Section = "tiers" | "site" | "ops";
 /** Back to the settings page with a notice; `anchor` scrolls to the edited block, where the notice is shown. */
 function back(locale: string, msg: string, anchor: string): never {
-  redirect(`/${locale}/admin/settings?msg=${msg}&s=${encodeURIComponent(anchor)}#${anchor}`);
+  redirect(localeHref(locale, `/admin/settings?msg=${msg}&s=${encodeURIComponent(anchor)}#${anchor}`));
 }
 const anchorFor = (key: string) => key.replace(/\./g, "-"); // "tier.student" → "tier-student"
 

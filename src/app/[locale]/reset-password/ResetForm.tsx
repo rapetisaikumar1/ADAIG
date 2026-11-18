@@ -1,4 +1,5 @@
 "use client";
+import { localeHref } from "@/lib/localePath";
 import { useActionState, useEffect, useRef, startTransition, type FormEvent } from "react";
 import { resetPassword, type ResetState } from "../forgot-password/actions";
 import { Icon } from "@/components/ui/Icon";
@@ -24,7 +25,7 @@ export function ResetForm({ locale, token, labels, initialInvalid }: { locale: s
     return (
       <>
         <div className="alert alert-danger" role="alert" tabIndex={-1} ref={initialInvalid ? undefined : errRef}><Icon name="x-circle" /><div><b>{labels.invalidTitle}</b> {labels.invalidBody}</div></div>
-        <a className="btn btn-primary btn-block" href={`/${locale}/forgot-password`}>{labels.requestNew}</a>
+        <a className="btn btn-primary btn-block" href={localeHref(locale, `/forgot-password`)}>{labels.requestNew}</a>
       </>
     );
   }

@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { headers } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -10,7 +11,7 @@ import { AdminNotFoundView } from "./admin/_components/AdminNotFoundView";
 export default async function NotFound() {
   const locale = await getLocale();
   const t = await getTranslations("errors");
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   // Unknown /admin/* URL for a signed-in admin: stay inside the admin portal (its header/footer come from AreaChrome).
   const path = (await headers()).get("x-pathname") ?? "";
   if (/^\/[a-z]{2}\/admin(\/|$)/.test(path) && (await auth())?.user?.role === "admin") return <AdminNotFoundView locale={locale} />;

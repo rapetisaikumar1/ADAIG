@@ -4,10 +4,10 @@ import { test, expect, uiLogin, expectLoginRefused } from "../fixtures";
 import { createUser, one, q, auditRows, userByEmail, uniqueEmail, uniqueName, uniquePassword } from "../support/db";
 import { t, tFr, re } from "../support/i18n";
 
-/** Submit the login form from a fresh /en/login. Callers assert the outcome: a refusal comes back as form state (an alert on
- *  /en/login, no ?error= redirect), a success navigates to the portal home (My membership, or Admin → Members for admins). */
+/** Submit the login form from a fresh /login. Callers assert the outcome: a refusal comes back as form state (an alert on
+ *  /login, no ?error= redirect), a success navigates to the portal home (My membership, or Admin → Members for admins). */
 async function submitLogin(page: import("@playwright/test").Page, email: string, password: string) {
-  await page.goto("/en/login");
+  await page.goto("/login");
   await page.locator("#le").fill(email);
   await page.locator("#lp").fill(password);
   await page.locator("main form").getByRole("button", { name: t("auth.signIn") }).click();
@@ -44,7 +44,7 @@ test("an account locks after 5 failed attempts and an admin can unlock it", asyn
   await expectLoginRefused(page, t("auth.locked"), { email: u.email });
 
   // Admin → Members shows the lock and clears it.
-  await adminPage.goto(`/en/admin/members?q=${encodeURIComponent(u.email)}`);
+  await adminPage.goto(`/admin/members?q=${encodeURIComponent(u.email)}`);
   const row = adminPage.locator("tbody tr", { hasText: u.email });
   await expect(row.getByText(t("admin.locked"), { exact: true })).toBeVisible();
   await row.getByRole("button", { name: t("admin.unlock") }).click();
@@ -54,7 +54,7 @@ test("an account locks after 5 failed attempts and an admin can unlock it", asyn
   expect(await auditRows({ action: "auth.account_unlocked", target: u.id })).toHaveLength(1);
 
   await submitLogin(page, u.email, u.password);
-  await expect(page).toHaveURL(/\/en\/my\/billing$/);
+  await expect(page).toHaveURL(/\/my\/billing$/);
 });
 
 test("a deactivated account gets the same error as a wrong password", async ({ page }) => {
@@ -78,12 +78,12 @@ test("a deactivated account gets the same error as a wrong password", async ({ p
   // Reactivated → the same password signs in again.
   await q(`UPDATE "User" SET active = true WHERE id = $1`, [u.id]);
   await submitLogin(page, u.email, u.password);
-  await expect(page).toHaveURL(/\/en\/my\/billing$/);
+  await expect(page).toHaveURL(/\/my\/billing$/);
 });
 
 test("sign-up creates a free guest account", async ({ page, newPage }) => {
   const email = uniqueEmail(); const password = uniquePassword(); const name = uniqueName("Guest");
-  await page.goto("/en/signup");
+  await page.goto("/signup");
   await expect(page.locator("h1")).toHaveText(t("auth.signupTitle"));
   await page.locator("#sn").fill(name);
   await page.locator("#se").fill(email);
@@ -91,7 +91,7 @@ test("sign-up creates a free guest account", async ({ page, newPage }) => {
   await page.locator("input[name=marketingOptIn]").check();
   await page.getByRole("button", { name: t("auth.createBtn") }).click();
   // New accounts land on My membership: welcomed by name, with no membership yet.
-  await expect(page).toHaveURL(/\/en\/my\/billing(\?|$)/);
+  await expect(page).toHaveURL(/\/my\/billing(\?|$)/);
   await expect(page.locator("main#main h1")).toHaveText(t("member.billingPage.title"));
   await expect(page.locator(".app-head")).toContainText(name);
   await expect(page.locator("section[aria-labelledby=h-status]")).toContainText(t("member.billingPage.st_none"));
@@ -101,14 +101,14 @@ test("sign-up creates a free guest account", async ({ page, newPage }) => {
 
   // The same email again gets the generic account error (no enumeration); weak passwords are refused.
   const other = await newPage();
-  await other.goto("/en/signup");
+  await other.goto("/signup");
   await other.locator("#sn").fill(name); await other.locator("#se").fill(email); await other.locator("#sp").fill(uniquePassword());
   await other.getByRole("button", { name: t("auth.createBtn") }).click();
   // Errors come back as form state: same URL, focused alert, name/email kept, password cleared.
   const otherAlert = other.locator("main").getByRole("alert");
   await expect(otherAlert).toHaveText(t("join.err_generic_account"));
   await expect(otherAlert).toBeFocused();
-  await expect(other).toHaveURL(/\/en\/signup$/);
+  await expect(other).toHaveURL(/\/signup$/);
   await expect(other.locator("#sn")).toHaveValue(name);
   await expect(other.locator("#se")).toHaveValue(email);
   await expect(other.locator("#sp")).toHaveValue("");
@@ -116,19 +116,19 @@ test("sign-up creates a free guest account", async ({ page, newPage }) => {
   await other.getByRole("button", { name: t("auth.createBtn") }).click();
   await expect(otherAlert).toHaveText(t("join.err_pw_common"));
   await expect(other.locator("#sp")).toHaveAttribute("aria-invalid", "true");
-  await expect(other).toHaveURL(/\/en\/signup$/);
+  await expect(other).toHaveURL(/\/signup$/);
 });
 
 test("sign out ends the session", async ({ loginAs }) => {
   const u = await createUser();
   const p = await loginAs(u);
   await p.locator(".sidenav-signout").getByRole("button", { name: t("chrome.signOut") }).click();
-  await expect(p).toHaveURL(/\/en$/);
+  await expect(p).toHaveURL(/\/$/);
   await expect(p.locator(".header-cta").getByRole("link", { name: t("chrome.signIn") })).toBeVisible();
   await expect(p.locator(".header-cta").getByRole("link", { name: t("chrome.myAdaig") })).toHaveCount(0);
-  for (const path of ["/en/my/billing", "/en/my/dashboard"]) {
+  for (const path of ["/my/billing", "/my/dashboard"]) {
     await p.goto(path);
-    await expect(p, path).toHaveURL(/\/en\/login/);
+    await expect(p, path).toHaveURL(/\/login/);
   }
 });
 
@@ -138,19 +138,19 @@ const ADMIN_MENU = ["adminNav.members", "adminNav.events", "adminNav.messages", 
 
 test("admins sign in to Admin → Members, inside the minimal admin portal chrome @smoke", async ({ loginAs, isMobile }) => {
   const u = await createUser({ role: "admin" }); // an admin created this way is a Super Admin (support/db.ts)
-  const p = await loginAs(u, { expectUrl: /\/en\/admin\/members$/ });
+  const p = await loginAs(u, { expectUrl: /\/admin\/members$/ });
   await expect(p.locator("main#main h1").first()).toBeVisible();
   // Admin header: logo → admin home only. The profile menu (avatar + name → Profile & privacy, Sign out) sits at the bottom of the
   // admin sidebar on desktop, and at the bottom of the "Admin menu" panel on phones. No public chrome.
   const header = p.locator("header.admin-header");
   await expect(header).toBeVisible();
-  await expect(header.locator("a.admin-header__brand")).toHaveAttribute("href", "/en/admin/members");
+  await expect(header.locator("a.admin-header__brand")).toHaveAttribute("href", "/admin/members");
   await expect(header.locator("details, .avatar")).toHaveCount(0);
   if (isMobile) {
     await p.locator("details.adm-mnav > summary").click();
     const me = p.locator(".adm-mnav .adm-mnav-profile");
     await expect(me).toContainText(u.name);
-    await expect(me.getByRole("link", { name: t("adminNav.profile") })).toHaveAttribute("href", "/en/my/profile");
+    await expect(me.getByRole("link", { name: t("adminNav.profile") })).toHaveAttribute("href", "/my/profile");
     await p.locator("details.adm-mnav > summary").click(); // close it again
   } else {
     const profile = p.locator(".adm-side details.adm-profile");
@@ -160,7 +160,7 @@ test("admins sign in to Admin → Members, inside the minimal admin portal chrom
     expect(Math.abs(side!.y + side!.height - (prof!.y + prof!.height))).toBeLessThan(24);
     expect(Math.abs(p.viewportSize()!.height - (prof!.y + prof!.height))).toBeLessThan(24);
     await profile.locator("summary").click();
-    await expect(profile.getByRole("link", { name: t("adminNav.profile") })).toHaveAttribute("href", "/en/my/profile");
+    await expect(profile.getByRole("link", { name: t("adminNav.profile") })).toHaveAttribute("href", "/my/profile");
     await expect(profile.getByRole("button", { name: t("chrome.signOut") })).toBeVisible();
     await profile.locator("summary").click(); // close it again
     await expect(profile).not.toHaveAttribute("open", "");
@@ -180,39 +180,39 @@ test("admins sign in to Admin → Members, inside the minimal admin portal chrom
   else await expect(menu.locator(".sidenav-signout")).toHaveCount(0);
   // Pages no longer in the menu still load by URL for admins.
   for (const path of ["dashboard", "settings", "audit", "system", "corporate", "chapter"]) {
-    const r = await p.goto(`/en/admin/${path}`);
+    const r = await p.goto(`/admin/${path}`);
     expect(r?.status(), path).toBe(200);
-    await expect(p, path).toHaveURL(new RegExp(`/en/admin/${path}$`));
+    await expect(p, path).toHaveURL(new RegExp(`/admin/${path}$`));
     await expect(p.locator("main#main h1").first(), path).toBeVisible();
     await expect(p.locator("header.admin-header"), path).toBeVisible();
   }
   // Public pages: the account link goes to the admin home; there is no separate "Admin" button.
-  await p.goto("/en");
+  await p.goto("/");
   await expect(p.locator(".site-header")).toBeVisible();
   await expect(p.locator("header.admin-header")).toHaveCount(0);
   // (On phones the header buttons sit in the closed menu, hence includeHidden.)
   const siteHeader = p.locator(".site-header");
-  for (const link of await siteHeader.getByRole("link", { name: t("chrome.myAdaig"), includeHidden: true }).all()) await expect(link).toHaveAttribute("href", "/en/admin/members");
+  for (const link of await siteHeader.getByRole("link", { name: t("chrome.myAdaig"), includeHidden: true }).all()) await expect(link).toHaveAttribute("href", "/admin/members");
   await expect(siteHeader.getByRole("link", { name: t("chrome.myAdaig"), includeHidden: true }).first()).toBeAttached();
   await expect(siteHeader.getByRole("link", { name: t("chrome.admin"), exact: true, includeHidden: true })).toHaveCount(0);
-  await expect(p.locator(`a[href="/en/admin/dashboard"]`)).toHaveCount(0);
+  await expect(p.locator(`a[href="/admin/dashboard"]`)).toHaveCount(0);
 });
 
 test("members sign in to My membership; the member menu lists the five member pages", async ({ loginAs }) => {
   const u = await createUser();
-  const p = await loginAs(u, { expectUrl: /\/en\/my\/billing$/ });
+  const p = await loginAs(u, { expectUrl: /\/my\/billing$/ });
   await expect(p.locator("main#main h1")).toHaveText(t("member.billingPage.title"));
   await expect(p.locator(".app-head")).toContainText(u.name);
   const nav = p.getByRole("navigation", { name: t("member.navAria") });
   await expect(nav.locator("a")).toHaveText(MEMBER_MENU.map((k) => re(t(k))));
   await expect(nav.getByRole("link", { name: t("member.billing") })).toHaveAttribute("aria-current", "page");
   await expect(nav.locator(".sidenav-signout button")).toHaveText(t("chrome.signOut"));
-  await expect(nav.locator(`a[href="/en/my/dashboard"], a[href="/en/resources"]`)).toHaveCount(0);
+  await expect(nav.locator(`a[href="/my/dashboard"], a[href="/resources"]`)).toHaveCount(0);
   // Public header: the account link goes to My membership; no "Admin" button.
-  await p.goto("/en/events");
+  await p.goto("/events");
   // (On phones the header buttons sit in the closed menu, hence includeHidden.)
   const siteHeader = p.locator(".site-header");
-  for (const link of await siteHeader.getByRole("link", { name: t("chrome.myAdaig"), includeHidden: true }).all()) await expect(link).toHaveAttribute("href", "/en/my/billing");
+  for (const link of await siteHeader.getByRole("link", { name: t("chrome.myAdaig"), includeHidden: true }).all()) await expect(link).toHaveAttribute("href", "/my/billing");
   await expect(siteHeader.getByRole("link", { name: t("chrome.myAdaig"), includeHidden: true }).first()).toBeAttached();
   await expect(siteHeader.getByRole("link", { name: t("chrome.admin"), exact: true, includeHidden: true })).toHaveCount(0);
   // French: same landing, French copy.
@@ -222,35 +222,35 @@ test("members sign in to My membership; the member menu lists the five member pa
 
 test("a safe next path still wins over the portal home", async ({ page }) => {
   const u = await createUser({ role: "admin" });
-  await page.goto("/en/my/profile");
-  await expect(page).toHaveURL(/\/en\/login\?/);
+  await page.goto("/my/profile");
+  await expect(page).toHaveURL(/\/login\?/);
   await page.locator("#le").fill(u.email);
   await page.locator("#lp").fill(u.password);
   await page.locator("main form").getByRole("button", { name: t("auth.signIn") }).click();
-  await expect(page).toHaveURL(/\/en\/my\/profile$/);
+  await expect(page).toHaveURL(/\/my\/profile$/);
 });
 
 test.describe("access control", () => {
   test("visitors are sent to sign in from member and admin pages", async ({ page }) => {
-    for (const path of ["/en/my/dashboard", "/en/my/billing", "/en/my/profile", "/en/my/directory", "/en/admin/dashboard", "/en/admin/members", "/en/admin/settings", "/en/admin/users", "/en/admin/roles", "/fr/admin/system"]) {
+    for (const path of ["/my/dashboard", "/my/billing", "/my/profile", "/my/directory", "/admin/dashboard", "/admin/members", "/admin/settings", "/admin/users", "/admin/roles", "/fr/admin/system"]) {
       await page.goto(path);
-      await expect(page, path).toHaveURL(new RegExp(`/${path.slice(1, 3)}/login`));
+      await expect(page, path).toHaveURL(new RegExp(`^[^?]*://[^/]+${path.startsWith("/fr/") ? "/fr" : ""}/login(\\?|$)`));
     }
   });
 
   test("members and guests are sent from admin pages to My membership", async ({ memberPage, guestPage }) => {
     for (const p of [memberPage, guestPage]) {
-      // (/en/admin/content was removed in round 7: it is a 404 now, see admin-ops.spec.ts.)
-      for (const path of ["/en/admin/dashboard", "/en/admin/members", "/en/admin/events", "/en/admin/users", "/en/admin/roles", "/en/admin/no-access", "/en/admin/audit", "/en/admin/corporate", "/fr/admin/messages"]) {
+      // (/admin/content was removed in round 7: it is a 404 now, see admin-ops.spec.ts.)
+      for (const path of ["/admin/dashboard", "/admin/members", "/admin/events", "/admin/users", "/admin/roles", "/admin/no-access", "/admin/audit", "/admin/corporate", "/fr/admin/messages"]) {
         await p.goto(path);
-        await expect(p, path).toHaveURL(new RegExp(`/${path.slice(1, 3)}/my/billing$`));
+        await expect(p, path).toHaveURL(new RegExp(`^[^?]*://[^/]+${path.startsWith("/fr/") ? "/fr" : ""}/my/billing$`));
         await expect(p.locator("header.admin-header"), path).toHaveCount(0); // never the admin chrome
       }
     }
   });
 
   test("the seed member can sign in through the form @smoke", async ({ page }) => {
-    await uiLogin(page, { email: "member@adaig.test", password: process.env.E2E_SEED_PASSWORD || "Password123!" }, { expectUrl: /\/en\/my\/billing$/ });
+    await uiLogin(page, { email: "member@adaig.test", password: process.env.E2E_SEED_PASSWORD || "Password123!" }, { expectUrl: /\/my\/billing$/ });
     await expect(page.locator(".sidenav")).toBeVisible();
   });
 });

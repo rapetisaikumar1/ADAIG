@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { AdminRole, User } from "@/generated/prisma/client";
@@ -48,10 +49,10 @@ export const requireAdminContext: (locale: string, nextPath?: string) => Promise
   return ctx;
 });
 
-/** Pages: requireAdminContext, then without the permission → redirect(`/${locale}/admin/no-access`). No audit row for page loads. */
+/** Pages: requireAdminContext, then without the permission → redirect(localeHref(locale, `/admin/no-access`)). No audit row for page loads. */
 export async function requireAdminPermission(locale: string, m: Module, a: Action, nextPath?: string): Promise<AdminContext> {
   const ctx = await requireAdminContext(locale, nextPath);
-  if (!can(ctx, m, a)) redirect(`/${locale}${NO_ACCESS_PATH}`);
+  if (!can(ctx, m, a)) redirect(localeHref(locale, `${NO_ACCESS_PATH}`));
   return ctx;
 }
 
@@ -60,17 +61,17 @@ const auditDenied = (ctx: AdminContext, m: Module, a: Action) =>
 
 /**
  * Form actions (redirect style). locale = safeLocale(fd.get("locale")).
- * Not an active admin → redirect(`/${locale}/login`) (unchanged for member/guest/visitor replays: 303 → /login).
+ * Not an active admin → redirect(localeHref(locale, `/login`)) (unchanged for member/guest/visitor replays: 303 → /login).
  * Admin without permission → audit { actor: ctx.user.id, action: "admin.permission_denied", target: `${m}.${a}` },
- * then redirect(`/${locale}/admin/no-access`).
+ * then redirect(localeHref(locale, `/admin/no-access`)).
  */
 export async function assertAdminPermission(fd: FormData, m: Module, a: Action): Promise<{ locale: Locale; ctx: AdminContext }> {
   const locale = safeLocale(fd.get("locale")) as Locale;
   const ctx = await getAdminContext();
-  if (!ctx) redirect(`/${locale}/login`);
+  if (!ctx) redirect(localeHref(locale, `/login`));
   if (!can(ctx, m, a)) {
     await auditDenied(ctx, m, a);
-    redirect(`/${locale}${NO_ACCESS_PATH}`);
+    redirect(localeHref(locale, `${NO_ACCESS_PATH}`));
   }
   return { locale, ctx };
 }

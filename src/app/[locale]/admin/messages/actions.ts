@@ -1,4 +1,5 @@
 "use server";
+import { localeHref } from "@/lib/localePath";
 import { redirect } from "next/navigation";
 import { assertAdminPermission } from "@/lib/rbac";
 import { db } from "@/lib/db";
@@ -12,5 +13,5 @@ export async function setMessageStatus(fd: FormData) {
   const r = await db.contactMessage.updateMany({ where: { id, status: from }, data: to === "handled" ? { status: "handled", handledBy: admin.id, handledAt: new Date() } : { status: "new", handledBy: null, handledAt: null } });
   if (r.count) await db.auditLog.create({ data: { actor: admin.id, action: to === "handled" ? "contact.message_handled" : "contact.message_reopened", target: id } });
   const f = fd.get("f") === "handled" ? "handled" : fd.get("f") === "all" ? "all" : "new";
-  redirect(`/${locale}/admin/messages?f=${f}&msg=${to === "handled" ? "handled" : "reopened"}`);
+  redirect(localeHref(locale, `/admin/messages?f=${f}&msg=${to === "handled" ? "handled" : "reopened"}`));
 }

@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations, getMessages, setRequestLocale } from "next-intl/server";
@@ -70,7 +71,7 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
   const dl = dateLocale(locale);
   const day = (d: Date) => d.toLocaleDateString(dl, { day: "numeric", month: "short", year: "numeric", timeZone: eventTimeZone });
   const stamp = (d: Date) => `${d.toLocaleString(dl, { dateStyle: "medium", timeStyle: "short", timeZone: eventTimeZone })} ${ta("et")}`;
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const notice = msg && /^(msg|err)_\w+$/.test(msg) && t.has(msg) ? { err: msg.startsWith("err_"), text: t(msg) } : null;
   const hid = <><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="uid" value={u.id} /></>;
   const statusChip = <span className={`status ${u.active ? "status-available" : "status-neutral"}`}>{u.active ? t("active") : t("inactive")}</span>;

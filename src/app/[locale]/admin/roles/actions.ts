@@ -1,4 +1,5 @@
 "use server";
+import { localeHref } from "@/lib/localePath";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import type { Prisma } from "@/generated/prisma/client";
@@ -85,7 +86,7 @@ export async function createRole(_: RoleFormState, fd: FormData): Promise<RoleFo
     if (isUniqueViolation(e)) return fail("err_nameTaken", "name");
     throw e;
   }
-  redirect(`/${locale}/admin/roles/${encodeURIComponent(id)}?msg=msg_created`);
+  redirect(localeHref(locale, `/admin/roles/${encodeURIComponent(id)}?msg=msg_created`));
 }
 
 /* ── update ── */
@@ -123,7 +124,7 @@ export async function updateRole(_: RoleFormState, fd: FormData): Promise<RoleFo
     throw e;
   }
   if (!count) return fail("err_conflict");
-  redirect(`/${locale}/admin/roles/${encodeURIComponent(role.id)}?msg=msg_saved`);
+  redirect(localeHref(locale, `/admin/roles/${encodeURIComponent(role.id)}?msg=msg_saved`));
 }
 
 /* ── delete ── */
@@ -135,8 +136,8 @@ export async function deleteRole(fd: FormData): Promise<void> {
   const { locale, ctx } = await assertAdminPermission(fd, "roles", "delete");
   const id = idParam(fd.get("id"));
   const role = id ? await db.adminRole.findUnique({ where: { id } }) : null;
-  if (!role) redirect(`/${locale}/admin/roles?msg=notFound`);
-  const back = (msg: string): never => redirect(`/${locale}/admin/roles/${encodeURIComponent(role.id)}?msg=${msg}#delete`);
+  if (!role) redirect(localeHref(locale, `/admin/roles?msg=notFound`));
+  const back = (msg: string): never => redirect(localeHref(locale, `/admin/roles/${encodeURIComponent(role.id)}?msg=${msg}#delete`));
   const refusal = roleRefusal(ctx, role); if (refusal) back(refusal);
   if (fd.get("confirm") !== "on") back("err_confirm");
   let deleted: boolean;
@@ -148,10 +149,10 @@ export async function deleteRole(fd: FormData): Promise<void> {
     deleted = false;
   }
   if (!deleted) {
-    if (!(await db.adminRole.findUnique({ where: { id: role.id }, select: { id: true } }))) redirect(`/${locale}/admin/roles?msg=notFound`);
+    if (!(await db.adminRole.findUnique({ where: { id: role.id }, select: { id: true } }))) redirect(localeHref(locale, `/admin/roles?msg=notFound`));
     await db.auditLog.create({ data: { actor: ctx.user.id, action: "admin_role.delete_blocked_in_use", target: role.id } });
     back("err_inUse");
   }
   await db.auditLog.create({ data: { actor: ctx.user.id, action: "admin_role.deleted", target: role.id } });
-  redirect(`/${locale}/admin/roles?msg=msg_deleted`);
+  redirect(localeHref(locale, `/admin/roles?msg=msg_deleted`));
 }

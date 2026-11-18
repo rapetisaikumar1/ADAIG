@@ -1,4 +1,5 @@
 "use server";
+import { localeHref } from "@/lib/localePath";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { afterActivated } from "@/lib/membership";
@@ -17,14 +18,14 @@ const DETAIL_MSG: Record<string, string> = { approved: "msg_approved", rejectedO
  * Forms on the account page (/admin/members/[id]) send ret=detail and go back there instead (userId comes from the DB).
  */
 function back(locale: string, fd: FormData, msg?: string, userId?: string): never {
-  if (fd.get("ret") === "detail" && userId) redirect(`/${locale}/admin/members/${encodeURIComponent(userId)}${msg ? `?msg=${DETAIL_MSG[msg] ?? "msg_saved"}` : "?msg=msg_saved"}#${msg === "unlocked" ? "account" : "memberships"}`);
+  if (fd.get("ret") === "detail" && userId) redirect(localeHref(locale, `/admin/members/${encodeURIComponent(userId)}${msg ? `?msg=${DETAIL_MSG[msg] ?? "msg_saved"}` : "?msg=msg_saved"}#${msg === "unlocked" ? "account" : "memberships"}`));
   const f = String(fd.get("f") ?? ""); const p = new URLSearchParams();
   if (["pending", "active", "other"].includes(f)) p.set("f", f);
   const q = memberQuery(fd.get("q")); if (q) p.set("q", q); // keep the search, so the row stays in view
   const page = Math.floor(Number(fd.get("p")) || 1); if (page > 1 && page <= 100_000) p.set("p", String(page));
   if (msg) p.set("msg", msg);
   const s = p.toString();
-  redirect(`/${locale}/admin/members${s ? `?${s}` : ""}`);
+  redirect(localeHref(locale, `/admin/members${s ? `?${s}` : ""}`));
 }
 /**
  * Staff approve or reject a membership application (any tier; status "pending_verification"). Approving makes it active
@@ -38,7 +39,7 @@ function back(locale: string, fd: FormData, msg?: string, userId?: string): neve
 export async function reviewEligibility(fd: FormData) {
   const { locale, ctx } = await assertAdminPermission(fd, "members", "edit"); const admin = ctx.user;
   const id = idParam(fd.get("id")); const decision = String(fd.get("decision"));
-  const m = await db.membership.findUnique({ where: { id }, include: { user: { select: { role: true } } } }); if (!m) redirect(`/${locale}/admin/members`);
+  const m = await db.membership.findUnique({ where: { id }, include: { user: { select: { role: true } } } }); if (!m) redirect(localeHref(locale, `/admin/members`));
   // D1 separation: an Admin Portal account's membership is not managed in Members (same answer as a missing account).
   if (m.user.role === "admin") back(locale, fd, "notFound");
   let won = false; let notice: ReviewNotice | null = null;

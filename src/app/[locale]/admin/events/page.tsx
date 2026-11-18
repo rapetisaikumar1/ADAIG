@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { evLabel, type Locale } from "@/config/site";
 import { EventFields } from "./EventFields";
 import { getTranslations, setRequestLocale } from "next-intl/server";
@@ -35,7 +36,7 @@ export default async function AdminEvents({ params, searchParams }: { params: Pr
   // Event times are stored as instants and always shown in event time (ET), like the public pages.
   const day = (d: Date) => d.toLocaleDateString(dl, { day: "numeric", month: "short", year: "numeric", timeZone: eventTimeZone });
   const time = (d: Date) => `${d.toLocaleTimeString(dl, { hour: "numeric", minute: "2-digit", timeZone: eventTimeZone })} ${t("et")}`;
-  const tabs: TabItem[] = VIEWS.map((k) => ({ key: k, href: `/${locale}/admin/events${k === "upcoming" ? "" : `?v=${k}`}`, label: t(`evView_${k}`), count: counts[k], current: view === k }));
+  const tabs: TabItem[] = VIEWS.map((k) => ({ key: k, href: localeHref(locale, `/admin/events${k === "upcoming" ? "" : `?v=${k}`}`), label: t(`evView_${k}`), count: counts[k], current: view === k }));
   const invalid = msg === "invalid";
   const openLabel = canEdit ? te("manage") : te("view"); // read-only roles open the event to view it
   const fieldMsgs = { required: te("fieldRequired"), date: te("fieldDate"), range: String(te.raw("fieldRange")) };
@@ -71,14 +72,14 @@ export default async function AdminEvents({ params, searchParams }: { params: Pr
           {events.map((e) => { const v = eventView(e, locale); const past = +e.startsAt < now; const where = eventLocation(e, tev("venueTbc")); return (
             <tr key={e.id}>
               <td data-label={t("date")}><div className="adm-date"><b>{day(e.startsAt)}</b><span>{time(e.startsAt)}</span></div></td>
-              <td data-label={t("evTitle")} className="adm-cell-person"><div className="adm-person"><a href={`/${locale}/admin/events/${e.id}`}>{v.title}</a><span className="small">{evLabel(e.format, locale)}{where ? ` · ${where}` : ""}</span><span className="adm-type-inline"><span className={eventTypeBadgeClass}>{evLabel(e.type, locale)}</span><span className="small">{t("cpeCol")} {e.cpe} · {t("regs2")} {e._count.registrations}</span></span></div></td>
+              <td data-label={t("evTitle")} className="adm-cell-person"><div className="adm-person"><a href={localeHref(locale, `/admin/events/${e.id}`)}>{v.title}</a><span className="small">{evLabel(e.format, locale)}{where ? ` · ${where}` : ""}</span><span className="adm-type-inline"><span className={eventTypeBadgeClass}>{evLabel(e.type, locale)}</span><span className="small">{t("cpeCol")} {e.cpe} · {t("regs2")} {e._count.registrations}</span></span></div></td>
               <td data-label={t("type")} className="adm-col-type"><span className={eventTypeBadgeClass}>{evLabel(e.type, locale)}</span></td>
               <td className="num adm-col-md-hide" data-label={t("cpeCol")}>{e.cpe}</td>
               <td className="num adm-col-md-hide" data-label={t("regs2")}>{e._count.registrations}</td>
               <td data-label={t("status")}><div className="tags">{/* one status per row ([18]): a proposed event's state reads "Published · Proposed" */}{e.cancelledAt ? <span className="status status-danger">{te("cancelledBadge")}</span>
                 : isUnconfirmed(e) ? <span className="status status-dev" title={t("proposedHint")}>{e.published ? t("publishedBadge") : t("draftBadge")} · {t("proposedBadge")}</span>
                 : e.published ? <span className="status status-available">{t("publishedBadge")}</span> : <span className="status status-dev">{t("draftBadge")}</span>}{past && <span className="status status-neutral">{t("past")}</span>}</div></td>
-              <td className="adm-col-actions"><div className="adm-actions"><a className="btn btn-sm btn-secondary" href={`/${locale}/admin/events/${e.id}`} aria-label={`${openLabel}: ${v.title}`}>{openLabel}</a>{canEdit && !e.cancelledAt && (e.published && e._count.registrations > 0
+              <td className="adm-col-actions"><div className="adm-actions"><a className="btn btn-sm btn-secondary" href={localeHref(locale, `/admin/events/${e.id}`)} aria-label={`${openLabel}: ${v.title}`}>{openLabel}</a>{canEdit && !e.cancelledAt && (e.published && e._count.registrations > 0
                 ? /* D10: a live event with registrants is unpublished only after a confirm (same action) */
                   <details className="confirm adm-confirm"><summary className="btn btn-sm btn-secondary" aria-label={`${t("unpublish")}: ${v.title}`}>{t("unpublish")}…</summary>
                     <form action={togglePublish} className="confirm-box"><input suppressHydrationWarning type="hidden" name="id" value={e.id} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} />{view !== "upcoming" && <input suppressHydrationWarning type="hidden" name="v" value={view} />}<p>{t("unpublishConfirm", { title: v.title, n: e._count.registrations })}</p><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-danger-outline btn-sm">{t("unpublish")}</button></div></form>

@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations, getMessages, setRequestLocale } from "next-intl/server";
@@ -28,7 +29,7 @@ export default async function AdminRole({ params, searchParams }: { params: Prom
   if (!role) notFound();
   const t = await getTranslations("adminRoles"); const ta = await getTranslations("admin"); const tp = await getTranslations("profile");
   const { msg } = await searchParams;
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
 
   const perms = effectivePermissions(role);
   const initial = MODULES.flatMap((m) => (perms[m] ?? []).map((a) => `${m}:${a}`));

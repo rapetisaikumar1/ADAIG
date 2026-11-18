@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -25,7 +26,7 @@ export default async function MyEvents({ params }: { params: Promise<{ locale: L
   const regs = await db.registration.findMany({ where: { userId: u.id, status: { in: ["confirmed", "pending_payment"] }, event: { cancelledAt: null } }, include: { event: true }, orderBy: { event: { startsAt: "asc" } } });
   const upcoming = regs.filter((r) => !hasEnded(r.event, now));
   const past = regs.filter((r) => hasEnded(r.event, now) && r.status === "confirmed").reverse();
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const td = await getTranslations("dash");
   return (
     <div className="app"><MemberNav locale={locale} current="/my/events" /><TabBarFocus />

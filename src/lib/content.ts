@@ -1,3 +1,4 @@
+import { localePrefix } from "@/lib/localePath";
 import fs from "node:fs";
 import path from "node:path";
 import { unstable_cache } from "next/cache";
@@ -44,7 +45,7 @@ export async function contentOverride(slug: string, locale: string): Promise<str
 export async function loadContent(slug: string, locale: string): Promise<{ html: string; fallback: boolean } | null> {
   for (const [loc, fb] of [[locale, false], ["en", locale !== "en"]] as const) {
     const html = (await contentOverride(slug, loc)) ?? fileContent(slug, loc);
-    if (html !== null) return { html: html.replaceAll("__L__", `/${locale}`), fallback: fb };
+    if (html !== null) return { html: html.replaceAll("__L__", localePrefix(locale)), fallback: fb };
   }
   return null;
 }

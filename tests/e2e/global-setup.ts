@@ -63,7 +63,7 @@ export default async function globalSetup() {
       const ctx = await browser.newContext({ baseURL: BASE_URL });
       const page = await ctx.newPage();
       // Each role lands on its portal home: admins on Admin → Members, members and guests on My membership.
-      await uiLogin(page, { email, password: SEED_PASSWORD }, { expectUrl: new RegExp(`/en/${role === "admin" ? "admin/members" : "my/billing"}$`) });
+      await uiLogin(page, { email, password: SEED_PASSWORD }, { expectUrl: new RegExp(`/${role === "admin" ? "admin/members" : "my/billing"}$`) });
       await ctx.storageState({ path: authFile(role) });
       await ctx.close();
     }

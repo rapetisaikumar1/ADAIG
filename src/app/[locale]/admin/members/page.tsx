@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { membershipHousekeeping, LAPSE_GRACE_DAYS } from "@/lib/membership";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
@@ -94,7 +95,7 @@ export default async function AdminMembers({ params, searchParams }: { params: P
   const showActions = canEdit && rows.some((r) => locks.has(r.u.email));
   const hid = (id: string) => <><input suppressHydrationWarning type="hidden" name="id" value={id} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="f" value={filter} /><input suppressHydrationWarning type="hidden" name="q" value={needle} />{page > 1 && <input suppressHydrationWarning type="hidden" name="p" value={page} />}</>;
   const qs = (k: MemberFilter, p = 1) => { const s = new URLSearchParams(); if (k !== "all") s.set("f", k); if (needle) s.set("q", needle); if (p > 1) s.set("p", String(p)); return s.toString(); };
-  const href = (k: MemberFilter, p = 1) => { const s = qs(k, p); return `/${locale}/admin/members${s ? `?${s}` : ""}`; };
+  const href = (k: MemberFilter, p = 1) => { const s = qs(k, p); return localeHref(locale, `/admin/members${s ? `?${s}` : ""}`); };
   const csv = `/api/admin/members.csv${qs(filter) ? `?${qs(filter)}` : ""}`;
   const refund = (m: ListMembership, u: ListUser) => !canEdit ? null : (
     <details className="confirm adm-confirm"><summary className="btn btn-secondary btn-sm" aria-label={`${t("markRefunded")}: ${u.name}`}>{t("markRefunded")}…</summary>
@@ -107,7 +108,7 @@ export default async function AdminMembers({ params, searchParams }: { params: P
     <div className="app adm"><AdminNav locale={locale} current="/admin/members" />
       <main id="main" tabIndex={-1} className="app-main adm-members">
         <AdminHead title={t("membersTitle")} lead={readOnly ? t("membersLeadRO") : t("membersLead")}
-          actions={<><a className="btn btn-secondary btn-sm" href={csv} download><Icon name="download" size={16} />{t("exportCsvN", { n: total })}</a>{canCreate && <a className="btn btn-primary btn-sm" href={`/${locale}/admin/members/new`}><Icon name="plus" size={16} />{tm("newAccount")}</a>}</>} />
+          actions={<><a className="btn btn-secondary btn-sm" href={csv} download><Icon name="download" size={16} />{t("exportCsvN", { n: total })}</a>{canCreate && <a className="btn btn-primary btn-sm" href={localeHref(locale, `/admin/members/new`)}><Icon name="plus" size={16} />{tm("newAccount")}</a>}</>} />
         {msg && MSGS[msg] && <FocusOnLoad><div className={`alert ${MSGS[msg]} adm-notice`} role="status"><div>{t(msg)}</div></div></FocusOnLoad>}
         {msg && MSGS_MEMBERS[msg] && <FocusOnLoad><div className={`alert ${MSGS_MEMBERS[msg]} adm-notice`} role="status"><div>{tm(`list_${msg}` as "list_notFound")}</div></div></FocusOnLoad>}
         {readOnly && <AdminReadOnly text={t("readOnly")} />}
@@ -126,7 +127,7 @@ export default async function AdminMembers({ params, searchParams }: { params: P
         <div className="table-wrap" tabIndex={0} role="region" aria-label={t("scrollRegion", { name: t("membersTitle") })}><table className="adm-table adm-stack adm-table-members"><caption className="sr-only">{t("membersTitle")}</caption><thead><tr><th scope="col">{t("person")}</th><th scope="col">{t("membership")}</th>{showReview && <th scope="col">{t("eligibility")}</th>}{showActions && <th scope="col" className="adm-col-actions">{t("account")}</th>}</tr></thead><tbody>
           {rows.map(({ u, m }) => { const isLocked = locks.has(u.email); const pend = m?.status === "pending_verification"; const review = needsReview({ u, m }); return (
             <tr key={u.id} className={pend ? "is-pending" : undefined}>
-              <td data-label={t("person")} className="adm-cell-person"><div className="adm-who"><Avatar name={u.name} size="sm" tone={pend ? "amber" : undefined} /><div className="adm-person"><span className="adm-name-line"><a href={`/${locale}/admin/members/${u.id}`} aria-label={`${u.name}: ${tm("openAccount")}`}>{u.name}</a><span className="badge adm-role">{tx(`role_${u.role}`)}</span>{isLocked && <span className="status status-danger">{t("locked")}</span>}</span><span className="small adm-email"><Email value={u.email} />{u.organisation && <span className="muted"> · {u.organisation}</span>}</span></div></div></td>
+              <td data-label={t("person")} className="adm-cell-person"><div className="adm-who"><Avatar name={u.name} size="sm" tone={pend ? "amber" : undefined} /><div className="adm-person"><span className="adm-name-line"><a href={localeHref(locale, `/admin/members/${u.id}`)} aria-label={`${u.name}: ${tm("openAccount")}`}>{u.name}</a><span className="badge adm-role">{tx(`role_${u.role}`)}</span>{isLocked && <span className="status status-danger">{t("locked")}</span>}</span><span className="small adm-email"><Email value={u.email} />{u.organisation && <span className="muted"> · {u.organisation}</span>}</span></div></div></td>
               <td data-label={t("membership")}>{m ? <div className="adm-person"><span>{getTier(m.tierId)?.name[locale] ?? m.tierId}</span><span><span className={`status ${statusFor(m.status)}`}>{tx(`status_${m.status}`)}</span></span>{m.status === "active" && m.verifiedAt && <span className="small muted">{t("approvedOn", { date: day(m.verifiedAt) })}</span>}</div> : <span className="muted">{t("noMembership")}</span>}</td>
               {showReview && <td data-label={t("eligibility")} className={review ? "span-all" : "adm-cell-empty"}>{m && pend ? (
                 <div className="adm-review">

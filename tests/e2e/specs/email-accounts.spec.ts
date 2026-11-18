@@ -30,7 +30,7 @@ function expectMail(m: Mail, o: { to: string; replyTo: string; subject: string; 
   for (const s of o.text ?? []) expect(txt(m), `text part contains: ${s}`).toContain(s);
   for (const s of o.never ?? []) for (const [part, v] of [["subject", m.subject], ["text", m.text], ["html", m.html]] as const)
     expect(v, `${part} must not contain: ${s}`).not.toContain(s);
-  expect(m.html, "absolute /en links in the HTML").toContain(`href="${SITE}/en`);
+  expect(m.html, "absolute site links in the HTML").toContain(`href="${SITE}/`);
   expect(m.html).not.toMatch(/href="\/(en|fr)\//);
 }
 
@@ -64,7 +64,7 @@ type Token = { id: string; tokenHash: string; expiresAt: Date; usedAt: Date | nu
 const tokensOf = (userId: string) => q<Token>(`SELECT id, "tokenHash", "expiresAt", "usedAt", "createdAt" FROM "PasswordResetToken" WHERE "userId" = $1 ORDER BY "createdAt" DESC`, [userId]);
 
 async function requestReset(p: Page, email: string) {
-  await p.goto("/en/forgot-password");
+  await p.goto("/forgot-password");
   await expect(p.locator("main h1")).toHaveText(t("auth.forgotTitle"));
   await p.locator("main form input[name=email]").fill(email);
   await p.locator("main form").getByRole("button", { name: t("auth.forgotSubmit") }).click();
@@ -76,12 +76,12 @@ async function expectSentState(p: Page, email: string) {
   await expect(ok).toContainText(t("auth.forgotSentBody", { email }));
   return (await ok.innerText()).replace(email, "<email>");
 }
-/** The reset link from the email (absolute, /en, 43-char base64url token) and its path for this test's base URL. */
+/** The reset link from the email (absolute, no /en prefix, 43-char base64url token) and its path for this test's base URL. */
 function resetLinkOf(m: Mail) {
-  const link = new RegExp(`${SITE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/en/reset-password\\?token=([A-Za-z0-9_-]{43})`).exec(txt(m));
+  const link = new RegExp(`${SITE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/reset-password\\?token=([A-Za-z0-9_-]{43})`).exec(txt(m));
   expect(link, "reset link in the text part").toBeTruthy();
   expect(m.html).toContain(`href="${link![0]}"`);
-  return { url: link![0], token: link![1], path: `/en/reset-password?token=${link![1]}` };
+  return { url: link![0], token: link![1], path: `/reset-password?token=${link![1]}` };
 }
 async function fillReset(p: Page, password: string, confirm = password) {
   await p.locator("main form input[name=password]").fill(password);
@@ -93,19 +93,19 @@ async function expectInvalidLink(p: Page) {
   await expect(alert).toContainText(t("auth.resetInvalidTitle"));
   await expect(alert).toContainText(t("auth.resetInvalidBody"));
   await expect(p.locator("main input[name=password]")).toHaveCount(0);
-  await expect(p.locator("main").getByRole("link", { name: t("auth.resetRequestNew") })).toHaveAttribute("href", "/en/forgot-password");
+  await expect(p.locator("main").getByRole("link", { name: t("auth.resetRequestNew") })).toHaveAttribute("href", "/forgot-password");
 }
 
 /* ── sign-up ───────────────────────────────────────────────────────────────────── */
 
 test("sign-up: the new guest gets one welcome email (no name echo, no password); a repeat sign-up with that email sends nothing", async ({ page, newPage }) => {
   const email = uniqueEmail(); const password = uniquePassword(); const name = uniqueName("<b>Guest</b>");
-  await page.goto("/en/signup");
+  await page.goto("/signup");
   await page.locator("#sn").fill(name);
   await page.locator("#se").fill(email);
   await page.locator("#sp").fill(password);
   await page.getByRole("button", { name: t("auth.createBtn") }).click();
-  await expect(page).toHaveURL(/\/en\/my\/billing(\?|$)/);
+  await expect(page).toHaveURL(/\/my\/billing(\?|$)/);
   const u = (await userByEmail(email))!;
 
   const m = await waitForEmail({ to: email, subjectIncludes: WELCOME });
@@ -116,7 +116,7 @@ test("sign-up: the new guest gets one welcome email (no name echo, no password);
       "Thank you for creating a free guest account with the Association for Data and AI Governance (ADAIG).",
       "A guest account is free but isn’t a membership.",
       `Account email: ${email}`, "Account type: Free guest account", `Created: ${day(new Date())}`,
-      `Go to your account: ${SITE}/en/my/billing`,
+      `Go to your account: ${SITE}/my/billing`,
     ],
     never: [password, "Guest</b>", "&lt;b&gt;Guest", name],
   });
@@ -124,7 +124,7 @@ test("sign-up: the new guest gets one welcome email (no name echo, no password);
 
   // Same email again → generic error, no second welcome.
   const other = await newPage();
-  await other.goto("/en/signup");
+  await other.goto("/signup");
   await other.locator("#sn").fill(uniqueName("Again")); await other.locator("#se").fill(email); await other.locator("#sp").fill(uniquePassword());
   await other.getByRole("button", { name: t("auth.createBtn") }).click();
   await expect(other.locator("main").getByRole("alert")).toHaveText(t("join.err_generic_account"));
@@ -140,9 +140,9 @@ test("forgot password: link email → new password → sign in; old password and
   const before = (await userById(u.id))!;
 
   // The sign-in page links to the self-service flow.
-  await page.goto("/en/login");
+  await page.goto("/login");
   await page.locator("main").getByRole("link", { name: t("auth.forgot") }).click();
-  await expect(page).toHaveURL(/\/en\/forgot-password$/);
+  await expect(page).toHaveURL(/\/forgot-password$/);
   await requestReset(page, u.email.toUpperCase()); // normalized
   await expectSentState(page, u.email);
 
@@ -181,7 +181,7 @@ test("forgot password: link email → new password → sign in; old password and
   expect((await tokensOf(u.id))[0].usedAt).toBeNull();
   // Real reset.
   await fillReset(page, newPw);
-  await expect(page).toHaveURL(/\/en\/login\?reset=done$/);
+  await expect(page).toHaveURL(/\/login\?reset=done$/);
   await expect(page.locator("main").getByRole("status")).toContainText(t("auth.resetDone"));
   const after = (await userById(u.id))!;
   expect(after.passwordHash).not.toBe(before.passwordHash);
@@ -197,7 +197,7 @@ test("forgot password: link email → new password → sign in; old password and
     text: [
       "Your password was changed", "Hello,",
       "The password for your ADAIG account was changed on ", "using a password reset link. You’ve been signed out on every device.",
-      `Account: ${u.email}`, `Sign in: ${SITE}/en/login`, SECURITY_FOOTER,
+      `Account: ${u.email}`, `Sign in: ${SITE}/login`, SECURITY_FOOTER,
     ],
     never: [newPw, u.password, link.token],
   });
@@ -205,11 +205,11 @@ test("forgot password: link email → new password → sign in; old password and
 
   // Old password refused, new password accepted.
   const s = await newPage();
-  await s.goto("/en/login");
+  await s.goto("/login");
   await s.locator("#le").fill(u.email); await s.locator("#lp").fill(u.password);
   await s.locator("main form").getByRole("button", { name: t("auth.signIn") }).click();
   await expectLoginRefused(s, t("auth.invalid"), { email: u.email });
-  await uiLogin(s, { email: u.email, password: newPw }, { expectUrl: /\/en\/my\/billing$/ });
+  await uiLogin(s, { email: u.email, password: newPw }, { expectUrl: /\/my\/billing$/ });
 
   // The link can't be used again.
   const again = await newPage();
@@ -244,9 +244,9 @@ test("forgot password: an expired link and an older link are refused; a garbage 
   await expectInvalidLink(page);
   expect((await userById(u.id))!.passwordHash).toBe(before.passwordHash);
 
-  await page.goto(`/en/reset-password?token=${"A".repeat(43)}`);
+  await page.goto(`/reset-password?token=${"A".repeat(43)}`);
   await expectInvalidLink(page);
-  await page.goto("/en/reset-password?token=not-a-token");
+  await page.goto("/reset-password?token=not-a-token");
   await expectInvalidLink(page);
   expect(await mailCount(u.email, CHANGED)).toBe(0);
 });
@@ -271,7 +271,7 @@ test("forgot password: unknown and deactivated addresses get the same page and n
   expect(await count(`SELECT count(*) AS n FROM "AuditLog" WHERE target = $1`, [unknown])).toBe(0);
 
   // Invalid format → field error.
-  await page.goto("/en/forgot-password");
+  await page.goto("/forgot-password");
   await page.locator("main form").evaluate((f: HTMLFormElement) => { f.noValidate = true; }); // skip the browser's own check so the server answers
   await page.locator("main form input[name=email]").fill("not-an-email");
   await page.locator("main form").getByRole("button", { name: t("auth.forgotSubmit") }).click();
@@ -294,7 +294,7 @@ test("forgot password: deactivating an Admin Portal account deletes its reset li
   expect(await tokensOf(u.id)).toHaveLength(1);
 
   // Admin → Users: deactivate (round-8 SEC L3: the token rows go with it).
-  await p.goto(`/en/admin/users/${encodeURIComponent(u.id)}`);
+  await p.goto(`/admin/users/${encodeURIComponent(u.id)}`);
   await p.locator("#status summary", { hasText: tu("deactivate") }).click();
   const form = p.locator("form#status, #status form").filter({ has: p.getByRole("button", { name: tu("deactivateYes") }) });
   const box = form.locator("input[type=checkbox][name=confirm]");
@@ -304,7 +304,7 @@ test("forgot password: deactivating an Admin Portal account deletes its reset li
   expect(await tokensOf(u.id), "reset tokens deleted on deactivation").toHaveLength(0);
 
   // Reactivate within the hour: the old link does not come back to life.
-  await p.goto(`/en/admin/users/${encodeURIComponent(u.id)}`);
+  await p.goto(`/admin/users/${encodeURIComponent(u.id)}`);
   await p.locator("#status").getByRole("button", { name: tu("activate"), exact: true }).click();
   await expect(p).toHaveURL(/msg=msg_activated/);
   expect((await userById(u.id))!.active).toBe(true);
@@ -318,18 +318,18 @@ test("password changed in Profile & privacy: confirmation email without any pass
   const u = await createUser({ role: "member" });
   const p = await loginAs(u);
   const next = uniquePassword();
-  await p.goto("/en/my/profile");
+  await p.goto("/my/profile");
   await p.locator("#pc").fill(u.password);
   await p.locator("#pn").fill(next);
   await p.locator("#pr").fill(next);
   await p.getByRole("button", { name: t("profile.pwSave") }).click();
-  await expect(p).toHaveURL(/\/en\/login\?pw=changed/);
+  await expect(p).toHaveURL(/\/login\?pw=changed/);
   const [audit] = await auditRows({ action: "auth.password_changed", target: u.id });
 
   const m = await waitForEmail({ to: u.email, subjectIncludes: CHANGED });
   expectMail(m, {
     to: u.email, replyTo: INBOX, subject: CHANGED,
-    text: ["Hello,", "in Profile & privacy. You’ve been signed out on every device. Sign in again with your new password.", `Account: ${u.email}`, `Changed: ${day(new Date())} at `, `Sign in: ${SITE}/en/login`],
+    text: ["Hello,", "in Profile & privacy. You’ve been signed out on every device. Sign in again with your new password.", `Account: ${u.email}`, `Changed: ${day(new Date())} at `, `Sign in: ${SITE}/login`],
     never: [u.password, next, u.name],
   });
   await expectLogSent(`password.changed:${audit.id}`, { kind: "password.changed", to: u.email, subject: CHANGED, userId: u.id });
@@ -338,7 +338,7 @@ test("password changed in Profile & privacy: confirmation email without any pass
 test("Members: a staff temporary password sends a notice that never contains the password", async ({ adminPage: p }) => {
   const u = await createMember();
   const temp = uniquePassword();
-  await p.goto(`/en/admin/members/${u.id}`);
+  await p.goto(`/admin/members/${u.id}`);
   await p.locator("#pw-new").fill(temp);
   await p.getByRole("button", { name: tm("pwButton") }).click();
   await expect(p.getByRole("form", { name: tm("pwTitle") }).getByRole("status").locator("code")).toHaveText(temp);
@@ -352,7 +352,7 @@ test("Members: a staff temporary password sends a notice that never contains the
       "A member of the ADAIG team set a temporary password for your ADAIG account on ",
       "For your security, this email doesn’t include the password: the team will give it to you directly.",
       "After you sign in with the temporary password, change it in Profile & privacy.",
-      `Account: ${u.email}`, `Sign in: ${SITE}/en/login`,
+      `Account: ${u.email}`, `Sign in: ${SITE}/login`,
     ],
     never: [temp, u.password],
   });
@@ -362,7 +362,7 @@ test("Members: a staff temporary password sends a notice that never contains the
 test("Users: an admin password reset sends the Admin Portal notice without the password", async ({ adminPage: p }) => {
   const u = await createAdmin(ROLE_PRESETS.viewer);
   const pw = uniquePassword();
-  await p.goto(`/en/admin/users/${encodeURIComponent(u.id)}`);
+  await p.goto(`/admin/users/${encodeURIComponent(u.id)}`);
   const form = p.locator("form#password, #password form");
   await form.getByLabel(tu("pwNew"), { exact: true }).fill(pw);
   await form.getByLabel(tu("pwConfirm"), { exact: true }).fill(pw);
@@ -383,7 +383,7 @@ test("Members and Users: an email change notifies the OLD address with the new o
   // Members (variant member).
   const u = await createUser({ name: uniqueName("Renamed") });
   const next = uniqueEmail();
-  await p.goto(`/en/admin/members/${u.id}`);
+  await p.goto(`/admin/members/${u.id}`);
   await p.locator("#p-email").fill(next);
   await p.getByRole("button", { name: tm("saveProfile") }).click();
   await expect(p).toHaveURL(/msg=msg_profileSaved/);
@@ -396,7 +396,7 @@ test("Members and Users: an email change notifies the OLD address with the new o
     text: [
       "Your sign-in email was changed", `Hello ${u.name},`,
       "The ADAIG team changed the email address you use to sign in to ADAIG on ", `From now on, sign in with ${masked}.`,
-      `Previous email: ${u.email}`, `New email: ${masked}`, `Contact the ADAIG team: ${SITE}/en/contact?topic=account`,
+      `Previous email: ${u.email}`, `New email: ${masked}`, `Contact the ADAIG team: ${SITE}/contact?topic=account`,
     ],
     never: [next, u.password],
   });
@@ -406,7 +406,7 @@ test("Members and Users: an email change notifies the OLD address with the new o
   // Users (variant admin).
   const a = await createAdmin(ROLE_PRESETS.viewer);
   const nextA = uniqueEmail();
-  await p.goto(`/en/admin/users/${encodeURIComponent(a.id)}`);
+  await p.goto(`/admin/users/${encodeURIComponent(a.id)}`);
   await p.locator("#details").getByLabel(tu("f_email"), { exact: true }).fill(nextA);
   await p.locator("#details").getByRole("button", { name: tu("saveDetails") }).click();
   await expect(p).toHaveURL(/msg=msg_saved/);
@@ -424,11 +424,11 @@ test("account deleted (self and by staff): last email to the old address; the lo
   // Self-service.
   const m = await createMember();
   const p = await loginAs(m);
-  await p.goto("/en/my/profile");
+  await p.goto("/my/profile");
   await p.locator("form.mbr-danger #dp").fill(m.password);
   await p.locator("form.mbr-danger input[name=confirm]").check();
   await p.locator("form.mbr-danger").getByRole("button", { name: t("profile.deleteBtn") }).click();
-  await expect(p).toHaveURL(/\/en\/login\?deleted=1/);
+  await expect(p).toHaveURL(/\/login\?deleted=1/);
 
   const e = await waitForEmail({ to: m.email, subjectIncludes: DELETED });
   expectMail(e, {
@@ -436,7 +436,7 @@ test("account deleted (self and by staff): last email to the old address; the lo
     text: [
       "Your account has been deleted", "Hello,", "As you requested, your ADAIG account was deleted on ",
       "You can no longer sign in with this email address.", `Account: ${m.email}`,
-      `Contact the ADAIG team: ${SITE}/en/contact?topic=privacy`,
+      `Contact the ADAIG team: ${SITE}/contact?topic=privacy`,
     ],
     never: [m.password, m.name],
   });
@@ -448,10 +448,10 @@ test("account deleted (self and by staff): last email to the old address; the lo
 
   // By staff (Admin → Members).
   const s = await createMember();
-  await adminPage.goto(`/en/admin/members/${s.id}`);
+  await adminPage.goto(`/admin/members/${s.id}`);
   await adminPage.locator("#delete input[name=confirm]").check();
   await adminPage.getByRole("button", { name: tm("deleteButton") }).click();
-  await expect(adminPage).toHaveURL(/\/en\/admin\/members\?msg=accountDeleted/);
+  await expect(adminPage).toHaveURL(/\/admin\/members\?msg=accountDeleted/);
   const se = await waitForEmail({ to: s.email, subjectIncludes: DELETED });
   expectMail(se, { to: s.email, replyTo: INBOX, subject: DELETED, text: ["Your ADAIG account was deleted by the ADAIG team on ", `Account: ${s.email}`], never: [s.password] });
   await expect.poll(() => count(`SELECT count(*) AS n FROM "EmailLog" WHERE lower("toEmail") = $1`, [s.email])).toBe(0);
@@ -464,7 +464,7 @@ test("a failing send never breaks the flow: staff reset for an undeliverable sto
   const bad = `e2e-${RUN}-bad..${crypto.randomBytes(3).toString("hex")}@example.test`;
   const u = await createUser({ email: bad });
   const temp = uniquePassword();
-  await p.goto(`/en/admin/members/${u.id}`);
+  await p.goto(`/admin/members/${u.id}`);
   await p.locator("#pw-new").fill(temp);
   await p.getByRole("button", { name: tm("pwButton") }).click();
   // The staff action completed normally (the password is set and shown once).

@@ -1,4 +1,5 @@
 "use client";
+import { localeHref } from "@/lib/localePath";
 import { useActionState, useEffect, useRef, startTransition, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { createAccount, type NewAccountState } from "./actions";
@@ -22,7 +23,7 @@ export function NewAccountForm({ locale, tiers, minDay, directoryDefault }: { lo
             {c.password && <>{" · "}{t("pwOnce")}<code className="adm-secret">{c.password}</code></>}</div>
         </div>
         {c.membershipError && <div className="alert alert-danger" role="alert"><div>{c.membershipError}</div></div>}
-        <div className="adm-actions"><a className="btn btn-primary btn-sm" href={`/${locale}/admin/members/${c.id}`}>{t("openAccount")}</a><a className="btn btn-secondary btn-sm" href={`/${locale}/admin/members/new`}>{t("createAnother")}</a></div>
+        <div className="adm-actions"><a className="btn btn-primary btn-sm" href={localeHref(locale, `/admin/members/${c.id}`)}>{t("openAccount")}</a><a className="btn btn-secondary btn-sm" href={localeHref(locale, `/admin/members/new`)}>{t("createAnother")}</a></div>
       </div>
     );
   }
@@ -43,7 +44,7 @@ export function NewAccountForm({ locale, tiers, minDay, directoryDefault }: { lo
           <div className="field"><label htmlFor="n-renew">{t("renewsOn")} <span className="optional">({t("defaultOneYear")})</span></label><input suppressHydrationWarning id="n-renew" name="renewsOn" type="date" min={minDay} /></div>
         </div></div></div>
       <div className="save-row adm-sheet-foot">
-        <a className="btn btn-ghost" href={`/${locale}/admin/members`}>{t("cancel")}</a>
+        <a className="btn btn-ghost" href={localeHref(locale, `/admin/members`)}>{t("cancel")}</a>
         <button suppressHydrationWarning className="btn btn-accent" disabled={pending} aria-busy={pending || undefined}>{pending ? t("working") : t("createButton")}</button>
       </div>
     </form>

@@ -6,13 +6,13 @@ import { t, tFr } from "../support/i18n";
 test("member area pages render for the seed member (no overflow at 390px) @smoke", async ({ memberPage: p }) => {
   const errors = watchConsole(p);
   await p.setViewportSize({ width: 390, height: 844 });
-  for (const path of ["/en/my/dashboard", "/en/my/billing", "/en/my/profile", "/en/my/events", "/en/my/community", "/en/my/directory", "/fr/my/dashboard"]) {
+  for (const path of ["/my/dashboard", "/my/billing", "/my/profile", "/my/events", "/my/community", "/my/directory", "/fr/my/dashboard"]) {
     const r = await p.goto(path);
     expect(r?.status(), path).toBe(200);
     await expect(p.locator("main#main h1"), path).toBeVisible();
     await expectNoHorizontalOverflow(p, path);
   }
-  await p.goto("/en/my/billing");
+  await p.goto("/my/billing");
   await expect(p.locator("main#main h1")).toHaveText(t("member.billingPage.title"));
   await expect(p.locator(".app-head")).toContainText("Jordan Member");
   await expect(membershipCard(p)).toContainText("Professional");
@@ -21,8 +21,8 @@ test("member area pages render for the seed member (no overflow at 390px) @smoke
 });
 
 test("/my/dashboard is no longer a page: it redirects to My membership and keeps the query string", async ({ memberPage: p }) => {
-  await p.goto("/en/my/dashboard");
-  await expect(p).toHaveURL(/\/en\/my\/billing$/);
+  await p.goto("/my/dashboard");
+  await expect(p).toHaveURL(/\/my\/billing$/);
   await p.goto("/fr/my/dashboard?already=1&msg=orderClosed");
   await expect(p).toHaveURL(/\/fr\/my\/billing\?already=1&msg=orderClosed$/);
   await expect(p.locator("main").getByRole("status").filter({ hasText: tFr("dash.alreadyMember") })).toBeVisible();
@@ -34,7 +34,7 @@ test("profile edit is saved and the new name greets me on My membership", async 
   const m = await createMember({ locale: "fr" }); // stored preference from before round 6b: must survive a save
   const p = await loginAs(m);
   const name = uniqueName("Renamed");
-  await p.goto("/en/my/profile");
+  await p.goto("/my/profile");
   await expect(p.locator("#e")).toHaveValue(m.email);
   // The email cannot be edited here: read-only (round 5 uses readOnly instead of disabled, so it stays readable and
   // focusable) and never submitted (no name). The saved row below keeps the original email.
@@ -55,14 +55,14 @@ test("profile edit is saved and the new name greets me on My membership", async 
   // Forged fields are ignored: the action only reads the profile fields, and the account is the session's.
   await p.locator("form:has(#n)").evaluate((f) => { for (const [k, v] of [["email", "forged@example.test"], ["role", "admin"], ["id", "someone-else"], ["tierId", "student"], ["status", "active"]]) { const i = document.createElement("input"); i.type = "hidden"; i.name = k; i.value = v; f.append(i); } });
   await p.getByRole("button", { name: t("profile.save") }).click();
-  await expect(p).toHaveURL(/\/en\/my\/profile\?saved=1/);
+  await expect(p).toHaveURL(/\/my\/profile\?saved=1/);
   await expect(p.locator("main").getByRole("status").filter({ hasText: t("profile.saved") })).toBeVisible();
   expect(await userById(m.id)).toMatchObject({ name, organisation: "E2E New Org", jobTitle: "E2E Data Steward", country: "Canada", province: "ON", locale: "fr", marketingOptIn: true, email: m.email, role: "member" });
   await p.reload();
   await expect(p.locator("#n")).toHaveValue(name);
   await expect(p.locator("#j")).toHaveValue("E2E Data Steward");
   await expect(p.locator("#pf-prov")).toHaveValue("ON");
-  await p.goto("/en/my/billing");
+  await p.goto("/my/billing");
   await expect(p.locator("main#main h1")).toHaveText(t("member.billingPage.title"));
   await expect(p.locator(".app-head")).toContainText(name);
 });
@@ -70,7 +70,7 @@ test("profile edit is saved and the new name greets me on My membership", async 
 test("fields that can't be saved get an inline error; the other fields are still saved", async ({ loginAs }) => {
   const m = await createMember({ name: uniqueName("Inline") });
   const p = await loginAs(m);
-  await p.goto("/en/my/profile");
+  await p.goto("/my/profile");
   // Past the browser's own checks (required / maxlength), as a forged or script-less submit would be.
   await p.locator("#n").evaluate((el: HTMLInputElement) => { el.removeAttribute("required"); el.value = "   "; });
   await p.locator("#j").evaluate((el: HTMLInputElement) => { el.removeAttribute("maxlength"); el.value = "x".repeat(101); });
@@ -93,34 +93,34 @@ test("the profile's read-only membership summary matches My membership, for ever
   // Active member: tier, status and dates; a link to My membership; nothing editable.
   const m = await createMember();
   let p = await loginAs(m);
-  await p.goto("/en/my/profile");
+  await p.goto("/my/profile");
   await expect(summary(p)).toContainText("Professional");
   await expect(summary(p)).toContainText(t("member.billingPage.st_active"));
   await expect(summary(p)).toContainText(t("member.billingPage.since"));
   await expect(summary(p)).toContainText(t("member.billingPage.renews"));
   await expect(summary(p).locator("input, select, textarea, button")).toHaveCount(0);
   await summary(p).getByRole("link", { name: t("profile.membershipLink") }).click();
-  await expect(p).toHaveURL(/\/en\/my\/billing$/);
+  await expect(p).toHaveURL(/\/my\/billing$/);
 
   // Lapsed (renewal date over 30 days ago → lapses on the next visit): "Started" / "Renewal was due", never "Member since".
   const l = await createUser({ name: uniqueName("Lapsed") });
   await createMembership(l.id, { renewsAt: new Date(Date.now() - 40 * 864e5) });
   p = await loginAs(l);
-  await p.goto("/en/my/billing");
+  await p.goto("/my/billing");
   await expect(membershipStatus(p, "st_lapsed")).toBeVisible();
   await expect(membershipCard(p)).toContainText(t("member.billingPage.started"));
   await expect(membershipCard(p)).toContainText(t("member.billingPage.renewalWasDue"));
   await expect(membershipCard(p)).not.toContainText(t("member.billingPage.since"));
-  await p.goto("/en/my/profile");
+  await p.goto("/my/profile");
   await expect(summary(p)).toContainText(t("member.billingPage.st_lapsed"));
   await expect(summary(p)).toContainText(t("member.billingPage.renewalWasDue"));
 
   // Guest without a membership: "No membership" + Apply.
   const g = await createUser();
   p = await loginAs(g);
-  await p.goto("/en/my/profile");
+  await p.goto("/my/profile");
   await expect(summary(p)).toContainText(t("member.billingPage.st_none"));
-  await expect(summary(p).getByRole("link", { name: t("member.billingPage.apply") })).toHaveAttribute("href", "/en/join");
+  await expect(summary(p).getByRole("link", { name: t("member.billingPage.apply") })).toHaveAttribute("href", "/join");
 });
 
 test("data export: JSON and CSV contain my data and never the password hash", async ({ loginAs, request }) => {
@@ -160,7 +160,7 @@ test("data export: JSON and CSV contain my data and never the password hash", as
   expect(body).not.toMatch(/passwordHash|sessionVersion|adminRoleId|verifiedBy|activeSlot|createdBy|\$2[aby]\$/);
 
   // The profile page's download link delivers the same file.
-  await p.goto("/en/my/profile");
+  await p.goto("/my/profile");
   const [dl] = await Promise.all([p.waitForEvent("download"), p.getByRole("link", { name: t("profile.export") }).click()]);
   expect(dl.suggestedFilename()).toBe("adaig-my-data.json");
 
@@ -174,7 +174,7 @@ test("self-service account deletion needs the password, anonymizes the account a
   const ev = await createEvent();
   await createRegistration(m.id, ev.id);
   const p = await loginAs(m);
-  await p.goto("/en/my/profile");
+  await p.goto("/my/profile");
   const del = p.locator("form.mbr-danger");
   await del.locator("#dp").fill("Not-my-password-1");
   await del.locator("input[name=confirm]").check();
@@ -186,7 +186,7 @@ test("self-service account deletion needs the password, anonymizes the account a
   await p.locator("form.mbr-danger #dp").fill(m.password);
   await p.locator("form.mbr-danger input[name=confirm]").check();
   await p.locator("form.mbr-danger").getByRole("button", { name: t("profile.deleteBtn") }).click();
-  await expect(p).toHaveURL(/\/en\/login\?deleted=1/);
+  await expect(p).toHaveURL(/\/login\?deleted=1/);
   await expect(p.locator("main").getByRole("status")).toHaveText(t("profile.deleted"));
 
   const u = await userById(m.id);
@@ -195,10 +195,10 @@ test("self-service account deletion needs the password, anonymizes the account a
   const [ms] = await membershipsOf(m.id);
   expect(ms).toMatchObject({ status: "cancelled", activeSlot: null });
   expect(await one(`SELECT id FROM "Registration" WHERE "userId" = $1`, [m.id])).toBeUndefined(); // free registration removed
-  await p.goto("/en/my/billing");
-  await expect(p).toHaveURL(/\/en\/login/);
+  await p.goto("/my/billing");
+  await expect(p).toHaveURL(/\/login/);
   // The old credentials no longer work.
-  await page.goto("/en/login");
+  await page.goto("/login");
   await page.locator("#le").fill(m.email); await page.locator("#lp").fill(m.password);
   await page.locator("main form").getByRole("button", { name: t("auth.signIn") }).click();
   await expectLoginRefused(page, t("auth.invalid"), { email: m.email });
@@ -208,7 +208,7 @@ test("delete-account password attempts are throttled on their own counter; sign-
   const m = await createMember();
   const p = await loginAs(m);
   const attempt = async (pw: string) => {
-    await p.goto("/en/my/profile");
+    await p.goto("/my/profile");
     const del = p.locator("form.mbr-danger");
     await del.locator("#dp").fill(pw);
     await del.locator("input[name=confirm]").check();
@@ -238,7 +238,7 @@ test.describe("member directory", () => {
     const listed = await createMember({ name: uniqueName("Dir Listed"), directoryOptIn: true, jobTitle: "E2E Archivist" });
     const notMember = await createUser({ name: uniqueName("Dir Guest"), directoryOptIn: true });
     const p = await loginAs(me);
-    const search = async (q: string) => { await p.goto(`/en/my/directory?q=${encodeURIComponent(q)}`); return p.locator(".mbr-people .member-card"); };
+    const search = async (q: string) => { await p.goto(`/my/directory?q=${encodeURIComponent(q)}`); return p.locator(".mbr-people .member-card"); };
 
     await expect(await search(listed.name)).toHaveCount(1);
     await expect(p.locator(".mbr-people")).toContainText("E2E Archivist");
@@ -246,7 +246,7 @@ test.describe("member directory", () => {
     await expect(await search(me.name), "not listed before opting in").toHaveCount(0);
     await expect(p.getByRole("note")).toContainText(t("member.directoryPage.youHidden"));
 
-    await p.goto("/en/my/profile");
+    await p.goto("/my/profile");
     await p.locator("input[name=directoryOptIn]").check();
     await p.getByRole("button", { name: t("profile.save") }).click();
     await expect(p).toHaveURL(/saved=1/);
@@ -265,7 +265,7 @@ test.describe("member directory", () => {
     const listed = await createMember({ name: `${tok} Listed`, directoryOptIn: true });
     const me = await createMember();
     const p = await loginAs(me);
-    await p.goto(`/en/my/directory?q=${encodeURIComponent(tok)}`);
+    await p.goto(`/my/directory?q=${encodeURIComponent(tok)}`);
     const cards = p.locator(".mbr-people .member-card");
     await expect(cards).toHaveCount(1);
     await expect(cards).toContainText(listed.name);
@@ -273,19 +273,19 @@ test.describe("member directory", () => {
     await expect(p.locator("main")).not.toContainText(inactive.name);
 
     // The admin (any role, even with an active membership) can't browse it: the guest's members-only notice, no join button.
-    const ap = await loginAs(admin, { expectUrl: /\/en\/admin\/members$/ });
-    await ap.goto("/en/my/directory");
+    const ap = await loginAs(admin, { expectUrl: /\/admin\/members$/ });
+    await ap.goto("/my/directory");
     await expect(ap.getByRole("heading", { name: t("member.directoryPage.membersOnly") })).toBeVisible();
     await expect(ap.locator(".mbr-people")).toHaveCount(0);
     await expect(ap.locator("main")).not.toContainText(listed.name);
-    await ap.goto("/en/my/community");
-    await expect(ap.locator('main a[href="/en/my/directory"]')).toHaveCount(0);
+    await ap.goto("/my/community");
+    await expect(ap.locator('main a[href="/my/directory"]')).toHaveCount(0);
   });
 
   test("is only browsable by active members", async ({ loginAs }) => {
     const g = await createUser();
     const p = await loginAs(g);
-    await p.goto("/en/my/directory");
+    await p.goto("/my/directory");
     await expect(p.getByRole("heading", { name: t("member.directoryPage.membersOnly") })).toBeVisible();
     await expect(p.locator(".mbr-people")).toHaveCount(0);
   });

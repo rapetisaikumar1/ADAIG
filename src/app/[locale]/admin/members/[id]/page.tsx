@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations, getMessages, setRequestLocale } from "next-intl/server";
@@ -72,7 +73,7 @@ export default async function AdminMember({ params, searchParams }: { params: Pr
   const hid = <><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="uid" value={u.id} /></>;
   const mh = (mid: string) => <><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="id" value={mid} /></>;
   const back = (mid: string) => <>{mh(mid)}<input suppressHydrationWarning type="hidden" name="ret" value="detail" /></>; // existing list actions, returning here
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
 
   const confirm = (summary: React.ReactNode, cls: string, body: React.ReactNode, label?: string) => (
     <details className="confirm adm-confirm"><summary className={`btn ${cls} btn-sm`} aria-label={label}>{summary}</summary>{body}</details>

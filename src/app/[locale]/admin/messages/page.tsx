@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { requireAdminPermission, can } from "@/lib/rbac";
@@ -29,7 +30,7 @@ export default async function AdminMessages({ params, searchParams }: { params: 
   const ta = await getTranslations("admin"); const et = ta("et");
   const fmt = (d: Date) => `${d.toLocaleString(dateLocale(locale), { dateStyle: "medium", timeStyle: "short", timeZone: eventTimeZone })} ${et}`;
   const tabs: TabItem[] = ([["new", t("tabNew"), n("new")], ["handled", t("tabHandled"), n("handled")], ["all", t("tabAll"), total]] as const)
-    .map(([k, label, count]) => ({ key: k, href: `/${locale}/admin/messages?f=${k}`, label, count, current: f === k }));
+    .map(([k, label, count]) => ({ key: k, href: localeHref(locale, `/admin/messages?f=${k}`), label, count, current: f === k }));
   const mailto = (m: { email: string; topic: string }) => `mailto:${encodeURIComponent(m.email).replace("%40", "@")}?subject=${encodeURIComponent(`ADAIG — ${tc(`topic_${m.topic}` as "topic_other")}`)}`;
   return (
     <div className="app adm"><AdminNav locale={locale} current="/admin/messages" />

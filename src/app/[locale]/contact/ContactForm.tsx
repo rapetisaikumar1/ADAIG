@@ -1,4 +1,5 @@
 "use client";
+import { localeHref } from "@/lib/localePath";
 import { useActionState, useEffect, useRef, startTransition, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { sendContact, type ContactField, type ContactState } from "./actions";
@@ -55,7 +56,7 @@ export function ContactForm({ locale, initialTopic, defaults }: { locale: string
       <div className={fcls("message")}><label htmlFor="cf-msg">{t("message")}</label><textarea suppressHydrationWarning id="cf-msg" name="message" required minLength={10} maxLength={3000} rows={7} aria-invalid={bad("message") || undefined} aria-describedby={desc("message", "cf-msg-hint")} /><span className="hint" id="cf-msg-hint">{t("messageHint")}</span>{fieldErr("message")}</div>
       {/* Honeypot for bots — hidden from people and assistive tech. */}
       <div className="contact-hp" aria-hidden="true"><label htmlFor="cf-web">Website</label><input suppressHydrationWarning id="cf-web" name="website" type="text" tabIndex={-1} autoComplete="off" /></div>
-      <label className="check"><input suppressHydrationWarning id="cf-consent" type="checkbox" name="consent" required aria-invalid={bad("consent") || undefined} aria-describedby={desc("consent")} /> <span>{t("consent")} <a href={`/${locale}/legal#privacy`}>{t("privacyLink")}</a></span></label>
+      <label className="check"><input suppressHydrationWarning id="cf-consent" type="checkbox" name="consent" required aria-invalid={bad("consent") || undefined} aria-describedby={desc("consent")} /> <span>{t("consent")} <a href={localeHref(locale, `/legal#privacy`)}>{t("privacyLink")}</a></span></label>
       {fieldErr("consent")}
       <div className="contact-actions"><button suppressHydrationWarning className="btn btn-accent" disabled={pending}>{pending ? t("sending") : t("send")}</button><span className="small muted">{t("responseNote")}</span></div>
     </form>

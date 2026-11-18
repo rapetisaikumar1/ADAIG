@@ -17,3 +17,6 @@ export const t = (key: string, vars?: Record<string, string | number>) => msg(ke
 export const tFr = (key: string, vars?: Record<string, string | number>) => msg(key, vars, "fr");
 /** Escape text for use inside a RegExp. */
 export const re = (s: string) => new RegExp(s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+/** Public URL for a path in `locale` — same rule as the app (src/lib/localePath.ts): English has no prefix, French keeps /fr. */
+export const lp = (locale: string, path = "") => (locale === "en" ? path || "/" : `/${locale}${path}`);

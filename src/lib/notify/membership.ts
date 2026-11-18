@@ -19,7 +19,7 @@ import { subdivisionsFor } from "@/config/site";
 
 const day = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: eventTimeZone }); // December 8, 2026
 const dayTime = (d: Date) => `${day(d)} at ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: eventTimeZone })} ET`; // December 8, 2026 at 2:15 PM ET
-const L = (p: string) => siteUrl("/en" + p);
+const L = (p: string) => siteUrl(p || "/"); // English URLs have no /en prefix
 const DAY_MS = 864e5;
 
 /** Reminder window after the renewal date (Q3: no backlog blast on the first production run). Never longer than the grace period. */

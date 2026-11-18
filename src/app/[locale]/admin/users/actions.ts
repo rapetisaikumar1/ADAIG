@@ -1,4 +1,5 @@
 "use server";
+import { localeHref } from "@/lib/localePath";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -67,12 +68,12 @@ async function loadRole(fd: FormData) {
 async function editGuard(fd: FormData) {
   const { locale, ctx } = await assertAdminPermission(fd, "users", "edit");
   const u = await loadTarget(fd);
-  if (!u) redirect(`/${locale}/admin/users?msg=notFound`);
+  if (!u) redirect(localeHref(locale, `/admin/users?msg=notFound`));
   return { locale, ctx, u };
 }
 /** Back to the user page with a notice (adminUsers.<msg>). The id always comes from the DB. */
 function back(locale: string, userId: string, msg: string, anchor: string): never {
-  redirect(`/${locale}/admin/users/${encodeURIComponent(userId)}?msg=${msg}#${anchor}`);
+  redirect(localeHref(locale, `/admin/users/${encodeURIComponent(userId)}?msg=${msg}#${anchor}`));
 }
 const audit = (actor: string, action: string, target: string) => db.auditLog.create({ data: { actor, action, target } });
 
@@ -109,7 +110,7 @@ export async function createAdminUser(_: UserFormState, fd: FormData): Promise<U
     if (isUniqueViolation(e)) return fail("err_emailTaken", "email");
     throw e;
   }
-  redirect(`/${locale}/admin/users/${encodeURIComponent(id)}?msg=msg_created`);
+  redirect(localeHref(locale, `/admin/users/${encodeURIComponent(id)}?msg=msg_created`));
 }
 
 /* ── details (name, email) ── */
@@ -154,7 +155,7 @@ export async function updateAdminUser(fd: FormData): Promise<void> {
     throw e;
   }
   if (!ok) {
-    if (!(await loadTarget(fd))) redirect(`/${locale}/admin/users?msg=notFound`);
+    if (!(await loadTarget(fd))) redirect(localeHref(locale, `/admin/users?msg=notFound`));
     back(locale, u.id, "err_conflict", "details");
   }
   // Security notice to the OLD address (new one masked); deactivated accounts get no email. Never throws.
@@ -172,7 +173,7 @@ export async function changeAdminUserRole(fd: FormData): Promise<void> {
   const notAllowed = assignRefusal(ctx, role); if (notAllowed) back(locale, u.id, notAllowed, "role");
   // expectedAdminRoleId: refuse if the target's role changed since canManageUser checked it (race-safe; re-read under FOR UPDATE)
   const r = await setAdminRole(u.id, role.id, { expectedAdminRoleId: u.adminRoleId }); // locks active Super Admins + target; bumps sessionVersion on a real change
-  if (r === "notFound") redirect(`/${locale}/admin/users?msg=notFound`);
+  if (r === "notFound") redirect(localeHref(locale, `/admin/users?msg=notFound`));
   if (r === "conflict") back(locale, u.id, "err_target", "role");
   if (r === "badRole") back(locale, u.id, "err_role", "role");
   if (r === "lastSuperAdmin") {
@@ -195,7 +196,7 @@ export async function setAdminUserActive(fd: FormData): Promise<void> {
   const active = to === "active";
   if (!active && fd.get("confirm") !== "on") back(locale, u.id, "err_confirm", "status");
   const r = await setAdminActive(u.id, active, { expectedAdminRoleId: u.adminRoleId });
-  if (r === "notFound") redirect(`/${locale}/admin/users?msg=notFound`);
+  if (r === "notFound") redirect(localeHref(locale, `/admin/users?msg=notFound`));
   if (r === "conflict") back(locale, u.id, "err_target", "status");
   if (r === "lastSuperAdmin") {
     await audit(ctx.user.id, "admin_user.change_blocked_last_super_admin", u.id);

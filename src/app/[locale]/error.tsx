@@ -1,4 +1,5 @@
 "use client";
+import { localeHref } from "@/lib/localePath";
 import { useEffect } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
@@ -21,8 +22,8 @@ export default function ErrorPage({ error, retry }: { error: unknown; retry: () 
         <p className="lead">{t("errorBody")}</p>
         <div className="btn-row">
           <button suppressHydrationWarning type="button" className="btn btn-primary" onClick={() => retry()}>{t("retry")}</button>
-          <a className="btn btn-secondary" href={`/${locale}`}>{t("home")}</a>
-          <a className="btn btn-secondary" href={`/${locale}/contact`}>{t("contact")}</a>
+          <a className="btn btn-secondary" href={localeHref(locale)}>{t("home")}</a>
+          <a className="btn btn-secondary" href={localeHref(locale, `/contact`)}>{t("contact")}</a>
         </div>
         {digest && <p className="small muted nf-ref">{t("ref", { digest })}</p>}
       </div></section>

@@ -38,7 +38,10 @@ export function proxy(req: NextRequest) {
   res.headers.set("x-middleware-request-x-nonce", nonce);
   // The requested page (always overwritten here, so a client can't inject it on proxied paths). Read by src/lib/session.ts
   // (login `?next=`) and the [locale] layout's generateMetadata (per-route <title>).
-  res.headers.set("x-middleware-request-x-pathname", req.nextUrl.pathname.slice(0, 512));
+  // English URLs have no prefix (localePrefix "as-needed"); the header carries the internal "/<locale>/…" form either way.
+  const path = req.nextUrl.pathname;
+  const internal = /^\/(?:en|fr)(?=\/|$)/.test(path) ? path : `/${routing.defaultLocale}${path === "/" ? "" : path}`;
+  res.headers.set("x-middleware-request-x-pathname", internal.slice(0, 512));
   res.headers.set("x-middleware-request-x-search", req.nextUrl.search.slice(0, 512));
   res.headers.set("Content-Security-Policy", csp);
   return res;

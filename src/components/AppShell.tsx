@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations } from "next-intl/server";
 import { auth, signOut } from "@/auth";
 import { getAdminContext } from "@/lib/rbac";
@@ -10,7 +11,7 @@ import { ClearAdminDrafts } from "@/app/[locale]/admin/_components/ClearAdminDra
 
 export async function MemberNav({ locale, current }: { locale: string; current: string }) {
   const t = await getTranslations("member"); const tc = await getTranslations("chrome");
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const a = (p: string, label: string, icon: IconName) => <a href={L(p)} aria-current={current === p ? "page" : undefined}><Icon name={icon} size={18} />{label}</a>;
   return (
     <nav className="sidenav mbr-sidenav" aria-label={t("navAria")}>
@@ -34,7 +35,7 @@ export async function AdminNav({ locale, current }: { locale: string; current: s
     sees("members") ? db.membership.count({ where: { status: "pending_verification", user: { role: { notIn: ["deleted", "admin"] } } } }) : 0,
     sees("messages") ? db.contactMessage.count({ where: { status: "new" } }) : 0,
   ]);
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const isCurrent = (p: string) => current === p || current.startsWith(`${p}/`); // sub-pages (e.g. /admin/members/[id]) keep their section highlighted
   const badge = (n: number, sr: string) => n > 0 ? <span className="badge badge-amber nav-tag">{n}<span className="sr-only"> {sr}</span></span> : null; // sr text is an ICU plural of n
   // D8 order: Members, Events, Messages, Users, Roles — each only with view permission. Overview (/admin/dashboard), Settings, Audit
@@ -122,7 +123,7 @@ async function adminIdentity() {
  */
 export async function AdminHeader({ locale }: { locale: string }) {
   const t = await getTranslations("adminNav"); const tc = await getTranslations("chrome");
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const home = adminHomePath((await getAdminContext())?.permissions); // first module the role can view, else /admin/no-access
   return (
     <>
@@ -147,7 +148,7 @@ export async function AdminFooter() {
 /** Styled like a sidenav link (same padding and left edge), separated from the links above by a rule. */
 function SignOutButton({ label, locale }: { label: string; locale: string }) {
   return (
-    <form className="sidenav-signout" action={async () => { "use server"; await signOut({ redirectTo: `/${locale}` }); }}>
+    <form className="sidenav-signout" action={async () => { "use server"; await signOut({ redirectTo: localeHref(locale) }); }}>
       <button suppressHydrationWarning type="submit">
         <Icon name="log-out" size={18} />
         {label}

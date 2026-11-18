@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -41,7 +42,7 @@ export const MEMBER_HOME = "/my/billing";
  * Admins land on the first Admin Portal module their role can view (src/lib/permissions.ts adminHomePath), else /admin/no-access.
  */
 export const portalHome = (locale: string, role: string | null | undefined, perms?: Permissions | null) =>
-  `/${locale}${role === "admin" ? adminHomePath(perms) : MEMBER_HOME}`;
+  localeHref(locale, `${role === "admin" ? adminHomePath(perms) : MEMBER_HOME}`);
 
 export async function activeMembership(userId: string) {
   return db.membership.findFirst({ where: { userId, status: "active" }, orderBy: { createdAt: "desc" } });

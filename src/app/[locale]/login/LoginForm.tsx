@@ -1,4 +1,5 @@
 "use client";
+import { localeHref } from "@/lib/localePath";
 import { useActionState, useEffect, useRef, startTransition, type FormEvent } from "react";
 import { login, type AuthState } from "./actions";
 import { Icon } from "@/components/ui/Icon";
@@ -30,7 +31,7 @@ export function LoginForm({ locale, next, labels, initialError, initialEmail }: 
         {next && <input suppressHydrationWarning type="hidden" name="next" value={next} />}
         <div className="field"><label htmlFor="le">{labels.email}</label><input suppressHydrationWarning id="le" name="email" type="email" required maxLength={254} autoComplete="username" defaultValue={state.email ?? initialEmail} aria-invalid={invalid || undefined} aria-describedby={state.error ? "login-err" : undefined} /></div>
         <div className="field"><label htmlFor="lp">{labels.password}</label><input suppressHydrationWarning id="lp" ref={pwRef} name="password" type="password" required autoComplete="current-password" aria-invalid={invalid || undefined} aria-describedby={state.error ? "login-err" : undefined} /></div>
-        <p className="small auth-forgot"><a href={`/${locale}/forgot-password`}>{labels.forgot}</a></p>
+        <p className="small auth-forgot"><a href={localeHref(locale, `/forgot-password`)}>{labels.forgot}</a></p>
         <button suppressHydrationWarning className="btn btn-accent btn-block" disabled={pending} aria-busy={pending || undefined}>{labels.signIn}</button>
       </form>
     </>

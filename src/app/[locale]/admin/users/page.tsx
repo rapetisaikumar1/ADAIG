@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { can, canManageUser, requireAdminPermission } from "@/lib/rbac";
@@ -41,7 +42,7 @@ export default async function AdminUsers({ params, searchParams }: { params: Pro
   const canCreate = can(ctx, "users", "create"), canEdit = can(ctx, "users", "edit");
   const dl = dateLocale(locale);
   const day = (d: Date) => d.toLocaleDateString(dl, { day: "numeric", month: "short", year: "numeric", timeZone: eventTimeZone });
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const href = (k: UserFilter, opts: { q?: string; role?: string | null } = {}) => {
     const s = new URLSearchParams(); const q = opts.q ?? needle; const r = opts.role === undefined ? role?.id : opts.role;
     if (k !== "all") s.set("f", k); if (q) s.set("q", q); if (r) s.set("role", r);

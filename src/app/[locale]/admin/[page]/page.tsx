@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { requireAdminPermission } from "@/lib/rbac";
@@ -18,7 +19,7 @@ export default async function AdminPreview({ params }: { params: Promise<{ local
     // highlighted, and the back link returns to Overview.
     <div className="app adm"><AdminNav locale={locale} current="/admin/dashboard" />
       <main id="main" tabIndex={-1} className="app-main adm-preview">
-        <a className="adm-back" href={`/${locale}/admin/dashboard`}><Icon name="arrow-left" size={16} />{t("backOverview")}</a>
+        <a className="adm-back" href={localeHref(locale, `/admin/dashboard`)}><Icon name="arrow-left" size={16} />{t("backOverview")}</a>
         <div className="alert alert-info" role="note"><div><b>{t("protoTitle")}</b>{t("protoBody")}{c.fallback ? ` ${t("protoEnOnly")}` : ""}</div></div>
         <div lang={c.fallback ? "en" : undefined}><Html html={c.html} /></div>
       </main>

@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations } from "next-intl/server";
 import { AdminNav } from "@/components/AppShell";
 import { Icon } from "@/components/ui/Icon";
@@ -22,8 +23,8 @@ export async function AdminNotFoundView({ locale }: { locale: string }) {
             <p>{t("notFoundBody")}</p>
             <div className="empty-actions">
               {none
-                ? <a className="btn btn-primary btn-sm" href={`/${locale}/my/profile`}><Icon name="user" size={16} />{tn("profile")}</a>
-                : <a className="btn btn-primary btn-sm" href={`/${locale}${home}`}><Icon name="home" size={16} />{ta("adminHome")}</a>}
+                ? <a className="btn btn-primary btn-sm" href={localeHref(locale, `/my/profile`)}><Icon name="user" size={16} />{tn("profile")}</a>
+                : <a className="btn btn-primary btn-sm" href={localeHref(locale, `${home}`)}><Icon name="home" size={16} />{ta("adminHome")}</a>}
             </div>
           </div>
         </div>

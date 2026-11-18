@@ -1,4 +1,5 @@
 "use server";
+import { localeHref } from "@/lib/localePath";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -58,7 +59,7 @@ export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> 
     // BUG-033: already a member (or an application in progress) → My membership
     await expireUnpaid(userId);
     const open = await db.membership.findMany({ where: { userId, status: { in: OPEN } } });
-    if (open.some((o) => o.status !== "pending")) redirect(`/${locale}/my/billing?already=1`);
+    if (open.some((o) => o.status !== "pending")) redirect(localeHref(locale, `/my/billing?already=1`));
     // Legacy unpaid orders (from the old payment flow) are replaced by the application (cancelled first, conditionally)
     for (const o of open) await cancelUnpaid(o.id, userId, "membership.order_replaced");
     await db.user.update({ where: { id: userId }, data: profile });
@@ -70,7 +71,7 @@ export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> 
       eligibilityNote: tier.requiresVerification ? `Attested student at: ${institution}` : null,
     } });
   } catch (e) {
-    if (isUniqueViolation(e)) redirect(`/${locale}/my/billing?already=1`);
+    if (isUniqueViolation(e)) redirect(localeHref(locale, `/my/billing?already=1`));
     console.error("join: could not save application", e);
     // An account created a moment ago without its application would block a retry ("account exists"): remove it.
     if (newCreds) await db.user.delete({ where: { id: userId } }).catch(() => undefined);
@@ -87,7 +88,7 @@ export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> 
   };
   after(() => notifyApplication(notice));
 
-  const next = `/${locale}/my/billing?applied=1`; // My membership (member home) shows "Application received… your POC will be in touch"
+  const next = localeHref(locale, `/my/billing?applied=1`); // My membership (member home) shows "Application received… your POC will be in touch"
   if (newCreds) await signIn("credentials", { ...newCreds, redirectTo: next });
   redirect(next);
 }
@@ -95,7 +96,7 @@ export async function startJoin(_: JoinState, fd: FormData): Promise<JoinState> 
 /** BUG-042: cancel my unpaid (legacy) order (from /join or My membership). */
 export async function cancelOrder(fd: FormData) {
   const locale = safeLocale(fd.get("locale")); const id = idParam(fd.get("m")); const back = fd.get("from") === "join" ? "join" : "my/billing";
-  const s = await auth(); if (!s?.user?.id) redirect(`/${locale}/login`);
+  const s = await auth(); if (!s?.user?.id) redirect(localeHref(locale, `/login`));
   const ok = await cancelUnpaid(id, s.user.id);
-  redirect(`/${locale}/${back}?msg=${ok ? "orderCancelled" : "orderNotFound"}`);
+  redirect(localeHref(locale, `/${back}?msg=${ok ? "orderCancelled" : "orderNotFound"}`));
 }

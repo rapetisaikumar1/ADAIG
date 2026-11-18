@@ -9,7 +9,7 @@ import { t } from "../support/i18n";
 
 const ta = (k: string, v?: Record<string, string | number>) => t(`admin.${k}`, v);
 const te = (k: string, v?: Record<string, string | number>) => t(`adminEvents.${k}`, v);
-const manage = (p: Page, id: string) => p.goto(`/en/admin/events/${id}`);
+const manage = (p: Page, id: string) => p.goto(`/admin/events/${id}`);
 const notice = (p: Page) => p.locator("main .alert").first();
 /** The value of the KPI tile with this label (event page). */
 const kpi = (p: Page, label: string) => p.locator(".kpi").filter({ has: p.getByText(label, { exact: true }) }).locator(".v");
@@ -17,7 +17,7 @@ const kpi = (p: Page, label: string) => p.locator(".kpi").filter({ has: p.getByT
 const regFilter = (p: Page, label: string) => p.getByRole("navigation", { name: te("filterLabel") }).getByRole("link", { name: label });
 
 async function fillNewEvent(p: Page, v: { title: string; startsAt: string; publish?: boolean }) {
-  await p.goto("/en/admin/events");
+  await p.goto("/admin/events");
   const f = p.locator("#new-event");
   await f.locator("summary").click(); // "+ New event" opens the form (a disclosure since round 5)
   await f.locator("#ti").fill(v.title);
@@ -51,7 +51,7 @@ test("create: draft event, start time entered in ET is stored as the right insta
   await expect(p.locator("#e-st")).toHaveValue("2027-01-15T14:30");
   await expect(p.locator(".app-head").getByText(ta("draftBadge"), { exact: true })).toBeVisible();
   // Drafts are not public.
-  expect((await page.goto(`/en/events/${w.slug}`))?.status()).toBe(404);
+  expect((await page.goto(`/events/${w.slug}`))?.status()).toBe(404);
 
   // Summer (EDT, UTC−4), published immediately: 14:30 ET = 18:30 UTC, shown as 2:30 PM ET publicly.
   const summer = uniqueName("Event");
@@ -60,7 +60,7 @@ test("create: draft event, start time entered in ET is stored as the right insta
   const s = (await eventByTitle(summer))!;
   expect(s.startsAt.toISOString()).toBe("2027-07-15T18:30:00.000Z");
   expect(s.published).toBe(true);
-  await page.goto(`/en/events/${s.slug}`);
+  await page.goto(`/events/${s.slug}`);
   await expect(page.locator(".ev-dl")).toContainText(`2:30 PM – 4:00 PM ${t("events.tz")}`);
   await expect(page.locator(".ev-dl")).toContainText("Thursday, July 15, 2027");
 });
@@ -103,17 +103,17 @@ test("edit: every field, slug and publish state are saved; stored French texts a
 
 test("publish and unpublish from the list control public visibility", async ({ adminPage: p, page }) => {
   const e = await createEvent({ published: false });
-  await p.goto("/en/admin/events");
+  await p.goto("/admin/events");
   await p.getByRole("button", { name: `${ta("publish")}: ${e.title}`, exact: true }).click();
   await expect(p.getByRole("button", { name: `${ta("unpublish")}: ${e.title}`, exact: true })).toBeVisible();
   expect((await eventById(e.id))!.published).toBe(true);
-  await page.goto(`/en/events?q=${encodeURIComponent(e.title)}`);
+  await page.goto(`/events?q=${encodeURIComponent(e.title)}`);
   await expect(page.locator(".event-card").getByRole("link", { name: e.title })).toBeVisible();
 
   await p.getByRole("button", { name: `${ta("unpublish")}: ${e.title}`, exact: true }).click();
   await expect(p.getByRole("button", { name: `${ta("publish")}: ${e.title}`, exact: true })).toBeVisible();
   expect((await eventById(e.id))!.published).toBe(false);
-  expect((await page.goto(`/en/events/${e.slug}`))?.status()).toBe(404);
+  expect((await page.goto(`/events/${e.slug}`))?.status()).toBe(404);
   expect(await auditRows({ action: "event.published", target: e.id })).toHaveLength(1);
   expect(await auditRows({ action: "event.unpublished", target: e.id })).toHaveLength(1);
 });
@@ -189,13 +189,13 @@ test("cancel hides the event publicly and blocks deletion; restore brings it bac
   const c = (await eventById(e.id))!;
   expect(c.cancelledAt).toBeTruthy();
   expect(c.published).toBe(false);
-  expect((await page.goto(`/en/events/${e.slug}`))?.status()).toBe(404);
-  await page.goto(`/en/events?q=${encodeURIComponent(e.title)}`);
+  expect((await page.goto(`/events/${e.slug}`))?.status()).toBe(404);
+  await page.goto(`/events?q=${encodeURIComponent(e.title)}`);
   await expect(page.getByRole("heading", { name: t("events.empty") })).toBeVisible();
   // The registration is kept, and the member's upcoming list no longer shows the event.
   expect(await one(`SELECT id FROM "Registration" WHERE "eventId" = $1`, [e.id])).toBeTruthy();
   // Cancelled events cannot be published from the list.
-  await p.goto("/en/admin/events");
+  await p.goto("/admin/events");
   await expect(p.getByRole("button", { name: `${ta("publish")}: ${e.title}`, exact: true })).toHaveCount(0);
 
   await manage(p, e.id);
@@ -214,11 +214,11 @@ test("delete an event without registrations", async ({ adminPage: p }) => {
   await manage(p, e.id);
   await p.locator("#danger summary", { hasText: te("deleteBtn") }).click();
   await p.getByRole("button", { name: te("deleteYes") }).click();
-  await expect(p).toHaveURL(/\/en\/admin\/events\?msg=deleted/);
+  await expect(p).toHaveURL(/\/admin\/events\?msg=deleted/);
   await expect(notice(p)).toHaveText(te("msg_deleted"));
   expect(await eventById(e.id)).toBeUndefined();
   expect(await auditRows({ action: "event.deleted", target: e.id })).toHaveLength(1);
-  expect((await p.goto(`/en/admin/events/${e.id}`))?.status()).toBe(404);
+  expect((await p.goto(`/admin/events/${e.id}`))?.status()).toBe(404);
 });
 
 test("impossible ET start times are refused (DST gap, invalid day)", async ({ adminPage: p }) => {

@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import type { Metadata } from "next";
 import { evLabel, fmt, eventCurrency } from "@/config/site";
 import { cache } from "react";
@@ -54,7 +55,7 @@ export default async function EventDetail({ params, searchParams }: { params: Pr
   const statusLabel = v.status ? t(v.status) : null;
   const accessInfo = confirmed ? eventAccessInfo(e, locale) : null; // joining details: confirmed registrants only
   // Return here after signing in (validated again by the login action; same-site paths only).
-  const loginHref = `/${locale}/login?next=${encodeURIComponent(`/${locale}/events/${e.slug}`)}`;
+  const loginHref = localeHref(locale, `/login?next=${encodeURIComponent(localeHref(locale, `/events/${e.slug}`))}`);
 
   // Unconfirmed events: no time row (the date row already says "to be confirmed"), a tentative duration and no CPE figure,
   // so nothing unconfirmed is stated as a fact.
@@ -107,7 +108,7 @@ export default async function EventDetail({ params, searchParams }: { params: Pr
           {confirmed ? (
             <>
               {(() => {
-                const notice = <div className="alert alert-success" role="status"><Icon name="check-circle" /><div><b>{t("registered")}</b>{t("registeredBody")} <a className="link-arrow" href={`/${locale}/my/events`}>{t("myEvents")}</a></div></div>;
+                const notice = <div className="alert alert-success" role="status"><Icon name="check-circle" /><div><b>{t("registered")}</b>{t("registeredBody")} <a className="link-arrow" href={localeHref(locale, `/my/events`)}>{t("myEvents")}</a></div></div>;
                 // just registered (?registered=1, the action's redirect): focus the outcome; otherwise it is a standing notice
                 return sp.registered ? <FocusOnLoad>{notice}</FocusOnLoad> : notice;
               })()}
@@ -122,11 +123,11 @@ export default async function EventDetail({ params, searchParams }: { params: Pr
             <>
               <a className="btn btn-primary btn-block" href={loginHref}>{t("signInToRegister")}</a>
               {e.publicPriceCents === null
-                ? <p className="small muted ev-hint">{t("membersOnlyHint")} {t("notMember")} <a className="link-arrow" href={`/${locale}/join`}>{t("joinLink")}</a></p>
-                : <p className="small muted ev-hint">{t("signInHint")} {t("notMember")} <a className="link-arrow" href={`/${locale}/join`}>{t("joinLink")}</a></p>}
+                ? <p className="small muted ev-hint">{t("membersOnlyHint")} {t("notMember")} <a className="link-arrow" href={localeHref(locale, `/join`)}>{t("joinLink")}</a></p>
+                : <p className="small muted ev-hint">{t("signInHint")} {t("notMember")} <a className="link-arrow" href={localeHref(locale, `/join`)}>{t("joinLink")}</a></p>}
             </>
           ) : myPrice === null ? (
-            <div className="alert alert-info" role="note"><div>{t("tbcBlocked")} <a className="link-arrow" href={`/${locale}/join`}>{t("joinLink")}</a></div></div>
+            <div className="alert alert-info" role="note"><div>{t("tbcBlocked")} <a className="link-arrow" href={localeHref(locale, `/join`)}>{t("joinLink")}</a></div></div>
           ) : (
             <>
               {pendingPay && <div className="alert alert-warning" role="status"><div>{t("pending")}</div></div>}
@@ -135,7 +136,7 @@ export default async function EventDetail({ params, searchParams }: { params: Pr
               <form action={register}><input suppressHydrationWarning type="hidden" name="slug" value={e.slug} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} />
                 <button suppressHydrationWarning className="btn btn-accent btn-block">{pendingPay ? t("completePayment") : myPrice ? `${t("payAndRegister")} · ${fmt(myPrice, eventCurrency, locale)}` : t("registerFree")}</button>
               </form>
-              {!isMember && myPrice > e.memberPriceCents && <p className="small muted ev-hint">{t("memberHint")} <a className="link-arrow" href={`/${locale}/join`}>{t("joinLink")}</a></p>}
+              {!isMember && myPrice > e.memberPriceCents && <p className="small muted ev-hint">{t("memberHint")} <a className="link-arrow" href={localeHref(locale, `/join`)}>{t("joinLink")}</a></p>}
             </>
           )}
         </div></aside>

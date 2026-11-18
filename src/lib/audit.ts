@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { db } from "@/lib/db";
 import { likeLiteral } from "@/lib/validation"; // Prisma turns insensitive equals/contains into ILIKE on Postgres: escape % and _
 import type { Prisma } from "@/generated/prisma/client";
@@ -88,7 +89,7 @@ export async function resolveRefs(values: string[], locale: string): Promise<Map
   const keys = [...new Set(values.filter(Boolean).map((v) => v.split(" ")[0]))].slice(0, 500);
   const out = new Map<string, Ref>();
   if (!keys.length) return out;
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const [users, byEmail, ms, rs, evs, msgs, roles] = await Promise.all([
     db.user.findMany({ where: { id: { in: keys } }, select: { id: true, name: true, email: true, role: true } }),
     db.user.findMany({ where: { email: { in: keys.filter((k) => k.includes("@")) } }, select: { id: true, name: true, email: true, role: true } }),

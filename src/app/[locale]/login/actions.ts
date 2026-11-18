@@ -1,4 +1,5 @@
 "use server";
+import { localeHref } from "@/lib/localePath";
 import { defaultCountry } from "@/config/site";
 import { AuthError } from "next-auth";
 import bcrypt from "bcryptjs";
@@ -76,5 +77,5 @@ export async function signup(_: AuthState, fd: FormData): Promise<AuthState> {
 export async function signOutToSwitch(fd: FormData) {
   const locale = safeLocale(fd.get("locale")); const next = safeNextPath(fd.get("next"), locale);
   const page = fd.get("page") === "signup" ? "signup" : "login";
-  await signOut({ redirectTo: `/${locale}/${page}${next ? `?next=${encodeURIComponent(next)}` : ""}` });
+  await signOut({ redirectTo: localeHref(locale, `/${page}${next ? `?next=${encodeURIComponent(next)}` : ""}`) });
 }

@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/session";
@@ -48,7 +49,7 @@ export default async function MyMembership({ params, searchParams }: { params: P
   const next = regs[0] ? eventView(regs[0].event, locale) : null;
   const cpe = Math.round((cpeAgg._sum.hours ?? 0) * 100) / 100; // CPE: hours recorded (no certification cycle or target)
   const tierName = (id: string) => getTier(id)?.name[locale] ?? id;
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   // Renewal date passed (grace period before the membership lapses): the team contacts the member, nothing is paid online.
   const renewalDue = !!act && isRenewalDue(act, +now);
   // Calendar days in ADAIG's time zone (ET): Nov 11 → Dec 8 is 27 days, whatever the time of day (QA-PORTALS-5).

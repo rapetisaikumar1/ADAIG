@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { requireUser, activeMembership } from "@/lib/session";
 import { MemberNav } from "@/components/AppShell";
@@ -16,7 +17,7 @@ export default async function MyCommunity({ params }: { params: Promise<{ locale
   const u = await requireUser(locale); const t = await getTranslations("member.communityPage");
   // Same rule as /my/directory (round-7 S4): an active membership; Admin Portal accounts (role admin) never browse it.
   const canBrowse = u.role !== "admin" && !!(await activeMembership(u.id));
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const items: { key: string; status?: "available" | "planned" | "proposed"; icon: IconName; href?: string }[] = [
     { key: "events", status: "available", icon: "calendar", href: "/events" },
     canBrowse ? { key: "directory", status: "available", icon: "book", href: "/my/directory" } : { key: "directoryGuest", status: "available", icon: "book", href: "/membership" },

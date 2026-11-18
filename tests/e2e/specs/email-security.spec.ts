@@ -32,7 +32,7 @@ const ACK = "We’ve received your message";
 const RESET_LINK = "Reset your ADAIG password";
 
 async function sendContact(page: Page, email: string, message: string) {
-  await page.goto("/en/contact");
+  await page.goto("/contact");
   await page.locator("#cf-name").fill("E2E Budget Visitor");
   await page.locator("#cf-email").fill(email);
   await page.locator("#cf-topic").selectOption("other");
@@ -43,7 +43,7 @@ async function sendContact(page: Page, email: string, message: string) {
 const messageByToken = (tok: string) => one<{ id: string; email: string }>(`SELECT id, email FROM "ContactMessage" WHERE message LIKE $1`, [`%${tok}%`]);
 
 async function requestReset(p: Page, email: string) {
-  await p.goto("/en/forgot-password");
+  await p.goto("/forgot-password");
   await p.locator("main form input[name=email]").fill(email);
   await p.locator("main form").getByRole("button", { name: t("auth.forgotSubmit") }).click();
 }
@@ -203,11 +203,11 @@ test("siteUrl(): in production an http origin is upgraded to https (not for loca
   const set = (vars: Partial<Record<(typeof keys)[number], string>>) => { for (const k of keys) { if (vars[k] === undefined) delete env[k]; else env[k] = vars[k]; } };
   try {
     set({ NODE_ENV: "production", NEXT_PUBLIC_SITE_URL: "http://portal.example.org/" });
-    expect(siteUrl("/en/reset-password?token=x")).toBe("https://portal.example.org/en/reset-password?token=x");
+    expect(siteUrl("/reset-password?token=x")).toBe("https://portal.example.org/reset-password?token=x");
     set({ NODE_ENV: "production", APP_URL: "http://portal.example.org" }); // the fallback is upgraded too
     expect(siteUrl()).toBe("https://portal.example.org");
     set({ NODE_ENV: "production", NEXT_PUBLIC_SITE_URL: "http://localhost:3200" });
-    expect(siteUrl("/en")).toBe("http://localhost:3200/en");
+    expect(siteUrl("/")).toBe("http://localhost:3200/");
     set({ NODE_ENV: "development", NEXT_PUBLIC_SITE_URL: "http://portal.example.org" });
     expect(siteUrl()).toBe("http://portal.example.org");
   } finally {
@@ -230,10 +230,10 @@ test("SMTP error text keeps no address (describeError), and account deletion scr
   await q(`INSERT INTO "EmailLog" (id, kind, "toEmail", subject, status, error, "userId") VALUES
            ($1, 'test', $2, 'E2E', 'failed', $3, $4), ($5, 'test', $6, 'E2E', 'failed', $7, NULL)`,
     [mine, m.email, `EENVELOPE 550 <${m.email}>: Recipient address rejected`, m.id, other, uniqueEmail(), `550 mailbox ${m.email} unavailable`]);
-  await adminPage.goto(`/en/admin/members/${m.id}`);
+  await adminPage.goto(`/admin/members/${m.id}`);
   await adminPage.locator("#delete input[name=confirm]").check();
   await adminPage.getByRole("button", { name: t("adminMembers.deleteButton") }).click();
-  await expect(adminPage).toHaveURL(/\/en\/admin\/members\?msg=accountDeleted/);
+  await expect(adminPage).toHaveURL(/\/admin\/members\?msg=accountDeleted/);
   const rows = await q<LogRow>(`SELECT * FROM "EmailLog" WHERE id = ANY($1) ORDER BY id`, [[mine, other]]);
   const byId = Object.fromEntries(rows.map((r) => [r.id, r]));
   expect(byId[mine].error).toBe("EENVELOPE 550 <[address]>: Recipient address rejected");

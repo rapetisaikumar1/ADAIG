@@ -1,3 +1,4 @@
+import { localeHref } from "@/lib/localePath";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { fmt2, evLabel, type Currency, type Locale } from "@/config/site";
@@ -57,7 +58,7 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
   const v = eventView(e, locale);
   const dl = dateLocale(locale);
   const stamp = (d: Date) => `${d.toLocaleString(dl, { dateStyle: "medium", timeStyle: "short", timeZone: eventTimeZone })} ${ta("et")}`;
-  const L = (p: string) => `/${locale}${p}`;
+  const L = (p: string) => localeHref(locale, `${p}`);
   const base = L(`/admin/events/${e.id}`);
   const href = (k: RegView) => { const p = new URLSearchParams(); if (k !== "all") p.set("v", k); if (q) p.set("q", q); const s = p.toString(); return `${base}${s ? `?${s}` : ""}#registrations`; };
   const csvHref = (() => { const p = new URLSearchParams(); if (view !== "all") p.set("v", view); if (q) p.set("q", q); const s = p.toString(); return `/api/admin/events/${e.id}/registrations.csv${s ? `?${s}` : ""}`; })();
