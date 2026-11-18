@@ -15,8 +15,38 @@ declare module "next-auth" {
 class LockedError extends CredentialsSignin { code = "locked"; }
 const DUMMY_HASH = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8.hNnL1E0n6cYb5RkXz1qC5U5bXkGm"; // equalises timing for unknown emails
 
+/**
+ * Auth.js logging. A browser that sends a session cookie the server can't decrypt (it was signed with a different AUTH_SECRET —
+ * a new local/dev secret or a rotation — or it was altered) makes Auth.js log a JWTSessionError as three console.error lines on
+ * every request. That is not an application error: Auth.js already ignores the token, the visitor is treated as signed out, and
+ * signing in replaces the cookie. But the Next.js dev overlay shows every server console.error as an "Issue" popup, so this one
+ * case is logged as a single warning (at most once a minute). Every other auth error keeps Auth.js's default output.
+ */
+let lastStaleCookieWarning = 0;
+function logAuthError(error: Error) {
+  const type = (error as { type?: string }).type ?? error.name;
+  if (type === "JWTSessionError") {
+    if (Date.now() - lastStaleCookieWarning > 60_000) {
+      lastStaleCookieWarning = Date.now();
+      console.warn("[auth][warn] A browser sent a session cookie that can't be read (signed with a different AUTH_SECRET, or altered). It is ignored: the visitor is treated as signed out until they sign in again.");
+    }
+    return;
+  }
+  // Auth.js default format (@auth/core lib/utils/logger.js)
+  console.error(`[auth][error] ${type}: ${error.message}`);
+  const cause = (error as { cause?: unknown }).cause;
+  if (cause && typeof cause === "object" && "err" in cause && cause.err instanceof Error) {
+    const { err, ...data } = cause as { err: Error } & Record<string, unknown>;
+    console.error("[auth][cause]:", err.stack);
+    if (Object.keys(data).length) console.error("[auth][details]:", JSON.stringify(data, null, 2));
+  } else if (error.stack) {
+    console.error(error.stack.replace(/.*/, "").substring(1));
+  }
+}
+
 const nextAuth = NextAuth({
   secret: serverEnv().AUTH_SECRET, // validated in src/lib/env.ts (required in production)
+  logger: { error: logAuthError },
   // 7-day sessions, rolling: the cookie is re-issued (and the 7 days restart) at most once a day while the visitor is active
   // (coordinator decision F3/S1-7). Sign-out stays per-device; password reset/change end all sessions via sessionVersion.
   session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60, updateAge: 24 * 60 * 60 },

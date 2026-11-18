@@ -43,7 +43,7 @@ export default async function Membership({ params }: { params: Promise<{ locale:
         </div>
         {/* How joining works — the same three steps the application form shows ("What happens next"). */}
         <section className="mship-how" aria-labelledby="mship-how-h">
-          <div className="mship-how-head"><h2 id="mship-how-h">{tj("nextTitle")}</h2><p className="small muted mship-how-help">{tj("questions")} <a href={`/${locale}/contact?topic=membership`}>{tj("contactUs")}</a></p></div>
+          <div className="mship-how-head section-head"><h2 id="mship-how-h">{tj("nextTitle")}</h2><p className="small muted mship-how-help">{tj("questions")} <a href={`/${locale}/contact?topic=membership`}>{tj("contactUs")}</a></p></div>
           <ol className="num-list" style={{ ["--cols" as string]: 3 }}>
             <li><h3>{tj("next1Title")}</h3><p>{t.rich("howApplyBody", { link: (c) => <a href={`/${locale}/join`}>{c}</a> })}</p></li>
             <li><h3>{tj("next2Title")}</h3><p>{tj("next2")}</p></li>

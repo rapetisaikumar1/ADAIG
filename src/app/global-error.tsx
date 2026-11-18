@@ -18,19 +18,19 @@ export default function GlobalError({ error, retry }: { error: unknown; retry: (
   const d = error instanceof Error ? (error as Error & { digest?: unknown }).digest : undefined;
   const digest = typeof d === "string" ? d : null;
   return (
-    <html lang={locale} style={fontVars()}>
-      <body>
+    <html lang={locale} style={fontVars()} data-scroll-behavior="smooth" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <title>{`${c.title} · ADAIG`}</title>
         <header className="nf-bare"><div className="container">
           {/* eslint-disable-next-line @next/next/no-img-element -- static brand SVG */}
-          <a href={`/${locale}`}><img src="/assets/logo.svg" alt="ADAIG" width={186} height={44} /></a>
+          <a href={`/${locale}`}><img src="/assets/logo-reverse.svg" alt="ADAIG" width={186} height={44} /></a>
         </div></header>
         <main id="main" tabIndex={-1} className="nf-page">
           <section className="page-hero art-404 nf-hero"><div className="container">
             <h1>{c.title}</h1>
             <p className="lead">{c.body}</p>
             <div className="btn-row">
-              <button type="button" className="btn btn-primary" onClick={() => retry()}>{c.retry}</button>
+              <button suppressHydrationWarning type="button" className="btn btn-primary" onClick={() => retry()}>{c.retry}</button>
               <a className="btn btn-secondary" href={`/${locale}`}>{c.home}</a>
             </div>
             {digest && <p className="small muted nf-ref">{c.ref} {digest}</p>}

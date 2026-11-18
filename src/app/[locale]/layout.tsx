@@ -54,8 +54,11 @@ export default async function LocaleLayout({ children, params }: { children: Rea
   const names: readonly string[] = isAdmin ? [...CLIENT_NAMESPACES, ...ADMIN_CLIENT_NAMESPACES] : CLIENT_NAMESPACES;
   const messages = Object.fromEntries(names.filter((n) => n in all).map((n) => [n, all[n]]));
   return (
-    <html lang={locale} style={fontVars()}>
-      <body>
+    // suppressHydrationWarning (html + body only): browser extensions (Grammarly, ColorZilla, Dark Reader, password managers…) add
+    // attributes to these elements before React loads, which the dev overlay reported as a hydration "1 Issue" popup.
+    // data-scroll-behavior="smooth": Next 16 then skips smooth scrolling on route changes (and stops its console warning).
+    <html lang={locale} style={fontVars()} data-scroll-behavior="smooth" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>
           {/* Admin portal (/admin/*): its own minimal header and footer line instead of the public ones — only for signed-in
               admins (everyone else is redirected away from /admin by the rbac page guards and sees the public chrome meanwhile). */}

@@ -69,9 +69,9 @@ export default async function AdminMember({ params, searchParams }: { params: Pr
   const hasOpen = u.memberships.some((m) => (OPEN_STATUSES as readonly string[]).includes(m.status));
   const cpeApproved = u.cpe.filter((c) => c.status === "approved").reduce((a, c) => a + c.hours, 0);
   const minDay = renewalDayValue(new Date(Date.now() + 864e5));
-  const hid = <><input type="hidden" name="locale" value={locale} /><input type="hidden" name="uid" value={u.id} /></>;
-  const mh = (mid: string) => <><input type="hidden" name="locale" value={locale} /><input type="hidden" name="id" value={mid} /></>;
-  const back = (mid: string) => <>{mh(mid)}<input type="hidden" name="ret" value="detail" /></>; // existing list actions, returning here
+  const hid = <><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="uid" value={u.id} /></>;
+  const mh = (mid: string) => <><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="id" value={mid} /></>;
+  const back = (mid: string) => <>{mh(mid)}<input suppressHydrationWarning type="hidden" name="ret" value="detail" /></>; // existing list actions, returning here
   const L = (p: string) => `/${locale}${p}`;
 
   const confirm = (summary: React.ReactNode, cls: string, body: React.ReactNode, label?: string) => (
@@ -94,7 +94,7 @@ export default async function AdminMember({ params, searchParams }: { params: Pr
             <header><h2 id="h-profile">{tm("profileTitle")}</h2><p>{tm("joinedOn", { date: day(u.createdAt) })}</p></header>
             <div className="adm-fields">
               <ProfileFields t={(k) => tm(k)} locale={locale} idp="p" d={u} />
-              <div className="save-row"><button className="btn btn-accent btn-sm">{tm("saveProfile")}</button></div>
+              <div className="save-row"><button suppressHydrationWarning className="btn btn-accent btn-sm">{tm("saveProfile")}</button></div>
             </div>
           </form>}
           {!deleted && !canEdit && <section className="settings-section" id="profile" aria-labelledby="h-profile">
@@ -114,14 +114,14 @@ export default async function AdminMember({ params, searchParams }: { params: Pr
                 <h3>{t("role")}</h3>
                 <div className="adm-actions">
                   <span className="badge">{tx(`role_${u.role}`)}</span>
-                  {canEdit && u.role !== derivedRole && <form action={setUserRole}>{hid}<input type="hidden" name="role" value={derivedRole} /><button className="btn btn-secondary btn-sm">{tm("syncRole", { role: tx(`role_${derivedRole}`) })}</button></form>}
+                  {canEdit && u.role !== derivedRole && <form action={setUserRole}>{hid}<input suppressHydrationWarning type="hidden" name="role" value={derivedRole} /><button suppressHydrationWarning className="btn btn-secondary btn-sm">{tm("syncRole", { role: tx(`role_${derivedRole}`) })}</button></form>}
                 </div>
                 <p className="hint">{tm("roleHint")}</p>
               </div>
               <div className="adm-sub">
                 <h3>{tm("signInTitle")}</h3>
                 {locked ? <div className="adm-actions"><span className="status status-danger">{t("locked")}</span><span className="small">{tm("lockedUntil", { time: stamp(lock!.lockedUntil!) })}</span>
-                  {canEdit && <form action={unlockAccount}>{back(u.id)}<button className="btn btn-secondary btn-sm">{t("unlock")}</button></form>}</div>
+                  {canEdit && <form action={unlockAccount}>{back(u.id)}<button suppressHydrationWarning className="btn btn-secondary btn-sm">{t("unlock")}</button></form>}</div>
                   : <p className="small">{lock?.failures ? tm("notLockedFailures", { n: lock.failures }) : tm("notLocked")}</p>}
               </div>
               {canEdit && <div className="adm-sub"><NextIntlClientProvider messages={clientMessages}><TempPassword locale={locale} uid={u.id} /></NextIntlClientProvider></div>}
@@ -149,21 +149,21 @@ export default async function AdminMember({ params, searchParams }: { params: Pr
                     </dl></td>
                     {mActions && <td data-label={t("action")} className="adm-col-actions"><div className="adm-actions adm-actions-wrap">
                       {m.status === "pending_verification" && <>
-                        <form action={reviewEligibility}>{back(m.id)}<input type="hidden" name="decision" value="approve" /><button className="btn btn-accent btn-sm"><Icon name="check" size={16} />{t("approve")}</button></form>
+                        <form action={reviewEligibility}>{back(m.id)}<input suppressHydrationWarning type="hidden" name="decision" value="approve" /><button suppressHydrationWarning className="btn btn-accent btn-sm"><Icon name="check" size={16} />{t("approve")}</button></form>
                         {confirm(<>{t("reject")}…</>, "btn-secondary",
-                          <form action={reviewEligibility} className="confirm-box">{back(m.id)}<input type="hidden" name="decision" value="reject" /><div className="field"><label htmlFor={`rr-${m.id}`}>{t("reasonLabel")}</label><input id={`rr-${m.id}`} name="reason" type="text" placeholder={t("reasonPh")} maxLength={300} /></div><div className="confirm-actions"><button className="btn btn-danger btn-sm">{t("confirmReject")}</button></div></form>)}</>}
+                          <form action={reviewEligibility} className="confirm-box">{back(m.id)}<input suppressHydrationWarning type="hidden" name="decision" value="reject" /><div className="field"><label htmlFor={`rr-${m.id}`}>{t("reasonLabel")}</label><input suppressHydrationWarning id={`rr-${m.id}`} name="reason" type="text" placeholder={t("reasonPh")} maxLength={300} /></div><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-danger btn-sm">{t("confirmReject")}</button></div></form>)}</>}
                       {m.status === "active" && confirm(<>{tm("renewal")}…</>, "btn-secondary",
-                        <form action={membershipAction} className="confirm-box">{mh(m.id)}<input type="hidden" name="op" value="renewal" /><div className="field"><label htmlFor={`rn-${m.id}`}>{tm("renewsOn")} <span className="optional">({et})</span></label><input id={`rn-${m.id}`} name="renewsOn" type="date" required min={minDay} defaultValue={m.renewsAt ? renewalDayValue(m.renewsAt) : undefined} /></div><div className="confirm-actions"><button className="btn btn-accent btn-sm">{tm("saveRenewal")}</button></div></form>)}
+                        <form action={membershipAction} className="confirm-box">{mh(m.id)}<input suppressHydrationWarning type="hidden" name="op" value="renewal" /><div className="field"><label htmlFor={`rn-${m.id}`}>{tm("renewsOn")} <span className="optional">({et})</span></label><input suppressHydrationWarning id={`rn-${m.id}`} name="renewsOn" type="date" required min={minDay} defaultValue={m.renewsAt ? renewalDayValue(m.renewsAt) : undefined} /></div><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-accent btn-sm">{tm("saveRenewal")}</button></div></form>)}
                       {open && confirm(<>{tm("changeTier")}…</>, "btn-secondary",
-                        <form action={membershipAction} className="confirm-box">{mh(m.id)}<input type="hidden" name="op" value="tier" /><div className="field"><label htmlFor={`ti-${m.id}`}>{t("tier")}</label><select id={`ti-${m.id}`} name="tier" defaultValue={m.tierId}><TierOptions list={tiers} /></select></div><div className="confirm-actions"><button className="btn btn-accent btn-sm">{tm("saveTier")}</button></div></form>)}
+                        <form action={membershipAction} className="confirm-box">{mh(m.id)}<input suppressHydrationWarning type="hidden" name="op" value="tier" /><div className="field"><label htmlFor={`ti-${m.id}`}>{t("tier")}</label><select suppressHydrationWarning id={`ti-${m.id}`} name="tier" defaultValue={m.tierId}><TierOptions list={tiers} /></select></div><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-accent btn-sm">{tm("saveTier")}</button></div></form>)}
                       {m.status === "active" && confirm(<>{tm("markLapsed")}…</>, "btn-danger-outline",
-                        <form action={membershipAction} className="confirm-box">{mh(m.id)}<input type="hidden" name="op" value="lapse" /><p>{tm("lapseConfirm")}</p><label className="check"><input type="checkbox" name="confirm" required /> <span>{tm("confirmBox")}</span></label><div className="confirm-actions"><button className="btn btn-danger btn-sm">{tm("markLapsedYes")}</button></div></form>)}
+                        <form action={membershipAction} className="confirm-box">{mh(m.id)}<input suppressHydrationWarning type="hidden" name="op" value="lapse" /><p>{tm("lapseConfirm")}</p><label className="check"><input suppressHydrationWarning type="checkbox" name="confirm" required /> <span>{tm("confirmBox")}</span></label><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-danger btn-sm">{tm("markLapsedYes")}</button></div></form>)}
                       {open && confirm(<>{tm("cancelMembership")}…</>, "btn-danger-outline",
-                        <form action={membershipAction} className="confirm-box">{mh(m.id)}<input type="hidden" name="op" value="cancel" /><p>{tm("cancelConfirm")}</p><label className="check"><input type="checkbox" name="confirm" required /> <span>{tm("confirmBox")}</span></label><div className="confirm-actions"><button className="btn btn-danger btn-sm">{tm("cancelYes")}</button></div></form>)}
+                        <form action={membershipAction} className="confirm-box">{mh(m.id)}<input suppressHydrationWarning type="hidden" name="op" value="cancel" /><p>{tm("cancelConfirm")}</p><label className="check"><input suppressHydrationWarning type="checkbox" name="confirm" required /> <span>{tm("confirmBox")}</span></label><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-danger btn-sm">{tm("cancelYes")}</button></div></form>)}
                       {reopen && (hasOpen ? <span className="small muted">{tm("reopenBlocked")}</span> : confirm(<>{tm("reactivate")}…</>, "btn-secondary",
-                        <form action={membershipAction} className="confirm-box">{mh(m.id)}<input type="hidden" name="op" value="reactivate" /><div className="field"><label htmlFor={`ra-${m.id}`}>{tm("renewsOn")} <span className="optional">({tm("defaultOneYear")})</span></label><input id={`ra-${m.id}`} name="renewsOn" type="date" min={minDay} /></div><div className="confirm-actions"><button className="btn btn-accent btn-sm">{tm("reactivateYes")}</button></div></form>))}
+                        <form action={membershipAction} className="confirm-box">{mh(m.id)}<input suppressHydrationWarning type="hidden" name="op" value="reactivate" /><div className="field"><label htmlFor={`ra-${m.id}`}>{tm("renewsOn")} <span className="optional">({tm("defaultOneYear")})</span></label><input suppressHydrationWarning id={`ra-${m.id}`} name="renewsOn" type="date" min={minDay} /></div><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-accent btn-sm">{tm("reactivateYes")}</button></div></form>))}
                       {m.refundStatus === "refund_due" && confirm(<>{t("markRefunded")}…</>, "btn-secondary",
-                        <form action={markRefunded} className="confirm-box">{back(m.id)}<p>{t("markRefundedConfirm", { name: u.name })}</p><div className="confirm-actions"><button className="btn btn-primary btn-sm">{t("markRefundedYes")}</button></div></form>)}
+                        <form action={markRefunded} className="confirm-box">{back(m.id)}<p>{t("markRefundedConfirm", { name: u.name })}</p><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-primary btn-sm">{t("markRefundedYes")}</button></div></form>)}
                       {!open && !reopen && m.refundStatus !== "refund_due" && <span className="muted adm-dash">—</span>}
                     </div></td>}
                   </tr>
@@ -173,9 +173,9 @@ export default async function AdminMember({ params, searchParams }: { params: Pr
               <h3 className="adm-sub-h">{tm("grantTitle")}</h3>
               <p className="hint">{tm("grantHint")}</p>
               <div className="adm-inline">
-                <div className="field"><label htmlFor="g-tier">{t("tier")}</label><select id="g-tier" name="tier" required defaultValue=""><option value="" disabled>{tm("chooseTier")}</option><TierOptions list={tiers} /></select></div>
-                <div className="field"><label htmlFor="g-renew">{tm("renewsOn")} <span className="optional">({tm("defaultOneYear")})</span></label><input id="g-renew" name="renewsOn" type="date" min={minDay} /></div>
-                <button className="btn btn-accent">{tm("grantButton")}</button>
+                <div className="field"><label htmlFor="g-tier">{t("tier")}</label><select suppressHydrationWarning id="g-tier" name="tier" required defaultValue=""><option value="" disabled>{tm("chooseTier")}</option><TierOptions list={tiers} /></select></div>
+                <div className="field"><label htmlFor="g-renew">{tm("renewsOn")} <span className="optional">({tm("defaultOneYear")})</span></label><input suppressHydrationWarning id="g-renew" name="renewsOn" type="date" min={minDay} /></div>
+                <button suppressHydrationWarning className="btn btn-accent">{tm("grantButton")}</button>
               </div>
             </form>}
             </div>
@@ -193,20 +193,20 @@ export default async function AdminMember({ params, searchParams }: { params: Pr
                     <td className="num" data-label={tm("cpeHours")}>{c.hours}</td>
                     <td className="nowrap" data-label={tm("cpeAdded")}>{day(c.createdAt)}</td>
                     <td data-label={t("status")}>{!mActions ? tm(`cpe_${c.status}` as "cpe_approved") : <form action={updateCpe} className="adm-inline">{mh(c.id)}
-                      <label htmlFor={`cs-${c.id}`} className="sr-only">{t("status")}</label><select id={`cs-${c.id}`} name="status" defaultValue={c.status}>{["submitted", "approved", "audit"].map((s) => <option key={s} value={s}>{tm(`cpe_${s}` as "cpe_approved")}</option>)}</select>
-                      <button className="btn btn-secondary btn-sm">{tm("cpeUpdate")}</button></form>}</td>
+                      <label htmlFor={`cs-${c.id}`} className="sr-only">{t("status")}</label><select suppressHydrationWarning id={`cs-${c.id}`} name="status" defaultValue={c.status}>{["submitted", "approved", "audit"].map((s) => <option key={s} value={s}>{tm(`cpe_${s}` as "cpe_approved")}</option>)}</select>
+                      <button suppressHydrationWarning className="btn btn-secondary btn-sm">{tm("cpeUpdate")}</button></form>}</td>
                     {mActions && <td className="adm-col-actions">{confirm(<>{tm("cpeRemove")}…</>, "btn-ghost adm-danger-ghost",
-                      <form action={updateCpe} className="confirm-box">{mh(c.id)}<input type="hidden" name="op" value="remove" /><p>{tm("cpeRemoveConfirm")}</p><div className="confirm-actions"><button className="btn btn-danger btn-sm">{tm("cpeRemoveYes")}</button></div></form>, `${tm("cpeRemove")}: ${c.title}`)}</td>}
+                      <form action={updateCpe} className="confirm-box">{mh(c.id)}<input suppressHydrationWarning type="hidden" name="op" value="remove" /><p>{tm("cpeRemoveConfirm")}</p><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-danger btn-sm">{tm("cpeRemoveYes")}</button></div></form>, `${tm("cpeRemove")}: ${c.title}`)}</td>}
                   </tr>
                 ))}
               </tbody></table></div>)}
             {mActions && <form action={addCpe} className="adm-grant">{hid}
               <h3 className="adm-sub-h">{tm("cpeAddTitle")}</h3>
               <div className="adm-inline">
-                <div className="field adm-grow"><label htmlFor="c-title">{tm("cpeEntry")}</label><input id="c-title" name="title" type="text" required maxLength={200} /></div>
-                <div className="field"><label htmlFor="c-hours">{tm("cpeHours")}</label><input id="c-hours" name="hours" type="number" required min={0.25} max={100} step={0.25} defaultValue={1} style={{ width: 110 }} /></div>
-                <div className="field"><label htmlFor="c-status">{t("status")}</label><select id="c-status" name="status" defaultValue="approved">{["submitted", "approved", "audit"].map((s) => <option key={s} value={s}>{tm(`cpe_${s}` as "cpe_approved")}</option>)}</select></div>
-                <button className="btn btn-accent">{tm("cpeAdd")}</button>
+                <div className="field adm-grow"><label htmlFor="c-title">{tm("cpeEntry")}</label><input suppressHydrationWarning id="c-title" name="title" type="text" required maxLength={200} /></div>
+                <div className="field"><label htmlFor="c-hours">{tm("cpeHours")}</label><input suppressHydrationWarning id="c-hours" name="hours" type="number" required min={0.25} max={100} step={0.25} defaultValue={1} style={{ width: 110 }} /></div>
+                <div className="field"><label htmlFor="c-status">{t("status")}</label><select suppressHydrationWarning id="c-status" name="status" defaultValue="approved">{["submitted", "approved", "audit"].map((s) => <option key={s} value={s}>{tm(`cpe_${s}` as "cpe_approved")}</option>)}</select></div>
+                <button suppressHydrationWarning className="btn btn-accent">{tm("cpeAdd")}</button>
               </div>
             </form>}
             </div>
@@ -224,8 +224,8 @@ export default async function AdminMember({ params, searchParams }: { params: Pr
         {!deleted && canDelete && <form action={deleteUser} className="panel danger-zone" id="delete" aria-labelledby="h-del">{hid}<div className="settings-section">
           <header><p className="danger-zone-label"><Icon name="alert" size={16} />{tp("dangerLabel")}</p><h2 id="h-del">{tm("deleteTitle")}</h2></header>
           <div className="adm-fields"><p>{tm("deleteBody")}</p>
-            <div className="save-row"><label className="check"><input type="checkbox" name="confirm" required /> <span>{tm("deleteConfirm", { name: u.name })}</span></label>
-                <button className="btn btn-danger-outline"><Icon name="trash" size={18} />{tm("deleteButton")}</button></div>
+            <div className="save-row"><label className="check"><input suppressHydrationWarning type="checkbox" name="confirm" required /> <span>{tm("deleteConfirm", { name: u.name })}</span></label>
+                <button suppressHydrationWarning className="btn btn-danger-outline"><Icon name="trash" size={18} />{tm("deleteButton")}</button></div>
           </div>
         </div>
         </form>}

@@ -7,6 +7,7 @@ import { MemberNav } from "@/components/AppShell";
 import type { Locale } from "@/config/site";
 import { memberMetadata } from "../_shared/meta";
 import { PageHead } from "../_shared/ui";
+import { TabBarFocus } from "../_shared/TabBarFocus";
 import { Avatar, EmptyState } from "@/components/ui/Facet";
 import { Icon } from "@/components/ui/Icon";
 export const dynamic = "force-dynamic";
@@ -38,11 +39,11 @@ export default async function Directory({ params, searchParams }: { params: Prom
   const collator = new Intl.Collator(locale === "fr" ? "fr-CA" : "en-CA", { sensitivity: "base" });
   people.sort((a, b) => collator.compare(a.name, b.name));
   return (
-    <div className="app"><MemberNav locale={locale} current="/my/directory" />
+    <div className="app"><MemberNav locale={locale} current="/my/directory" /><TabBarFocus />
       <main id="main" tabIndex={-1} className="app-main mbr mbr-directory">
         <PageHead title={t("title")} lead={t("lead")} />
         {!canBrowse ? (
-          <EmptyState title={t("membersOnly")} action={!pending && !isAdmin && <a className="btn btn-secondary" href={L("/membership")}>{t("joinLink")}</a>}>{pending ? t("membersOnlyPending") : t("membersOnlyNone")}</EmptyState>
+          <div className="mbr-gate"><EmptyState title={t("membersOnly")} action={!pending && !isAdmin && <a className="btn btn-secondary" href={L("/membership")}>{t("joinLink")}</a>}>{pending ? t("membersOnlyPending") : t("membersOnlyNone")}</EmptyState></div>
         ) : total === 0 ? (
           // When nobody is listed yet, the empty panel carries the opt-in prompt instead of a separate banner.
           <EmptyState title={t("empty")} action={!u.directoryOptIn && <a className="btn btn-secondary" href={L("/my/profile")}>{t("optIn")}</a>}>{u.directoryOptIn ? t("youListed") : t("emptyBody")}</EmptyState>
@@ -50,8 +51,8 @@ export default async function Directory({ params, searchParams }: { params: Prom
           <div className="table-toolbar mbr-dir-toolbar">
             <form className="search-bar mbr-search" role="search" method="get" action={L("/my/directory")}>
               <label htmlFor="ds" className="sr-only">{t("search")}</label>
-              <input id="ds" name="q" type="search" placeholder={t("placeholder")} defaultValue={q} />
-              <button className="btn btn-secondary">{t("searchBtn")}</button>
+              <input suppressHydrationWarning id="ds" name="q" type="search" placeholder={t("placeholder")} defaultValue={q} />
+              <button suppressHydrationWarning className="btn btn-secondary">{t("searchBtn")}</button>
               {q && <a className="btn btn-ghost" href={L("/my/directory")}>{t("clear")}</a>}
             </form>
             <p className="mbr-dir-count" role="status">{q ? t("resultsFor", { n: people.length, q }) : t("count", { n: total })}</p>

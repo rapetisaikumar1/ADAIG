@@ -10,12 +10,12 @@ export const metadata: Metadata = { title: "Page not found · ADAIG", robots: { 
 
 export default function RootNotFound() {
   return (
-    <html lang="en" style={fontVars()}>
-      <body>
+    <html lang="en" style={fontVars()} data-scroll-behavior="smooth" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         {/* No site chrome outside /en and /fr: a slim logo bar keeps the page recognisably ADAIG. */}
         <header className="nf-bare"><div className="container">
           {/* eslint-disable-next-line @next/next/no-img-element -- static brand SVG */}
-          <Link href="/en"><img src="/assets/logo.svg" alt="ADAIG" width={186} height={44} /></Link>
+          <Link href="/en"><img src="/assets/logo-reverse.svg" alt="ADAIG" width={186} height={44} /></Link>
         </div></header>
         <main id="main" tabIndex={-1} className="nf-page">
           <section className="page-hero art-404 nf-hero"><div className="container">

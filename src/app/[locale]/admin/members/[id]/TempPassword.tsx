@@ -10,7 +10,7 @@ export function TempPassword({ locale, uid }: { locale: string; uid: string }) {
   const submit = (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); const fd = new FormData(e.currentTarget); startTransition(() => action(fd)); };
   return (
     <form key={state.password ?? "form"} action={action} onSubmit={submit} className="adm-pw" aria-labelledby="pw-h">
-      <input type="hidden" name="locale" value={locale} /><input type="hidden" name="uid" value={uid} />
+      <input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="uid" value={uid} />
       <h3 id="pw-h">{t("pwTitle")}</h3>
       <p className="hint">{t("pwHint")}</p>
       {state.error && <div className="alert alert-danger" role="alert"><div>{state.error}</div></div>}
@@ -20,8 +20,8 @@ export function TempPassword({ locale, uid }: { locale: string; uid: string }) {
         </div>
       )}
       <div className="field"><label htmlFor="pw-new">{t("pwLabel")} <span className="optional">({t("optional")})</span></label>
-        <input id="pw-new" name="password" type="text" autoComplete="off" spellCheck={false} maxLength={128} aria-describedby="pw-new-h" /><span className="hint" id="pw-new-h">{t("pwFieldHint")}</span></div>
-      <div><button className="btn btn-secondary btn-sm" disabled={pending}>{pending ? t("working") : t("pwButton")}</button></div>
+        <input suppressHydrationWarning id="pw-new" name="password" type="text" autoComplete="off" spellCheck={false} maxLength={128} aria-describedby="pw-new-h" /><span className="hint" id="pw-new-h">{t("pwFieldHint")}</span></div>
+      <div><button suppressHydrationWarning className="btn btn-secondary btn-sm" disabled={pending}>{pending ? t("working") : t("pwButton")}</button></div>
     </form>
   );
 }

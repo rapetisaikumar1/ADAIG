@@ -38,7 +38,7 @@ export async function SiteHeader({ locale }: { locale: string }) {
       </div></div>
       <header className="site-header"><div className="container">
         {/* eslint-disable-next-line @next/next/no-img-element -- static SVG logo; next/image adds nothing for SVG */}
-        <a className="brand" href={L("")} aria-label={t("home")}><img src="/assets/logo.svg" alt={t("logoAlt")} width={220} height={52} /></a>
+        <a className="brand" href={L("")} aria-label={t("home")}><img src="/assets/logo-reverse.svg" alt={t("logoAlt")} width={220} height={52} /></a>
         {acct}
         {/* Toggle + panel (DOM order: toggle first, A1-2). The panel's extras show only in the mobile menu (V3-1). */}
         <HeaderNav label={t("primaryAria")} menuLabel={t("menu")} closeLabel={t("close")}

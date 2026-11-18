@@ -45,7 +45,7 @@ export default async function Join({ params, searchParams }: { params: Promise<{
         {(msg === "orderCancelled" || msg === "orderNotFound") && <div className="container"><FocusOnLoad><div className={`alert join-notice ${msg === "orderCancelled" ? "alert-success" : "alert-info"}`} role="status"><Icon name={msg === "orderCancelled" ? "check-circle" : "info"} /><div>{t(`msg_${msg}`)}</div></div></FocusOnLoad></div>}
         {legacyOrder && <div className="container"><div className="alert alert-info join-notice" role="status"><Icon name="info" /><div>
           <b>{t("legacyOrderTitle", { tier: tierOf(legacyOrder.tierId)?.name[locale] ?? legacyOrder.tierId })}</b> {t("legacyOrderBody")}
-          <form action={cancelOrder}><input type="hidden" name="m" value={legacyOrder.id} /><input type="hidden" name="locale" value={locale} /><input type="hidden" name="from" value="join" /><button className="btn btn-secondary btn-sm">{t("cancelOrder")}</button></form>
+          <form action={cancelOrder}><input suppressHydrationWarning type="hidden" name="m" value={legacyOrder.id} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="from" value="join" /><button suppressHydrationWarning className="btn btn-secondary btn-sm">{t("cancelOrder")}</button></form>
         </div></div></div>}
         <JoinForm locale={locale} tiers={formTiers} directoryOptInDefault={dirDefault} initialTier={tier} signedIn={!!u} defaults={{ first: u ? first : undefined, last: u ? rest.join(" ") : undefined, org: u?.organisation ?? undefined }} />
       </section>

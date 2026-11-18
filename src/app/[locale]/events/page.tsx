@@ -37,10 +37,10 @@ export default async function Events({ params, searchParams }: { params: Promise
       </div></section>
       <section className="section"><div className="container">
         <form className="ev-toolbar" role="search" aria-label={t("search")}>
-          <div className="ev-q"><label htmlFor="es" className="sr-only">{t("search")}</label><input id="es" name="q" type="search" defaultValue={q} placeholder={t("search")} /></div>
-          <div><label htmlFor="et" className="sr-only">{t("typeLabel")}</label><select id="et" name="type" defaultValue={type ?? ""}><option value="">{t("all")}</option>{TYPES.map((v) => <option key={v} value={v}>{evLabel(v, locale)}</option>)}</select></div>
-          <div><label htmlFor="ef" className="sr-only">{t("formatLabel")}</label><select id="ef" name="format" defaultValue={format ?? ""}><option value="">{t("anyFormat")}</option>{FORMATS.map((v) => <option key={v} value={v}>{evLabel(v, locale)}</option>)}</select></div>
-          <button className="btn btn-primary">{t("apply")}</button>
+          <div className="ev-q"><label htmlFor="es" className="sr-only">{t("search")}</label><input suppressHydrationWarning id="es" name="q" type="search" defaultValue={q} placeholder={t("search")} /></div>
+          <div><label htmlFor="et" className="sr-only">{t("typeLabel")}</label><select suppressHydrationWarning id="et" name="type" defaultValue={type ?? ""}><option value="">{t("all")}</option>{TYPES.map((v) => <option key={v} value={v}>{evLabel(v, locale)}</option>)}</select></div>
+          <div><label htmlFor="ef" className="sr-only">{t("formatLabel")}</label><select suppressHydrationWarning id="ef" name="format" defaultValue={format ?? ""}><option value="">{t("anyFormat")}</option>{FORMATS.map((v) => <option key={v} value={v}>{evLabel(v, locale)}</option>)}</select></div>
+          <button suppressHydrationWarning className="btn btn-primary">{t("apply")}</button>
         </form>
         <div className="ev-results">
           {/* the count stays announced; with no results the empty state below says it, so the count is visually hidden */}
@@ -53,7 +53,7 @@ export default async function Events({ params, searchParams }: { params: Promise
           <>
             {upcoming.length > 0 && <><h2 className="sr-only">{t("upcomingTitle")}</h2><div className="grid g3 ev-grid">{upcoming.map((e) => <EventCard key={e.id} e={e} locale={locale} labels={labels} />)}</div></>}
             {past.length > 0 && <>
-              <div className="ev-past-head"><h2>{t("pastTitle")}</h2></div>
+              <div className="ev-past-head section-head"><h2>{t("pastTitle")}</h2></div>
               <div className="grid g3 ev-grid">{past.map((e) => <EventCard key={e.id} e={e} locale={locale} labels={labels} />)}</div>
             </>}
           </>

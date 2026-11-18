@@ -44,5 +44,5 @@ export function FrBenefits({ en, fr }: { en: string[]; fr: string[] }) {
     form.addEventListener("input", sync);
     return () => form.removeEventListener("input", sync);
   }, [en, fr]);
-  return <input ref={ref} type="hidden" name="benefitsFr" defaultValue={fr.join("\n")} />;
+  return <input suppressHydrationWarning ref={ref} type="hidden" name="benefitsFr" defaultValue={fr.join("\n")} />;
 }

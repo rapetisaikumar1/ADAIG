@@ -22,7 +22,7 @@ export function LocationFields({ locale, country: initialCountry, province: init
   return (
     <>
       <div className={`field${countryErr ? " error" : ""}`}><label htmlFor="pf-country">{labels.country}</label>
-        <select id="pf-country" name="country" value={country} autoComplete="country-name" onChange={(e) => { setCountry(e.target.value); setProvince(""); }}
+        <select suppressHydrationWarning id="pf-country" name="country" value={country} autoComplete="country-name" onChange={(e) => { setCountry(e.target.value); setProvince(""); }}
           aria-invalid={!!countryErr || undefined} aria-describedby={countryErr?.id}>
           {list.map((c) => <option key={c} value={c}>{countryLabel(c, locale)}</option>)}
         </select>
@@ -30,14 +30,14 @@ export function LocationFields({ locale, country: initialCountry, province: init
       </div>
       {subs ? (
         <div className={`field${provinceErr ? " error" : ""}`}><label htmlFor="pf-prov">{country === "United States" ? labels.state : labels.province}</label>
-          <select id="pf-prov" name="province" value={value} autoComplete="address-level1" onChange={(e) => setProvince(e.target.value)}
+          <select suppressHydrationWarning id="pf-prov" name="province" value={value} autoComplete="address-level1" onChange={(e) => setProvince(e.target.value)}
             aria-invalid={!!provinceErr || undefined} aria-describedby={provinceErr?.id}>
             <option value="">{labels.blank}</option>
             {subs.map((p) => <option key={p.code} value={p.code}>{locale === "fr" ? p.nameFr : p.name}</option>)}
           </select>
           {provinceErr && <span className="error-msg" id={provinceErr.id}>{provinceErr.text}</span>}
         </div>
-      ) : <input type="hidden" name="province" value="" />}
+      ) : <input suppressHydrationWarning type="hidden" name="province" value="" />}
     </>
   );
 }

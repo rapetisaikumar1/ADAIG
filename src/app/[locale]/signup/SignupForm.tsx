@@ -26,13 +26,13 @@ export function SignupForm({ locale, next, labels }: { locale: string; next?: st
     <>
       {state.error && <div className="alert alert-danger" role="alert" id="signup-err" tabIndex={-1} ref={errRef}><Icon name="x-circle" /><div>{state.error}</div></div>}
       <form action={action} onSubmit={submit}>
-        <input type="hidden" name="locale" value={locale} />
-        {next && <input type="hidden" name="next" value={next} />}
-        <div className={`field${bad("name") ? " error" : ""}`}><label htmlFor="sn">{labels.name}</label><input type="text" id="sn" name="name" required maxLength={100} autoComplete="name" defaultValue={state.name} aria-invalid={bad("name") || undefined} aria-describedby={desc("name")} /></div>
-        <div className={`field${bad("email") ? " error" : ""}`}><label htmlFor="se">{labels.email}</label><input id="se" name="email" type="email" required maxLength={254} autoComplete="email" defaultValue={state.email} aria-invalid={bad("email") || undefined} aria-describedby={desc("email")} /></div>
-        <div className={`field${bad("password") ? " error" : ""}`}><label htmlFor="sp">{labels.password}</label><input id="sp" ref={pwRef} name="password" type="password" minLength={12} maxLength={128} required autoComplete="new-password" aria-describedby={desc("password", "sp-hint")} aria-invalid={bad("password") || undefined} /><span className="hint" id="sp-hint">{labels.passwordHint}</span></div>
-        <label className="check auth-check"><input type="checkbox" name="marketingOptIn" defaultChecked={state.marketingOptIn} /> {labels.mkt}</label>
-        <button className="btn btn-accent btn-block" disabled={pending} aria-busy={pending || undefined}>{labels.create}</button>
+        <input suppressHydrationWarning type="hidden" name="locale" value={locale} />
+        {next && <input suppressHydrationWarning type="hidden" name="next" value={next} />}
+        <div className={`field${bad("name") ? " error" : ""}`}><label htmlFor="sn">{labels.name}</label><input suppressHydrationWarning type="text" id="sn" name="name" required maxLength={100} autoComplete="name" defaultValue={state.name} aria-invalid={bad("name") || undefined} aria-describedby={desc("name")} /></div>
+        <div className={`field${bad("email") ? " error" : ""}`}><label htmlFor="se">{labels.email}</label><input suppressHydrationWarning id="se" name="email" type="email" required maxLength={254} autoComplete="email" defaultValue={state.email} aria-invalid={bad("email") || undefined} aria-describedby={desc("email")} /></div>
+        <div className={`field${bad("password") ? " error" : ""}`}><label htmlFor="sp">{labels.password}</label><input suppressHydrationWarning id="sp" ref={pwRef} name="password" type="password" minLength={12} maxLength={128} required autoComplete="new-password" aria-describedby={desc("password", "sp-hint")} aria-invalid={bad("password") || undefined} /><span className="hint" id="sp-hint">{labels.passwordHint}</span></div>
+        <label className="check auth-check"><input suppressHydrationWarning type="checkbox" name="marketingOptIn" defaultChecked={state.marketingOptIn} /> {labels.mkt}</label>
+        <button suppressHydrationWarning className="btn btn-accent btn-block" disabled={pending} aria-busy={pending || undefined}>{labels.create}</button>
       </form>
     </>
   );

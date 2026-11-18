@@ -7,6 +7,7 @@
  *  - <Status tone="planned">Planned</Status>  the ONE status component (4 public tones + success/danger for portals).
  */
 import { FACET_ART, type FacetArtName } from "./facetArt.generated";
+import { SIGNAL_EMPTY } from "./signalArt.generated";
 
 export function FacetArt({ name, className, assemble = false }: { name: FacetArtName; className?: string; assemble?: boolean }) {
   const cls = ["facet-art", assemble ? "is-assembling" : "", className ?? ""].filter(Boolean).join(" ");
@@ -21,46 +22,47 @@ function hash(s: string) {
 }
 
 type BandTone = "webinar" | "in-person" | "hybrid" | "proposed" | "neutral";
-// Face colours per format (tokens.css --face-*): webinar teal-led, in person blue-led, hybrid mixed, proposed = outline only.
-const BAND: Record<Exclude<BandTone, "proposed">, [string, string, string][]> = {
-  webinar: [["#11A595", "#1E4E8C", "#0B2545"], ["#7FD8CB", "#5B83B8", "#2A4B73"]],
-  "in-person": [["#5B83B8", "#1E4E8C", "#0B2545"], ["#CDEFE9", "#5B83B8", "#2A4B73"]],
-  hybrid: [["#11A595", "#1E4E8C", "#0B2545"], ["#C9D7EA", "#5B83B8", "#2A4B73"]],
-  neutral: [["#CDEFE9", "#C9D7EA", "#AFC0D6"], ["#7FD8CB", "#5B83B8", "#2A4B73"]],
+/** Dot colours per event format, on the Harbor card band (round 9 "Signal"): [main, accent]. Proposed events draw hollow rings. */
+const BAND: Record<Exclude<BandTone, "proposed">, [string, string]> = {
+  webinar: ["#2BEEAD", "#2BEEAD"],
+  "in-person": ["#4F8AD6", "#2BEEAD"],
+  hybrid: ["#2BEEAD", "#4F8AD6"],
+  neutral: ["#8FA6A6", "#2BEEAD"],
 };
 
 /**
- * A row of isometric columns whose heights come from the seed (an event id or slug), so each card gets its own
- * "skyline" and it never changes between renders. 320×64 viewBox, scales to the card width (preserveAspectRatio slice).
+ * Round 9: a seeded halftone strip (the signal field) for listing cards — each event gets its own focal point and spread from its
+ * slug, so the pattern never changes between renders. 320×84 viewBox on the Harbor .card-band; decorative (aria-hidden).
  */
 export function FacetBand({ seed, tone = "neutral", className }: { seed: string; tone?: BandTone; className?: string }) {
-  const h = hash(seed); const a = 15, C = 0.866;
-  const cols = 11; const parts: React.ReactNode[] = [];
-  for (let n = 0; n < cols; n++) {
-    const height = 1 + ((h >>> (n * 3)) & 3) % 3;          // 1–3 cubes
-    const lit = ((h >>> (n + 5)) & 7) === 0;                 // ~1 in 8 columns uses the strong palette
-    const pal = tone === "proposed" ? null : BAND[tone][lit ? 0 : 1];
-    const x0 = 18 + n * 27, yBase = 47; // columns 27px apart (> the cube width 26) so they never overlap
-    for (let k = 0; k < height; k++) {
-      const x = x0, y = yBase - (k + 1) * a + a / 2;
-      const top = `${x},${y - a / 2} ${x + C * a},${y} ${x},${y + a / 2} ${x - C * a},${y}`;
-      const right = `${x},${y + a / 2} ${x + C * a},${y} ${x + C * a},${y + a} ${x},${y + 1.5 * a}`;
-      const left = `${x},${y + a / 2} ${x - C * a},${y} ${x - C * a},${y + a} ${x},${y + 1.5 * a}`;
-      parts.push(pal
-        ? <g key={`${n}-${k}`}><polygon points={left} fill={pal[2]} /><polygon points={right} fill={pal[1]} /><polygon points={top} fill={pal[0]} /></g>
-        : <g key={`${n}-${k}`} fill="none" stroke="#1E4E8C" strokeOpacity=".5" strokeDasharray="3 2.5"><polygon points={left} /><polygon points={right} /><polygon points={top} /></g>);
+  const h = hash(seed);
+  const fx = 70 + (h % 190), fy = 18 + ((h >>> 9) % 48), reach = 150 + ((h >>> 15) % 90);
+  const s = 11, dx = s * 0.866;
+  const pal = tone === "proposed" ? null : BAND[tone];
+  const dots: React.ReactNode[] = [];
+  for (let i = 0; i * dx <= 330; i++) {
+    for (let j = 0; j * s <= 92; j++) {
+      const x = i * dx, y = j * s + (i % 2 ? s / 2 : 0);
+      const d = Math.hypot(x - fx, (y - fy) * 1.4) / reach;
+      if (d >= 1) continue;
+      const r = 3.9 * (1 - d) ** 1.4;
+      if (r < 0.6) continue;
+      const accent = ((h >>> ((i + j) % 24)) & 15) === 0;
+      dots.push(pal
+        ? <circle key={`${i}-${j}`} cx={x.toFixed(1)} cy={y.toFixed(1)} r={r.toFixed(2)} fill={accent ? pal[1] : pal[0]} fillOpacity={accent ? 1 : 0.85} />
+        : <circle key={`${i}-${j}`} cx={x.toFixed(1)} cy={y.toFixed(1)} r={Math.max(r - 0.6, 0.8).toFixed(2)} fill="none" stroke="#8FA6A6" strokeWidth="1" />);
     }
   }
   return (
-    <svg className={className ? `facet-band ${className}` : "facet-band"} viewBox="0 0 320 64" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
-      {parts}
+    <svg className={className ? `facet-band ${className}` : "facet-band"} viewBox="0 0 320 84" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      {dots}
     </svg>
   );
 }
 
 const initials = (name: string) => name.trim().split(/\s+/).map((x) => x[0] ?? "").slice(0, 2).join("").toUpperCase();
 
-/** Hex-framed monogram (the cube's silhouette). size: sm 32 · md 44 (default) · lg 88. tone: navy (default) · teal · amber. */
+/** Round monogram (round 9; was hex-framed). size: sm 32 · md 44 (default) · lg 88. tone: navy (default) · teal · amber. */
 export function Avatar({ name, size = "md", tone }: { name: string; size?: "sm" | "md" | "lg"; tone?: "teal" | "amber" }) {
   const cls = ["avatar", size === "md" ? "" : size, tone ?? ""].filter(Boolean).join(" ");
   return <span className={cls} aria-hidden="true">{initials(name)}</span>;
@@ -88,7 +90,7 @@ export function EmptyState({ title, children, action, dark = false, level = 2 }:
   const H = `h${level}` as "h2" | "h3" | "h4";
   return (
     <div className="empty-state">
-      <FacetArt name={dark ? "empty-dark" : "empty"} className="empty-art" />
+      <span className={dark ? "facet-art empty-art is-dark" : "facet-art empty-art"} aria-hidden="true" dangerouslySetInnerHTML={{ __html: SIGNAL_EMPTY }} />
       <H className="empty-title">{title}</H>
       {children && <p>{children}</p>}
       {action && <div className="empty-actions">{action}</div>}

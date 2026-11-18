@@ -34,11 +34,11 @@ export function ResetForm({ locale, token, labels, initialInvalid }: { locale: s
     <>
       {state.error && <div className="alert alert-danger" role="alert" id="reset-err" tabIndex={-1} ref={errRef}><Icon name="x-circle" /><div>{state.error}</div></div>}
       <form action={action} onSubmit={submit} ref={formRef}>
-        <input type="hidden" name="locale" value={locale} />
-        <input type="hidden" name="token" value={token} />
-        <div className={`field${bad("password") ? " error" : ""}`}><label htmlFor="rp">{labels.password}</label><input id="rp" name="password" type="password" required minLength={12} maxLength={128} autoComplete="new-password" aria-invalid={bad("password") || undefined} aria-describedby={desc("password", "rp-hint")} /><span className="hint" id="rp-hint">{labels.hint}</span></div>
-        <div className={`field${bad("confirm") ? " error" : ""}`}><label htmlFor="rc">{labels.confirm}</label><input id="rc" name="confirm" type="password" required minLength={12} maxLength={128} autoComplete="new-password" aria-invalid={bad("confirm") || undefined} aria-describedby={desc("confirm")} /></div>
-        <button className="btn btn-accent btn-block" disabled={pending} aria-busy={pending || undefined}>{pending ? labels.saving : labels.submit}</button>
+        <input suppressHydrationWarning type="hidden" name="locale" value={locale} />
+        <input suppressHydrationWarning type="hidden" name="token" value={token} />
+        <div className={`field${bad("password") ? " error" : ""}`}><label htmlFor="rp">{labels.password}</label><input suppressHydrationWarning id="rp" name="password" type="password" required minLength={12} maxLength={128} autoComplete="new-password" aria-invalid={bad("password") || undefined} aria-describedby={desc("password", "rp-hint")} /><span className="hint" id="rp-hint">{labels.hint}</span></div>
+        <div className={`field${bad("confirm") ? " error" : ""}`}><label htmlFor="rc">{labels.confirm}</label><input suppressHydrationWarning id="rc" name="confirm" type="password" required minLength={12} maxLength={128} autoComplete="new-password" aria-invalid={bad("confirm") || undefined} aria-describedby={desc("confirm")} /></div>
+        <button suppressHydrationWarning className="btn btn-accent btn-block" disabled={pending} aria-busy={pending || undefined}>{pending ? labels.saving : labels.submit}</button>
       </form>
     </>
   );

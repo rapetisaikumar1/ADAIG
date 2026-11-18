@@ -35,29 +35,29 @@ export function ContactForm({ locale, initialTopic, defaults }: { locale: string
   }
   return (
     <form action={action} onSubmit={submit} className="contact-form" aria-labelledby="cf-h" noValidate={false}>
-      <input type="hidden" name="locale" value={locale} />
+      <input suppressHydrationWarning type="hidden" name="locale" value={locale} />
       <h2 id="cf-h">{t("formTitle")}</h2>
       <p className="muted">{t("formLead")}</p>
       {/* Hidden while sending, so the alert mounts again with the result and a repeated error is announced again. */}
       {state.error && !pending && <div className="alert alert-danger" role="alert" tabIndex={-1} ref={statusRef}><Icon name="x-circle" /><div>{state.field ? <a href={`#${fieldId[state.field]}`}>{state.error}</a> : state.error}</div></div>}
       <div className="form-grid contact-row">
-        <div className={fcls("name")}><label htmlFor="cf-name">{t("name")}</label><input id="cf-name" name="name" type="text" required maxLength={100} autoComplete="name" defaultValue={defaults.name} aria-invalid={bad("name") || undefined} aria-describedby={desc("name")} />{fieldErr("name")}</div>
-        <div className={fcls("email")}><label htmlFor="cf-email">{t("email")}</label><input id="cf-email" name="email" type="email" required maxLength={254} autoComplete="email" defaultValue={defaults.email} aria-invalid={bad("email") || undefined} aria-describedby={desc("email")} />{fieldErr("email")}</div>
+        <div className={fcls("name")}><label htmlFor="cf-name">{t("name")}</label><input suppressHydrationWarning id="cf-name" name="name" type="text" required maxLength={100} autoComplete="name" defaultValue={defaults.name} aria-invalid={bad("name") || undefined} aria-describedby={desc("name")} />{fieldErr("name")}</div>
+        <div className={fcls("email")}><label htmlFor="cf-email">{t("email")}</label><input suppressHydrationWarning id="cf-email" name="email" type="email" required maxLength={254} autoComplete="email" defaultValue={defaults.email} aria-invalid={bad("email") || undefined} aria-describedby={desc("email")} />{fieldErr("email")}</div>
       </div>
       <div className="form-grid contact-row">
-        <div className={fcls("organization")}><label htmlFor="cf-org">{t("organization")} <span className="muted">{t("optional")}</span></label><input id="cf-org" name="organization" type="text" maxLength={150} autoComplete="organization" defaultValue={defaults.org} aria-invalid={bad("organization") || undefined} aria-describedby={desc("organization")} />{fieldErr("organization")}</div>
+        <div className={fcls("organization")}><label htmlFor="cf-org">{t("organization")} <span className="muted">{t("optional")}</span></label><input suppressHydrationWarning id="cf-org" name="organization" type="text" maxLength={150} autoComplete="organization" defaultValue={defaults.org} aria-invalid={bad("organization") || undefined} aria-describedby={desc("organization")} />{fieldErr("organization")}</div>
         <div className={fcls("topic")}><label htmlFor="cf-topic">{t("topic")}</label>
-          <select id="cf-topic" name="topic" required defaultValue={topic} aria-invalid={bad("topic") || undefined} aria-describedby={desc("topic")}>
+          <select suppressHydrationWarning id="cf-topic" name="topic" required defaultValue={topic} aria-invalid={bad("topic") || undefined} aria-describedby={desc("topic")}>
             <option value="" disabled>{t("chooseTopic")}</option>
             {TOPICS.map((k) => <option key={k} value={k}>{t(`topic_${k}`)}</option>)}
           </select>{fieldErr("topic")}</div>
       </div>
-      <div className={fcls("message")}><label htmlFor="cf-msg">{t("message")}</label><textarea id="cf-msg" name="message" required minLength={10} maxLength={3000} rows={7} aria-invalid={bad("message") || undefined} aria-describedby={desc("message", "cf-msg-hint")} /><span className="hint" id="cf-msg-hint">{t("messageHint")}</span>{fieldErr("message")}</div>
+      <div className={fcls("message")}><label htmlFor="cf-msg">{t("message")}</label><textarea suppressHydrationWarning id="cf-msg" name="message" required minLength={10} maxLength={3000} rows={7} aria-invalid={bad("message") || undefined} aria-describedby={desc("message", "cf-msg-hint")} /><span className="hint" id="cf-msg-hint">{t("messageHint")}</span>{fieldErr("message")}</div>
       {/* Honeypot for bots — hidden from people and assistive tech. */}
-      <div className="contact-hp" aria-hidden="true"><label htmlFor="cf-web">Website</label><input id="cf-web" name="website" type="text" tabIndex={-1} autoComplete="off" /></div>
-      <label className="check"><input id="cf-consent" type="checkbox" name="consent" required aria-invalid={bad("consent") || undefined} aria-describedby={desc("consent")} /> <span>{t("consent")} <a href={`/${locale}/legal#privacy`}>{t("privacyLink")}</a></span></label>
+      <div className="contact-hp" aria-hidden="true"><label htmlFor="cf-web">Website</label><input suppressHydrationWarning id="cf-web" name="website" type="text" tabIndex={-1} autoComplete="off" /></div>
+      <label className="check"><input suppressHydrationWarning id="cf-consent" type="checkbox" name="consent" required aria-invalid={bad("consent") || undefined} aria-describedby={desc("consent")} /> <span>{t("consent")} <a href={`/${locale}/legal#privacy`}>{t("privacyLink")}</a></span></label>
       {fieldErr("consent")}
-      <div className="contact-actions"><button className="btn btn-accent" disabled={pending}>{pending ? t("sending") : t("send")}</button><span className="small muted">{t("responseNote")}</span></div>
+      <div className="contact-actions"><button suppressHydrationWarning className="btn btn-accent" disabled={pending}>{pending ? t("sending") : t("send")}</button><span className="small muted">{t("responseNote")}</span></div>
     </form>
   );
 }

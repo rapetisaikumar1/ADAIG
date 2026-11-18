@@ -85,8 +85,11 @@ export default async function EventDetail({ params, searchParams }: { params: Pr
       <section className="section"><div className="container layout-aside">
         <div>
           {v.planned && <div className="alert alert-info ev-planned" role="note"><Icon name="info" /><div><b>{t("plannedTitle")}</b>{t("plannedBody")}</div></div>}
-          <h2 className="ev-h2">{t("details")}</h2>
-          <dl className="ev-dl">{rows.map(([k, val]) => <div key={k}><dt>{k}</dt><dd>{val}</dd></div>)}</dl>
+          {/* Facts card (round 9): a Harbor panel that rises over the hero's lower edge — a wrapper only, same heading and list. */}
+          <div className="ev-facts">
+            <h2 className="ev-h2">{t("details")}</h2>
+            <dl className="ev-dl">{rows.map(([k, val]) => <div key={k}><dt>{k}</dt><dd>{val}</dd></div>)}</dl>
+          </div>
           <p className="small muted ev-note">{t("note")}{!v.planned && <> {t("tzNote")}</>}</p>
         </div>
         <aside><div className="card sticky-side ev-reg" id="register">
@@ -129,8 +132,8 @@ export default async function EventDetail({ params, searchParams }: { params: Pr
               {pendingPay && <div className="alert alert-warning" role="status"><div>{t("pending")}</div></div>}
               {sp.error === "pay" && <FocusOnLoad><div className="alert alert-danger" role="alert"><Icon name="x-circle" /><div>{t("payError")}</div></div></FocusOnLoad>}
               {sp.error === "tbc" && <FocusOnLoad><div className="alert alert-danger" role="alert"><Icon name="x-circle" /><div>{t("tbcBlocked")}</div></div></FocusOnLoad>}
-              <form action={register}><input type="hidden" name="slug" value={e.slug} /><input type="hidden" name="locale" value={locale} />
-                <button className="btn btn-accent btn-block">{pendingPay ? t("completePayment") : myPrice ? `${t("payAndRegister")} · ${fmt(myPrice, eventCurrency, locale)}` : t("registerFree")}</button>
+              <form action={register}><input suppressHydrationWarning type="hidden" name="slug" value={e.slug} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} />
+                <button suppressHydrationWarning className="btn btn-accent btn-block">{pendingPay ? t("completePayment") : myPrice ? `${t("payAndRegister")} · ${fmt(myPrice, eventCurrency, locale)}` : t("registerFree")}</button>
               </form>
               {!isMember && myPrice > e.memberPriceCents && <p className="small muted ev-hint">{t("memberHint")} <a className="link-arrow" href={`/${locale}/join`}>{t("joinLink")}</a></p>}
             </>

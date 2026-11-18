@@ -57,7 +57,7 @@ export default async function AdminAudit({ params, searchParams }: { params: Pro
         <AdminHead title={t("title")} lead={t("lead")} actions={<a className="btn btn-secondary btn-sm" href={`/api/admin/audit.csv${qs({ p: 1 })}`}><Icon name="download" size={16} />{t("exportCsv")}</a>} />
         <form className="panel adm-filterbar" method="get" action={`/${locale}/admin/audit`} role="search" aria-label={t("filters")}>
           <div className="field"><label htmlFor="au-a">{t("action")}</label>
-            <select id="au-a" name="a" defaultValue={f.a}>
+            <select suppressHydrationWarning id="au-a" name="a" defaultValue={f.a}>
               <option value="">{t("allActions")}</option>
               {known && <option value={known}>{known}</option>}
               {[...groups].map(([g, list]) => (
@@ -68,11 +68,11 @@ export default async function AdminAudit({ params, searchParams }: { params: Pro
               ))}
             </select>
           </div>
-          <div className="field adm-filter-wide"><label htmlFor="au-actor">{t("actor")}</label><input id="au-actor" name="actor" type="search" defaultValue={f.actor} maxLength={200} placeholder={t("actorPh")} /></div>
-          <div className="field adm-filter-wide"><label htmlFor="au-target">{t("target")}</label><input id="au-target" name="target" type="search" defaultValue={f.target} maxLength={200} placeholder={t("targetPh")} /></div>
-          <div className="field"><label htmlFor="au-from">{t("from")} <span className="hint">({t("et")})</span></label><input id="au-from" name="from" type="date" defaultValue={f.from} /></div>
-          <div className="field"><label htmlFor="au-to">{t("to")} <span className="hint">({t("et")})</span></label><input id="au-to" name="to" type="date" defaultValue={f.to} /></div>
-          <div className="adm-filterbar-actions"><button className="btn btn-primary btn-sm">{t("apply")}</button>{filtered && <a className="btn btn-secondary btn-sm" href={`/${locale}/admin/audit`}>{t("reset")}</a>}</div>
+          <div className="field adm-filter-wide"><label htmlFor="au-actor">{t("actor")}</label><input suppressHydrationWarning id="au-actor" name="actor" type="search" defaultValue={f.actor} maxLength={200} placeholder={t("actorPh")} /></div>
+          <div className="field adm-filter-wide"><label htmlFor="au-target">{t("target")}</label><input suppressHydrationWarning id="au-target" name="target" type="search" defaultValue={f.target} maxLength={200} placeholder={t("targetPh")} /></div>
+          <div className="field"><label htmlFor="au-from">{t("from")} <span className="hint">({t("et")})</span></label><input suppressHydrationWarning id="au-from" name="from" type="date" defaultValue={f.from} /></div>
+          <div className="field"><label htmlFor="au-to">{t("to")} <span className="hint">({t("et")})</span></label><input suppressHydrationWarning id="au-to" name="to" type="date" defaultValue={f.to} /></div>
+          <div className="adm-filterbar-actions"><button suppressHydrationWarning className="btn btn-primary btn-sm">{t("apply")}</button>{filtered && <a className="btn btn-secondary btn-sm" href={`/${locale}/admin/audit`}>{t("reset")}</a>}</div>
         </form>
         <p className="small muted adm-count" role="status">{total === 1 ? t("showingOne") : total ? t("showing", { first, last, total }) : null}</p>
         {rows.length === 0 ? <AdminEmpty title={filtered ? t("noResults") : t("empty")} action={filtered ? <a className="btn btn-secondary btn-sm" href={`/${locale}/admin/audit`}>{t("reset")}</a> : undefined} /> : (

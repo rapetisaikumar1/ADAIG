@@ -1,108 +1,135 @@
-/* ADAIG design tokens v1.0 — round 5 "Facet Architecture" (spec: SP/r5/DESIGN_R5.md §2).
-   Every v0.2/v0.3 token name is kept as a working alias (the area files still use them). Raw hex lives ONLY in this file
-   (SVG data URIs excepted). Contrast ratios in comments are WCAG 2.x, measured on --paper unless noted. */
+/* ADAIG design tokens v2.0 — round 9 "Signal" (spec: reports/round9/DESIGN_R9.md §1).
+   Inspired by kubrickgroup.com (one deep surface, one electric accent, light serif display, square containers + pill actions,
+   halftone fields), made ADAIG's own: Harbor (deep teal-ink between the logo's navy and teal), Signal mint (the logo's teal,
+   electrified), the logo's amber core as the only warm spark. No cream/sand surfaces (round-6 client decision).
+   Every older token name is kept as an ALIAS of the new values (area files still use them). Raw hex lives ONLY in this file
+   (SVG data URIs excepted). Contrast ratios in comments are WCAG 2.x. */
 :root{
- /* ── Brand: the logo's three faces + core ─────────────────────────────────────────────────────────────────── */
- --face-top:#11A595;   /* logo top face (teal). Decor/UI ≥3:1 only: 3.07 on white, 2.82 on paper → never body text on light */
- --face-right:#1E4E8C; /* logo right face (blue). 7.64 on paper; illustration mid-tone, secondary emphasis */
- --face-left:#0B2545;  /* logo left face (navy) = --navy-800 */
- --core:#F59E0B;       /* logo core (amber) = --amber-400. ONE decision point per view */
- /* distant faces (lighter tints for cubes "further away" in assemblies) */
+ /* ── Brand: the logo's three faces + core (illustration and decoration only) ──────────────────────────────── */
+ --face-top:#11A595;--face-right:#1E4E8C;--face-left:#0B2545;--core:#F59E0B;
  --face-top-2:#7FD8CB;--face-right-2:#5B83B8;--face-left-2:#2A4B73;
- /* faint faces (planned/proposed, empty states) */
  --face-top-3:#CDEFE9;--face-right-3:#C9D7EA;--face-left-3:#AFC0D6;
 
- /* ── Navy: ink of the brand. 950/900 dark surfaces, 800 headings + primary button, 700/600 hover ─────────── */
- --navy-950:#06152B;--navy-900:#0A1F3D;--navy-800:#0B2545;--navy-700:#163A6B;--navy-600:#24508A;--navy-100:#E6EDF7;--navy-50:#F3F6FB;
- /* ── Teal: action. 700 = links/focus/submit (5.02 paper, 5.47 white); 800 = hover/active text (6.96); 300 = on navy (12.35 on 950) */
- --teal-800:#115E59;--teal-700:#0F766E;--teal-600:#0D9488;--teal-300:#5EEAD4;--teal-200:#99F6E4;--teal-100:#CCF5EC;--teal-50:#EEFBF7;
- /* ── Amber: Join/Become a member (navy-950 text on 400 = 8.50) + "in development" status (800 text = 6.51) ──── */
+ /* ── Harbor: the deep surface. 800 = header, heroes, dark bands, primary button; 900 = footer/sidebars; 950 = deepest ─ */
+ --harbor-950:#0A1A1F;--harbor-900:#0F2329;--harbor-800:#152B32;--harbor-700:#1F3B43;--harbor-600:#2D4C55;--harbor-500:#3E5F68;
+ /* ── Signal: the electric accent ON DARK (9.8:1 on harbor-800) — CTA fill, highlighted words, dots, active nav ─────── */
+ --signal-500:#16D69A;--signal-400:#2BEEAD;--signal-300:#7FF5CD;--signal-200:#B5F9E1;--signal-100:#CFF8EA;--signal-50:#EBFCF5;
+ /* ── Teal: the accent ON LIGHT. 700 = links/focus/accent buttons (5.47 white, 5.0 canvas); 800 = hover (7.4 white) ─── */
+ --teal-900:#0A4A45;--teal-800:#0B5D57;--teal-700:#0F766E;--teal-600:#0D9488;--teal-300:var(--signal-400);--teal-200:#9FF2D6;--teal-100:#CFF5E8;--teal-50:#EBF8F4;
+ /* ── Blue (logo right face) — info states, right-face dots on dark ───────────────────────────────────────────── */
+ --blue-700:#1E4E8C;--blue-400:#4F8AD6;--blue-50:#EEF4FB;
+ /* ── Amber: the core. 400 = the one warm spark per view (core dot, counts); 800 text on 50 = "in development"/pending ─ */
  --amber-800:#92400E;--amber-700:#B45309;--amber-400:#F59E0B;--amber-300:#FBB13C;--amber-100:#FDE9C4;--amber-50:#FFF8EB;
- /* ── Neutrals. slate-600 = muted text (7.15 paper); slate-500 only ≥4.5 on white/paper (4.63 paper) — never on --sand */
- --ink:#0F1B2D;--slate-700:#344054;--slate-600:#475467;--slate-500:#667085;--slate-400:#98A2B3;--slate-300:#D0D5DD;--slate-200:#E4E7EC;--slate-100:#EEF1F5;
- /* ── Surfaces (round 6): one cool "frost" family with a whisper of the logo blue, for the public site AND both portals —
-    replaces the warm porcelain paper (that cream was already used by another application). White raised sheets on top. ── */
- --paper:#F4F7FA;      /* page background: public site (ink 16.1, slate-600 7.15, teal-700 5.09) */
- --sand:#EAF0F5;       /* alternate public band (.bg-mist). teal-700 4.76, slate-600 6.69, amber-800 6.17 */
- --stone:#DCE4EC;      /* pressed/selected on paper, decorative rules on sand */
- --mist:#EEF2F7;       /* tonal block inside sections (public); re-scoped in the portals (shell.css) */
- --canvas:#F4F7FA;     /* portal canvas = the page background, so all three areas share one ground */
- --white:#FFFFFF;
+
+ /* ── Ink & neutrals (teal-tinted greys) ─────────────────────────────────────────────────────────────────────── */
+ --ink:#10242A;   /* body text: 17.5 on white, 16.0 on canvas */
+ --ink-2:#3D5258; /* secondary text: 8.2 white, 7.6 canvas */
+ --ink-3:#55696E; /* meta, hints, muted: 5.8 white, 5.4 canvas, 4.9 glass */
+ --ink-4:#5F7378; /* quiet text that must still read: 5.0 white, 4.6 canvas */
+ --gray-400:#8DA0A3;--gray-300:#C3D0CE;--gray-200:#DDE6E4;--gray-100:#EAF0EF;
+
+ /* ── Surfaces: one cool family for the public site AND both portals; white sheets on top ───────────────────────── */
+ --canvas:#F2F5F5;   /* page background (all areas) */
+ --white:#FFFFFF;    /* cards, panels, inputs, tables */
+ --glass:#E3EDEA;    /* alternate public band (pale seafoam) */
+ --mist:#EDF3F1;     /* tonal block inside sections/cards */
+ --stone:#D8E4E1;    /* pressed/selected on canvas */
  /* hairlines (decorative, <3:1 by design — never the only boundary of an input) */
- --line:#DFE5EC;--line-strong:#CBD5E0;--line-cool:#E4E7EC;
+ --line:#D6E1DF;--line-strong:#B9C8C6;--line-cool:#DCE5E3;
+ --line-input:#6E8287;/* input, select, checkbox borders: 4.0 on white (WCAG 1.4.11) */
+ /* on dark (harbor) */
+ --on-dark:#E8F1EF;   /* 14.1 on harbor-800 */
+ --on-dark-2:#B7C9C8; /* 8.4 */
+ --on-dark-3:#8FA6A6; /* 5.8 — meta only */
+ --line-dark:rgba(255,255,255,.14);--line-dark-strong:rgba(255,255,255,.26);
+ --glass-dark:rgba(255,255,255,.08);--glass-dark-2:rgba(255,255,255,.14);
+
  /* status triplets */
  --green-700:#067647;--green-50:#ECFDF3;--green-200:#ABEFC6;
  --red-700:#B42318;--red-800:#912018;--red-50:#FEF3F2;--red-200:#FECDCA;
- --blue-50:#EFF5FB;
- --focus:#0F766E;/* teal ring (5.47 on white); dark surfaces switch to --teal-300 (base.css) */
+ --focus:#0F766E;/* teal ring on light (5.47 on white); dark surfaces switch to --signal-400 (base.css) */
 
- /* ── Semantic aliases (names kept from v0.2/v0.3) ───────────────────────────────────────────────────────── */
- --c-bg:var(--paper);--c-surface:var(--mist);--c-canvas:var(--canvas);--c-raised:var(--white);--c-band:var(--sand);
- --c-text:var(--ink);--c-muted:var(--slate-600);--c-subtle:var(--slate-600);
- --c-border:var(--line);--c-border-card:var(--line);--c-border-strong:var(--line-strong);--c-input-border:var(--slate-500);/* 4.97 on white (WCAG 1.4.11) */
- --c-primary:var(--navy-800);--c-accent:var(--teal-700);--c-highlight:var(--amber-400);
- /* status: available (teal) · planned (slate, dashed) · in development (amber) · members (navy) + success/danger for forms and portals */
+ /* ── Legacy aliases (round 5–8 names → round 9 values). Keep: area files and inline styles use them. ───────────── */
+ --navy-950:var(--harbor-950);--navy-900:var(--harbor-900);--navy-800:var(--harbor-800);--navy-700:var(--harbor-700);--navy-600:var(--harbor-600);
+ --navy-100:#D9E6E3;--navy-50:#EEF4F2;
+ --slate-700:var(--ink-2);--slate-600:var(--ink-3);--slate-500:var(--ink-4);--slate-400:var(--gray-400);--slate-300:var(--gray-300);--slate-200:var(--gray-200);--slate-100:var(--gray-100);
+ --paper:var(--canvas);--sand:var(--glass);
+ --c-bg:var(--canvas);--c-surface:var(--mist);--c-canvas:var(--canvas);--c-raised:var(--white);--c-band:var(--glass);
+ --c-text:var(--ink);--c-muted:var(--ink-3);--c-subtle:var(--ink-3);
+ --c-border:var(--line);--c-border-card:var(--line);--c-border-strong:var(--line-strong);--c-input-border:var(--line-input);
+ --c-primary:var(--harbor-800);--c-accent:var(--teal-700);--c-highlight:var(--signal-400);
  --c-status:var(--amber-800);--c-status-bg:var(--amber-50);--c-status-border:#F3D19B;
  --c-success:var(--green-700);--c-success-bg:var(--green-50);--c-success-border:var(--green-200);
  --c-warning:var(--amber-800);--c-warning-bg:var(--amber-50);--c-warning-border:var(--amber-100);
  --c-danger:var(--red-700);--c-danger-bg:var(--red-50);--c-danger-border:var(--red-200);
- --c-info:var(--navy-800);--c-info-bg:var(--blue-50);--c-info-border:#C9D9EC;
- /* text on dark (navy) surfaces: on-dark 14.2 / muted 9.06 / link 12.35 on navy-950 */
- --on-dark:#DBE4F0;--on-dark-muted:#A9B8CC;--on-dark-link:var(--teal-300);--on-dark-border:rgba(255,255,255,.14);
- --on-dark-soft:#C9D4E3;/* utility + footer links on navy-950: 12.6 */--on-dark-faint:#9FB0C7;/* footer legal row: 8.27 */
- /* tinted hairlines and inks used by components (keep raw hex out of component files) */
- --line-teal:#A7E3D8;--line-navy:#C9D5E6;--line-info:#D3DEEC;--line-success:#C3EBE2;--ring-check:#BDEBE1;
- --ink-success:#0B4A45;/* 10.9 on teal-50 */--ink-danger:#7A271A;/* 9.0 on red-50 */
- --portal-hover:#F2F4F7;--portal-head:#F9FAFB;--portal-line-strong:#D0D5DD;--sheen:#F7F8FA;
+ --c-info:var(--blue-700);--c-info-bg:var(--blue-50);--c-info-border:#C9D9EC;
+ --on-dark-muted:var(--on-dark-2);--on-dark-link:var(--signal-400);--on-dark-border:var(--line-dark);
+ --on-dark-soft:#C9D8D7;--on-dark-faint:var(--on-dark-3);
+ --line-teal:#A6E7D3;--line-navy:#C3D2D0;--line-info:#CFDDEC;--line-success:#C3EBE2;--ring-check:#BDEBE1;
+ --ink-success:#0B4A45;--ink-danger:#7A271A;
+ --portal-hover:#EEF4F2;--portal-head:#F6F9F8;--portal-line-strong:#C9D5D3;--sheen:#F7FAF9;
 
- /* ── Type: Newsreader (display, ≥20px only) · Inter (UI/body) · IBM Plex Mono (eyebrows, metadata) ────────── */
- --font-display:"Newsreader",Georgia,serif;--font-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;--font-mono:"IBM Plex Mono",ui-monospace,monospace;
- --fw-display:460;--fw-h2:480;
- --fs-display:clamp(2.75rem,1.95rem + 3.2vw,4.75rem);/* 44 → 76 */
- --fs-h1:clamp(2.25rem,1.75rem + 2vw,3.5rem);/* 36 → 56 */
- --fs-h2:clamp(1.875rem,1.6rem + 1.1vw,2.625rem);/* 30 → 42 */
- --fs-statement:clamp(1.625rem,1.35rem + 1.1vw,2.25rem);/* 26 → 36, Newsreader 400 */
+ /* ── Type: Newsreader light (display) · Figtree (UI/body) · system mono (codes) ─────────────────────────────── */
+ --font-display:"Newsreader",Georgia,serif;--font-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;--font-mono:var(--font-body);/* round-5 metadata voice → UI face */--font-code:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+ --fw-display:300;--fw-h2:500;--fw-serif:350;
+ --fs-display:clamp(3rem,1.95rem + 4.3vw,5.5rem);/* 48 → 88 */
+ --fs-h1:clamp(2.5rem,1.85rem + 2.65vw,4.25rem);/* 40 → 68 */
+ --fs-h2:clamp(1.875rem,1.6rem + 1.15vw,2.75rem);/* 30 → 44 (Figtree 500) */
+ --fs-statement:clamp(1.75rem,1.4rem + 1.4vw,2.625rem);/* 28 → 42 (Newsreader 300) */
  --fs-h2-compact:clamp(1.5rem,1.35rem + .6vw,1.875rem);/* 24 → 30 */
+ --fs-num:clamp(2.75rem,2.2rem + 2.2vw,4.25rem);/* big serif numerals 44 → 68 */
  --fs-h3:1.25rem;--fs-card-h:1.125rem;--fs-h4:1rem;
  --fs-lead:clamp(1.125rem,1.06rem + .3vw,1.3125rem);/* 18 → 21 */
  --fs-base:1.0625rem;/* 17px public body; portals use --fs-ui */
- --fs-ui:.9375rem;--fs-sm:.875rem;--fs-xs:.75rem;--fs-2xs:.6875rem;--fs-meta:.75rem;
+ --fs-ui:.9375rem;--fs-sm:.875rem;--fs-xs:.75rem;--fs-2xs:.75rem;--fs-meta:.75rem;
  --fs-lg:1.125rem;--fs-xl:var(--fs-h3);--fs-2xl:1.75rem;--fs-3xl:var(--fs-h2);--fs-4xl:var(--fs-h1);/* back-compat */
- --lh-tight:1.08;--lh-snug:1.3;--lh-body:1.6;--num-size:32px;
- --track-display:-.028em;--track-meta:.08em;
+ --lh-tight:1.06;--lh-snug:1.3;--lh-body:1.65;--num-size:36px;
+ --track-display:-.022em;--track-h2:-.025em;--track-meta:.16em;
 
  /* ── Space & layout ─────────────────────────────────────────────────────────────────────────────────────── */
  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;--sp-8:64px;--sp-9:96px;--sp-10:128px;
- --section-y:clamp(56px,2.5rem + 4vw,96px);/* 56 @390 → 96 @1440 */
- --section-y-lg:clamp(72px,3rem + 5.4vw,128px);/* statement sections */
- --hero-pad:clamp(48px,2rem + 4vw,88px);--hero-min:0px;
- --gutter:24px;--container:1200px;--container-wide:1320px;--container-text:760px;--target-min:44px;
- --header-h:72px;--util-h:34px;
+ --section-y:clamp(64px,2.6rem + 4.6vw,120px);/* 64 @390 → 120 @1440 */
+ --section-y-lg:clamp(80px,3rem + 6.4vw,152px);
+ --hero-pad:clamp(56px,2.5rem + 4.6vw,112px);--hero-min:0px;
+ --gutter:clamp(20px,4.45vw,64px);/* 20 @390 · 37 @834 · 64 @1440 */
+ --container:1400px;/* content 1272px at ≥1440 (Kubrick's measure) */
+ --container-wide:1520px;--container-text:760px;--target-min:44px;
+ --header-h:84px;--util-h:34px;
 
- /* ── Radius, elevation, motion ──────────────────────────────────────────────────────────────────────────── */
- --r-xs:4px;--r-sm:6px;--r-md:10px;--r-panel:12px;--r-lg:16px;--r-xl:24px;--r-pill:999px;
- --cut:22px;/* facet cut (30° chamfer): horizontal run = --cut × 1.732 */
- --shadow-0:0 1px 2px rgba(15,27,45,.05);--shadow-card:none;
- --shadow-hover:0 1px 2px rgba(15,27,45,.04),0 14px 32px -16px rgba(11,37,69,.24);
- --shadow-pop:0 0 0 1px rgba(15,27,45,.06),0 18px 44px -14px rgba(11,37,69,.30);
+ /* ── Shape: square containers, round actions ────────────────────────────────────────────────────────────── */
+ --r-xs:2px;--r-sm:2px;--r-md:0px;--r-panel:0px;--r-lg:0px;--r-xl:0px;--r-pill:999px;--r-field:0px;
+ --cut:22px;/* legacy facet cut (no longer used for new work) */
+ --shadow-0:none;--shadow-card:none;
+ --shadow-hover:0 1px 0 rgba(16,36,42,.04),0 24px 48px -28px rgba(16,36,42,.42);
+ --shadow-pop:0 0 0 1px rgba(16,36,42,.06),0 28px 60px -22px rgba(10,26,31,.45);
  --shadow-1:var(--shadow-0);--shadow-2:var(--shadow-pop);
- --ease-out:cubic-bezier(.2,.7,.2,1);--dur-1:120ms;--dur-2:200ms;--dur-3:320ms;--dur-4:520ms;
+ /* ── Motion ─────────────────────────────────────────────────────────────────────────────────────────────── */
+ --ease-out:cubic-bezier(.22,1,.36,1);--ease-io:cubic-bezier(.65,0,.35,1);
+ --dur-1:140ms;--dur-2:240ms;--dur-3:380ms;--dur-4:600ms;
 
- /* ── Brand graphics ─────────────────────────────────────────────────────────────────────────────────────── */
- /* isometric lattice tile (lines at 30°/150°/90°, 52×30 ≈ s√3 × s for s=30) — navy 7% on light, white 5.5% on dark */
- --lattice:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='30' viewBox='0 0 52 30' fill='none' stroke='%230B2545' stroke-opacity='.075' stroke-width='1'%3E%3Cpath d='M0 0L52 30M0 30L52 0M.5 0V30M26.5 0V30'/%3E%3C/svg%3E");
- --lattice-dark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='52' height='30' viewBox='0 0 52 30' fill='none' stroke='%23FFFFFF' stroke-opacity='.055' stroke-width='1'%3E%3Cpath d='M0 0L52 30M0 30L52 0M.5 0V30M26.5 0V30'/%3E%3C/svg%3E");
- --lattice-size:52px 30px;
- --grad-rule:linear-gradient(90deg,var(--face-top) 0 33.3%,var(--face-right) 33.3% 66.6%,var(--face-left) 66.6%);/* the three faces as a rule */
- --grad-navy:linear-gradient(160deg,var(--navy-900) 0%,var(--navy-950) 100%);
- --glow-teal:radial-gradient(900px 420px at 88% -10%,rgba(94,234,212,.10),transparent 60%);
- --surface-navy:var(--glow-teal),var(--lattice-dark) 0 0/var(--lattice-size),var(--grad-navy);
- /* legacy motifs (round 4) — kept so older area rules still resolve; new work uses the lattice + assemblies */
- --motif-hex:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 460' fill='none' stroke='%235EEAD4' stroke-width='1.2'%3E%3Cpath d='M200 10 390 120v220L200 450 10 340V120z' opacity='.45'/%3E%3Cpath d='M200 90 320 160v140l-120 70-120-70V160z'/%3E%3Cpath d='M200 230 320 160M200 230 80 160M200 230v140'/%3E%3C/svg%3E");
- --motif-hex-hero:var(--motif-hex);
- --hex-lattice:var(--lattice-dark);
- --chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23475467' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+ /* ── Brand graphics: the signal field (halftone on an isometric lattice) ─────────────────────────────────────── */
+ --sig-edge:url("/assets/signal/edge.svg");--sig-edge-light:url("/assets/signal/edge-light.svg");--sig-corner:url("/assets/signal/corner.svg");
+ --sig-ring:url("/assets/signal/ring.svg");--sig-grid:url("/assets/signal/grid.svg");--sig-cluster:url("/assets/signal/cluster.svg");--sig-strip:url("/assets/signal/strip.svg");--sig-strip-sm:url("/assets/signal/strip-sm.svg");
+ /* dot lattice tiles (isometric, 24 × 41.57): ink dots on light, white dots on dark — the round-5 line lattice, now as dots */
+ --lattice:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='41.57' viewBox='0 0 24 41.57' fill='%2310242A' fill-opacity='.11'%3E%3Ccircle cx='0' cy='0' r='1.1'/%3E%3Ccircle cx='24' cy='0' r='1.1'/%3E%3Ccircle cx='12' cy='20.78' r='1.1'/%3E%3Ccircle cx='0' cy='41.57' r='1.1'/%3E%3Ccircle cx='24' cy='41.57' r='1.1'/%3E%3C/svg%3E");
+ --lattice-dark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='41.57' viewBox='0 0 24 41.57' fill='%23FFFFFF' fill-opacity='.09'%3E%3Ccircle cx='0' cy='0' r='1.1'/%3E%3Ccircle cx='24' cy='0' r='1.1'/%3E%3Ccircle cx='12' cy='20.78' r='1.1'/%3E%3Ccircle cx='0' cy='41.57' r='1.1'/%3E%3Ccircle cx='24' cy='41.57' r='1.1'/%3E%3C/svg%3E");
+ --lattice-size:24px 41.57px;
+ /* progress rule: a 3px segment over the first 30% of a hairline (numbered items, pillars, KPI tiles) */
+ --grad-rule:linear-gradient(90deg,var(--harbor-800) 0 30%,transparent 30%);
+ --grad-rule-dark:linear-gradient(90deg,var(--signal-400) 0 30%,transparent 30%);
+ --grad-navy:linear-gradient(170deg,var(--harbor-800) 0%,var(--harbor-900) 100%);
+ --glow-teal:radial-gradient(800px 420px at 90% -10%,rgba(43,238,173,.08),transparent 62%);
+ --surface-navy:var(--glow-teal),var(--harbor-800);
+ /* legacy motifs (round 4) — kept so older area rules still resolve */
+ --motif-hex:var(--sig-edge);--motif-hex-hero:var(--sig-edge);--hex-lattice:var(--lattice-dark);
+ /* small UI glyphs (data URIs) */
+ --chevron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%2310242A' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+ --chevron-light:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%23E8F1EF' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
  --check-mark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' stroke='%230F766E' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
  --check-mark-white:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' stroke='%23FFFFFF' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+ /* button arrows (the core dot grows into these on hover): harbor arrow on signal/white dots, signal arrow on harbor dots */
+ --arrow-harbor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h9M8.5 4.5L12 8l-3.5 3.5' stroke='%23152B32' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+ --arrow-signal:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h9M8.5 4.5L12 8l-3.5 3.5' stroke='%232BEEAD' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+ --arrow-white:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8h9M8.5 4.5L12 8l-3.5 3.5' stroke='%23FFFFFF' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-@media(max-width:640px){:root{--header-h:60px;--gutter:20px}}
+@media(max-width:640px){:root{--header-h:64px}}

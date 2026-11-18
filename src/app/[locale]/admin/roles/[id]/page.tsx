@@ -42,7 +42,7 @@ export default async function AdminRole({ params, searchParams }: { params: Prom
   // Why the form is read-only (the server refuses the same cases): system role, own role, more powerful role, or no roles.edit.
   const note = role.isSystem ? t("superNote") : own ? t("ownRoleNote") : !isSubset(perms, ctx.permissions) ? t("targetNote") : !editable ? ta("readOnly") : null;
   const notice = msg && /^(msg|err)_\w+$/.test(msg) && t.has(msg) ? { cls: msg.startsWith("err_") ? "alert-danger" : "alert-success", text: t(msg) } : null;
-  const hid = <><input type="hidden" name="locale" value={locale} /><input type="hidden" name="id" value={role.id} /></>;
+  const hid = <><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="id" value={role.id} /></>;
 
   return (
     <div className="app adm"><AdminNav locale={locale} current="/admin/roles" />
@@ -71,12 +71,12 @@ export default async function AdminRole({ params, searchParams }: { params: Prom
                 {n > 0 ? (
                   <div className="save-row rl-del-blocked">
                     <p className="save-row-note" id="rl-del-why">{t("deleteInUse", { n })}{canUsers && <> <a href={usersHref}>{t("viewUsers")}</a></>}</p>
-                    <button type="button" className="btn btn-danger-outline" disabled aria-describedby="rl-del-why"><Icon name="trash" size={18} />{t("deleteButton")}</button>
+                    <button suppressHydrationWarning type="button" className="btn btn-danger-outline" disabled aria-describedby="rl-del-why"><Icon name="trash" size={18} />{t("deleteButton")}</button>
                   </div>
                 ) : (
                   <form action={deleteRole} className="save-row">{hid}
-                    <label className="check"><input type="checkbox" name="confirm" required /> <span>{t("deleteConfirm")}</span></label>
-                    <button className="btn btn-danger-outline"><Icon name="trash" size={18} />{t("deleteButton")}</button>
+                    <label className="check"><input suppressHydrationWarning type="checkbox" name="confirm" required /> <span>{t("deleteConfirm")}</span></label>
+                    <button suppressHydrationWarning className="btn btn-danger-outline"><Icon name="trash" size={18} />{t("deleteButton")}</button>
                   </form>
                 )}
               </div>

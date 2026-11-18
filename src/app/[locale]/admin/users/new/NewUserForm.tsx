@@ -2,7 +2,7 @@
 import { useActionState, useEffect, useRef, startTransition, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { createAdminUser, type UserFormState } from "../actions";
-import { PasswordField } from "../PasswordField";
+import { PasswordField, PwRules } from "../PasswordField";
 import { Icon } from "@/components/ui/Icon";
 
 type Field = NonNullable<UserFormState["field"]>;
@@ -40,7 +40,7 @@ export function NewUserForm({ locale, roles, cancelHref }: { locale: string; rol
 
   return (
     <form action={action} onSubmit={submit} className="adm-sheet acc-form" aria-labelledby="h-new-user" noValidate data-testid="new-user-form">
-      <input type="hidden" name="locale" value={locale} />
+      <input suppressHydrationWarning type="hidden" name="locale" value={locale} />
       {/* Each error is shown once. A field error is announced under its field (role=alert there) and this summary only points to
           that field; an error that concerns no field (session, permission) is announced here. */}
       {state.error && (state.field
@@ -53,13 +53,13 @@ export function NewUserForm({ locale, roles, cancelHref }: { locale: string; rol
         <div className="adm-fields"><div className="adm-form-grid">
           <div className={fieldCls("name")}>
             <label htmlFor="u-name">{t("f_name")}</label>
-            <input id="u-name" name="name" type="text" autoComplete="off" required maxLength={100} defaultValue={state.name ?? ""} key={`n-${state.name ?? ""}`}
+            <input suppressHydrationWarning id="u-name" name="name" type="text" autoComplete="off" required maxLength={100} defaultValue={state.name ?? ""} key={`n-${state.name ?? ""}`}
               aria-invalid={err("name") ? true : undefined} aria-describedby={describe("name", "u-name")} />
             {err("name") && <span className="error-msg" id="u-name-err" role="alert">{err("name")}</span>}
           </div>
           <div className={fieldCls("email")}>
             <label htmlFor="u-email">{t("f_email")}</label>
-            <input id="u-email" name="email" type="email" autoComplete="off" spellCheck={false} autoCapitalize="off" required maxLength={254} defaultValue={state.email ?? ""} key={`e-${state.email ?? ""}`}
+            <input suppressHydrationWarning id="u-email" name="email" type="email" autoComplete="off" spellCheck={false} autoCapitalize="off" required maxLength={254} defaultValue={state.email ?? ""} key={`e-${state.email ?? ""}`}
               aria-invalid={err("email") ? true : undefined} aria-describedby={describe("email", "u-email", err("email") ? undefined : "u-email-h")} />
             {err("email") && <span className="error-msg" id="u-email-err" role="alert">{err("email")}</span>}
             {/* the hint restates the rule: hidden while the field shows its error (no third copy) */}
@@ -75,7 +75,7 @@ export function NewUserForm({ locale, roles, cancelHref }: { locale: string; rol
             <PasswordField id="u-pw" name="password" label={t("f_password")} error={err("password")} describedBy="u-pw-h" />
             <PasswordField id="u-pw2" name="confirm" label={t("f_confirm")} error={err("confirm")} />
           </div>
-          <p className="hint acc-pw-rules" id="u-pw-h"><span>{t("pwHint")}</span></p>
+          <p className="hint acc-pw-rules" id="u-pw-h"><span><PwRules text={t("pwHint")} /></span></p>
         </div>
       </div>
 
@@ -84,7 +84,7 @@ export function NewUserForm({ locale, roles, cancelHref }: { locale: string; rol
         <div className="adm-fields">
           <div className="adm-form-grid"><div className={fieldCls("role")}>
             <label htmlFor="u-role">{t("f_role")}</label>
-            <select id="u-role" name="roleId" required defaultValue={state.roleId ?? ""} key={`r-${state.roleId ?? ""}`}
+            <select suppressHydrationWarning id="u-role" name="roleId" required defaultValue={state.roleId ?? ""} key={`r-${state.roleId ?? ""}`}
               aria-invalid={err("role") ? true : undefined} aria-describedby={describe("role", "u-role", "u-role-h")}>
               <option value="" disabled>{t("chooseRole")}</option>
               {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -94,7 +94,8 @@ export function NewUserForm({ locale, roles, cancelHref }: { locale: string; rol
           </div></div>
           {roles.some((r) => r.description) && (
             <dl className="acc-role-help">
-              {roles.filter((r) => r.description).map((r) => <div key={r.id}><dt>{r.name}</dt><dd>{r.description}</dd></div>)}
+              {/* data-opt = the role's <option> position in #u-role (after "Choose a role"): CSS highlights the chosen role's line. */}
+              {roles.filter((r) => r.description).map((r) => <div key={r.id} data-opt={roles.indexOf(r) + 2} className={r.super ? "is-super" : undefined}><dt>{r.name}</dt><dd>{r.description}</dd></div>)}
             </dl>
           )}
         </div>
@@ -102,7 +103,7 @@ export function NewUserForm({ locale, roles, cancelHref }: { locale: string; rol
 
       <div className="save-row adm-sheet-foot">
         <a className="btn btn-ghost" href={cancelHref}>{t("cancel")}</a>
-        <button className="btn btn-accent" disabled={pending} aria-busy={pending || undefined}>{pending ? t("working") : t("createButton")}</button>
+        <button suppressHydrationWarning className="btn btn-accent" disabled={pending} aria-busy={pending || undefined}>{pending ? t("working") : t("createButton")}</button>
       </div>
     </form>
   );

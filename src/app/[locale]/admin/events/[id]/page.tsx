@@ -61,7 +61,7 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
   const base = L(`/admin/events/${e.id}`);
   const href = (k: RegView) => { const p = new URLSearchParams(); if (k !== "all") p.set("v", k); if (q) p.set("q", q); const s = p.toString(); return `${base}${s ? `?${s}` : ""}#registrations`; };
   const csvHref = (() => { const p = new URLSearchParams(); if (view !== "all") p.set("v", view); if (q) p.set("q", q); const s = p.toString(); return `/api/admin/events/${e.id}/registrations.csv${s ? `?${s}` : ""}`; })();
-  const hid = <><input type="hidden" name="id" value={e.id} /><input type="hidden" name="locale" value={locale} /><input type="hidden" name="v" value={view} /><input type="hidden" name="q" value={q} /></>;
+  const hid = <><input suppressHydrationWarning type="hidden" name="id" value={e.id} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="v" value={view} /><input suppressHydrationWarning type="hidden" name="q" value={q} /></>;
   const msg = sp.msg ?? "";
   const alertCls = OK.has(msg) ? "alert-success" : INFO.has(msg) ? "alert-info" : ERR.has(msg) ? "alert-danger" : null;
   const revenue = paid.map((p) => fmt2(p._sum.amountCents ?? 0, p.currency as Currency, locale)).join(" · ");
@@ -138,9 +138,9 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
               {hid}
               <SelectAll formId={BULK} label={t("selectAll")} />
               <div className="adm-actions">
-                <button className="btn btn-accent btn-sm" name="to" value="1" disabled={!canMark} aria-describedby={!started && !e.cancelledAt ? "att-off" : undefined}>{t("bulkAttended")}</button>
+                <button suppressHydrationWarning className="btn btn-accent btn-sm" name="to" value="1" disabled={!canMark} aria-describedby={!started && !e.cancelledAt ? "att-off" : undefined}>{t("bulkAttended")}</button>
                 {/* Undo only: off while nobody is marked attended (same disabled look as the button above). */}
-                <button className="btn btn-secondary btn-sm" name="to" value="0" disabled={attendedTotal === 0} aria-describedby={attendedTotal === 0 ? "att-none" : undefined}>{t("bulkNotAttended")}</button>
+                <button suppressHydrationWarning className="btn btn-secondary btn-sm" name="to" value="0" disabled={attendedTotal === 0} aria-describedby={attendedTotal === 0 ? "att-none" : undefined}>{t("bulkNotAttended")}</button>
               </div>
               <p className="small muted adm-ev-hint">{t("bulkHint")}{attendedTotal === 0 && <span id="att-none"> {t("noneAttendedYet")}</span>}</p>
             </form>}
@@ -149,7 +149,7 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
               <tbody>{regs.map((r) => { const credit = creditBy.get(r.userId); const deleted = r.user.role === "deleted"; return (
                 <tr key={r.id}>
                   <td data-label={t("colPerson")} className="adm-cell-person"><div className="adm-ev-person">
-                    {!canEdit ? null : r.status === "confirmed" ? <label className="adm-hit"><input type="checkbox" name="ids" value={r.id} form={BULK} aria-label={t("selectRow", { name: r.user.name })} /></label> : <span className="adm-ev-nocheck" aria-hidden="true" />}
+                    {!canEdit ? null : r.status === "confirmed" ? <label className="adm-hit"><input suppressHydrationWarning type="checkbox" name="ids" value={r.id} form={BULK} aria-label={t("selectRow", { name: r.user.name })} /></label> : <span className="adm-ev-nocheck" aria-hidden="true" />}
                     <div className="adm-person">{personHref(r.user) ? <a href={personHref(r.user)!}>{r.user.name}</a> : <b>{r.user.name}</b>}{deleted ? <span><span className="badge">{t("deletedAccount")}</span></span> : <span className="small">{r.user.email}</span>}</div>
                   </div></td>
                   <td data-label={t("colTicket")}>{r.ticket === "member" ? tev("member") : tev("nonMember")}</td>
@@ -159,11 +159,11 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
                   <td data-label={t("colAttended")}>{r.attended ? <div className="adm-person"><span><span className="status status-available">{t("attended")}</span></span>{credit !== undefined && <span className="small muted">{t("cpeCredited", { cpe: fmtCpe(credit, locale) })}</span>}</div> : <span className="small muted">{r.status === "confirmed" ? t("notRecorded") : "—"}</span>}</td>
                   {canEdit && <td className="adm-col-actions"><div className="adm-actions">
                     {r.status === "confirmed" && (r.attended
-                      ? <form action={setAttendance}>{hid}<input type="hidden" name="r" value={r.id} /><input type="hidden" name="to" value="0" /><button className="btn btn-ghost btn-sm" aria-label={`${t("unmark")}: ${r.user.name}`}>{t("unmark")}</button></form>
-                      : canMark && <form action={setAttendance}>{hid}<input type="hidden" name="r" value={r.id} /><input type="hidden" name="to" value="1" /><button className="btn btn-accent btn-sm" aria-label={`${t("markAttended")}: ${r.user.name}`}>{t("markAttended")}</button></form>)}
+                      ? <form action={setAttendance}>{hid}<input suppressHydrationWarning type="hidden" name="r" value={r.id} /><input suppressHydrationWarning type="hidden" name="to" value="0" /><button suppressHydrationWarning className="btn btn-ghost btn-sm" aria-label={`${t("unmark")}: ${r.user.name}`}>{t("unmark")}</button></form>
+                      : canMark && <form action={setAttendance}>{hid}<input suppressHydrationWarning type="hidden" name="r" value={r.id} /><input suppressHydrationWarning type="hidden" name="to" value="1" /><button suppressHydrationWarning className="btn btn-accent btn-sm" aria-label={`${t("markAttended")}: ${r.user.name}`}>{t("markAttended")}</button></form>)}
                     {canCancelReg(r) ? (
                       <details className="confirm adm-confirm"><summary className="btn btn-danger-outline btn-sm" aria-label={`${t("cancelReg")}: ${r.user.name}`}>{t("cancelRegShort")}…</summary>
-                        <form action={cancelRegistration} className="confirm-box">{hid}<input type="hidden" name="r" value={r.id} /><p>{t("cancelRegConfirm", { name: r.user.name })}</p><div className="confirm-actions"><button className="btn btn-danger btn-sm">{t("cancelRegYes")}</button></div></form>
+                        <form action={cancelRegistration} className="confirm-box">{hid}<input suppressHydrationWarning type="hidden" name="r" value={r.id} /><p>{t("cancelRegConfirm", { name: r.user.name })}</p><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-danger btn-sm">{t("cancelRegYes")}</button></div></form>
                       </details>
                     ) : r.status === "confirmed" && <span className="small muted">{t("paidNoCancel")}</span>}
                   </div></td>}
@@ -180,13 +180,13 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
           <EventFormHelper storageKey={`edit-${e.id}`} userId={me.id} restore={EDIT_REFUSALS.has(msg)} noticeId="adm-ev-notice" msgs={{ required: t("fieldRequired"), date: t("fieldDate"), range: String(t.raw("fieldRange")) }} />
           <div className="settings-section"><header><h3>{t("secAddress")}</h3></header>
             <div className="adm-fields"><div className="field adm-ev-slug"><label htmlFor="e-sl">{t("slug")}</label>
-              <input type="text" id="e-sl" name="slug" defaultValue={e.slug} maxLength={80} pattern="[a-z0-9]+(-[a-z0-9]+)*" readOnly={anyRegs > 0} aria-describedby="e-sl-h" />
+              <input suppressHydrationWarning type="text" id="e-sl" name="slug" defaultValue={e.slug} maxLength={80} pattern="[a-z0-9]+(-[a-z0-9]+)*" readOnly={anyRegs > 0} aria-describedby="e-sl-h" />
               <span className="hint" id="e-sl-h">{anyRegs > 0 ? t("slugLockedHint") : t("slugHint")}</span></div></div>
           </div>
           <div className="savebar">
             {e.cancelledAt ? <span className="savebar-note">{t("cancelledNoPublish")}</span>
-              : <label className="check"><input type="checkbox" name="published" defaultChecked={e.published} /> <span>{t("publishedLabel")}</span></label>}
-            <button className="btn btn-accent">{t("save")}</button>
+              : <label className="check"><input suppressHydrationWarning type="checkbox" name="published" defaultChecked={e.published} /> <span>{t("publishedLabel")}</span></label>}
+            <button suppressHydrationWarning className="btn btn-accent">{t("save")}</button>
           </div>
         </form>}
 
@@ -195,16 +195,16 @@ export default async function AdminEvent({ params, searchParams }: { params: Pro
           <div className="adm-fields">
           {!canEdit ? null : e.cancelledAt ? (
             <div className="danger-row"><div><b>{t("restoreBtn")}</b><p>{t("restoreBody")}</p></div>
-              <form action={restoreEvent}>{hid}<button className="btn btn-secondary btn-sm">{t("restoreBtn")}</button></form></div>
+              <form action={restoreEvent}>{hid}<button suppressHydrationWarning className="btn btn-secondary btn-sm">{t("restoreBtn")}</button></form></div>
           ) : (
             <div className="danger-row"><div><b>{t("cancelBtn")}</b><p>{t("cancelBody")}</p></div>
               <details className="confirm adm-confirm"><summary className="btn btn-danger-outline btn-sm">{t("cancelBtn")}…</summary>
-                <form action={cancelEvent} className="confirm-box">{hid}<p>{t("cancelConfirm", { title: v.title })}</p><div className="confirm-actions"><button className="btn btn-danger btn-sm">{t("cancelYes")}</button></div></form>
+                <form action={cancelEvent} className="confirm-box">{hid}<p>{t("cancelConfirm", { title: v.title })}</p><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-danger btn-sm">{t("cancelYes")}</button></div></form>
               </details></div>
           )}
           {canDelete && <div className="danger-row"><div><b>{t("deleteBtn")}</b><p>{anyRegs === 0 ? t("deleteBody") : t("deleteBlocked")}</p></div>
             {anyRegs === 0 && <details className="confirm adm-confirm"><summary className="btn btn-danger-outline btn-sm">{t("deleteBtn")}…</summary>
-              <form action={deleteEvent} className="confirm-box">{hid}<p>{t("deleteConfirm", { title: v.title })}</p><div className="confirm-actions"><button className="btn btn-danger btn-sm">{t("deleteYes")}</button></div></form>
+              <form action={deleteEvent} className="confirm-box">{hid}<p>{t("deleteConfirm", { title: v.title })}</p><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-danger btn-sm">{t("deleteYes")}</button></div></form>
             </details>}</div>}
           </div>
         </div></section>}

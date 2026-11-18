@@ -35,7 +35,7 @@ export default async function TicketCheckout({ params, searchParams }: { params:
           <li className="ev-total"><span>{t("total")}</span><b>{fmt2(r.amountCents, cur, locale)}</b></li>
         </ul>
         {payErr && <div className="alert alert-danger" role="alert"><Icon name="x-circle" /><div><b>{t("payUnavailable")}</b>{t("payUnavailableBody")}</div></div>}
-        {!stripe && mock && <form action={completeMockTicket}><input type="hidden" name="r" value={r.id} /><input type="hidden" name="locale" value={locale} /><button className="btn btn-accent btn-block">{t("payMock")} {fmt2(r.amountCents, cur, locale)}</button></form>}
+        {!stripe && mock && <form action={completeMockTicket}><input suppressHydrationWarning type="hidden" name="r" value={r.id} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><button suppressHydrationWarning className="btn btn-accent btn-block">{t("payMock")} {fmt2(r.amountCents, cur, locale)}</button></form>}
         <p className="small ev-back"><a className="link-tap" href={`/${locale}/events/${slug}`}>← {t("back")}</a></p>
       </div>
     </div></section></main>

@@ -8,6 +8,7 @@ import { fmtDate, fmtTime, dayMonth, hasEnded } from "../_shared/util";
 import { AccessInfo, accessText } from "../_shared/AccessInfo";
 import { memberMetadata } from "../_shared/meta";
 import { PageHead, SectionHead, noArrow } from "../_shared/ui";
+import { TabBarFocus } from "../_shared/TabBarFocus";
 import { EmptyState, Status } from "@/components/ui/Facet";
 import { Icon } from "@/components/ui/Icon";
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export default async function MyEvents({ params }: { params: Promise<{ locale: L
   const L = (p: string) => `/${locale}${p}`;
   const td = await getTranslations("dash");
   return (
-    <div className="app"><MemberNav locale={locale} current="/my/events" />
+    <div className="app"><MemberNav locale={locale} current="/my/events" /><TabBarFocus />
       <main id="main" tabIndex={-1} className="app-main mbr mbr-events-page">
         <PageHead title={t("title")} lead={t("lead")} actions={<a className="btn btn-primary" href={L("/events")}><Icon name="calendar" size={18} />{t("browse")}</a>} />
 
@@ -58,14 +59,14 @@ export default async function MyEvents({ params }: { params: Promise<{ locale: L
             })}</ul>
           ) : (
             // The page header already offers "Browse events": no second identical button here (QA-PORTALS-17).
-            <EmptyState level={3} title={td("noEventsD")}>{t("noUpcoming")}</EmptyState>
+            <div className="mbr-empty-sm"><EmptyState level={3} title={td("noEventsD")}>{t("noUpcoming")}</EmptyState></div>
           )}
         </section>
 
         <section className="mbr-section" aria-labelledby="h-past">
           <SectionHead id="h-past" title={t("past")} count={past.length || undefined} />
           {past.length ? (
-            <div className="table-wrap" tabIndex={0} role="region" aria-labelledby="h-past"><table>
+            <div className="table-wrap mbr-table-stack" tabIndex={0} role="region" aria-labelledby="h-past"><table>
               <thead><tr><th>{t("colEvent")}</th><th>{t("colDate")}</th><th className="num">{t("colCpe")}</th><th>{t("colAttendance")}</th></tr></thead>
               <tbody>{past.map((r) => <tr key={r.id}>
                 <td><a href={L(`/events/${r.event.slug}`)}>{eventView(r.event, locale).title}</a></td>

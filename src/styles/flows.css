@@ -1,0 +1,479 @@
+/* flows.css — round 9 "Signal" (spec reports/round9/DESIGN_R9.md): the public conversion flows.
+   Membership (/membership) · Join (/join) · Events (/events, /events/[slug], checkout) + the EventCard component · Contact (/contact) ·
+   Sign in / create account / password reset (/login, /signup, /forgot-password, /reset-password).
+   Loaded after pages.css (globals.css), so these page-scoped selectors win over the shared interior rules there. Tokens only.
+   Dark islands (featured tier, enterprise "talk to us" card, join aside, event facts) set the on-dark context colours themselves,
+   because base.css lists .card/.tier as white islands. */
+
+/* ═══ 0. Shared: dark islands + the section heroes ════════════════════════════════════════════════════════════════ */
+:is(.mship-page .tier.featured,.mship-page .mship-ent-sec .mship-talk,.join-page .join-next,.join-page .join-next-m,.event-detail .ev-facts){
+ --tx:var(--on-dark);--tx-2:var(--on-dark-2);--tx-3:var(--on-dark-3);--hd:var(--white);--acc:var(--signal-400);--acc-hover:var(--signal-300);--focus-c:var(--signal-400);
+ color:var(--tx);background:var(--harbor-800);border-color:var(--harbor-800);box-shadow:none}
+/* heroes: the signal field (size, fade, the phone band above the copy) comes from the foundation (components.css .page-hero), so
+   these pages match the content pages; only the event page adds its own rules (the rising cards, a muted field for past events) */
+
+/* ═══ 1. Membership (/membership) ═════════════════════════════════════════════════════════════════════════════════ */
+.mship-page .mship-dues{margin-bottom:clamp(40px,1.5rem + 2vw,64px)}
+.mship-page .grid.mship-tiers{grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-5);align-items:stretch}
+/* the three white tiers: serif name, short description, checks on a hairline, the action at the bottom */
+.mship-page .tier{padding:var(--sp-6);gap:0;border-color:var(--line)}
+.mship-page .tier .tier-head{display:grid;gap:var(--sp-2);margin-bottom:var(--sp-5)}
+.mship-page .tier .tier-head h3{margin:0;font:300 clamp(1.75rem,1.5rem + .7vw,2.125rem)/1.08 var(--font-display);letter-spacing:-.02em;font-variation-settings:"opsz" 60;color:var(--hd)}
+.mship-page .tier .tier-head p{margin:0;font-size:.9375rem;line-height:1.55;color:var(--tx-2)}
+.mship-page .tier:not(.featured) .tier-head p{min-height:4.65em}
+.mship-page .tier .checks{margin:0;padding-top:var(--sp-5);border-top:1px solid var(--line);font-size:.9375rem;line-height:1.5;gap:10px}
+.mship-page .tier .checks li::before{top:1px}
+.mship-page .tier .tier-note{margin:var(--sp-5) 0 0;padding:12px 14px;background:var(--mist);border-left:2px solid var(--teal-700);font-size:.8125rem;line-height:1.5;color:var(--ink-2)}
+.mship-page .tier .card-foot{margin-top:auto;padding-top:var(--sp-6)}
+.mship-page .tier .btn{white-space:normal;text-align:center;line-height:1.3}
+/* the recommended tier = the page's focal point: a Harbor spotlight across the row, light-serif name, signal checks */
+.mship-page .tier.featured{grid-column:1 / -1;position:relative;isolation:isolate;overflow:hidden;display:grid;
+ grid-template-columns:minmax(0,5fr) minmax(0,5fr) minmax(0,3fr);grid-template-areas:"ribbon list ." "head list ." "foot list .";grid-template-rows:auto auto 1fr;
+ column-gap:clamp(32px,1rem + 3vw,72px);padding:clamp(40px,1.5rem + 3vw,80px) clamp(32px,1.5rem + 3.5vw,88px)}
+.mship-page .tier.featured::before{background:linear-gradient(90deg,var(--signal-400) 0 30%,transparent 30%)}
+.mship-page .tier.featured::after{content:"";position:absolute;z-index:-1;pointer-events:none;right:-70px;top:50%;width:min(420px,34%);aspect-ratio:1;translate:0 -50%;
+ background:var(--sig-ring) center/contain no-repeat;opacity:.75}
+.mship-page .tier.featured .ribbon{position:static;grid-area:ribbon;justify-self:start;align-self:start;margin:0 0 var(--sp-5);
+ background:color-mix(in srgb,var(--signal-400) 12%,transparent);border-color:color-mix(in srgb,var(--signal-400) 42%,transparent);color:var(--signal-300)}
+.mship-page .tier.featured .ribbon::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--signal-400)}
+.mship-page .tier.featured .tier-head{grid-area:head;margin:0;gap:var(--sp-4)}
+.mship-page .tier.featured .tier-head h3{font-size:clamp(2.75rem,2rem + 2.4vw,4.25rem);line-height:1;letter-spacing:-.025em;font-variation-settings:"opsz" 72;color:var(--white)}
+.mship-page .tier.featured .tier-head p{font-size:var(--fs-lead);line-height:1.5;max-width:36ch;color:var(--on-dark-2)}
+.mship-page .tier.featured .card-foot{grid-area:foot;align-self:end;margin:0;padding-top:var(--sp-7)}
+.mship-page .tier.featured .card-foot .btn{width:auto;min-width:240px;min-height:56px;font-size:1rem}
+.mship-page .tier.featured .checks{grid-area:list;align-self:center;margin:0;padding:0;border:0;gap:0;font-size:1.0625rem;line-height:1.45;color:var(--on-dark)}
+.mship-page .tier.featured .checks li{padding:var(--sp-5) 0 var(--sp-5) 44px;border-top:1px solid var(--line-dark)}
+.mship-page .tier.featured .checks li:last-child{border-bottom:1px solid var(--line-dark)}
+.mship-page .tier.featured .checks li::before{top:calc(var(--sp-5) - 1px);width:26px;height:26px;
+ background:color-mix(in srgb,var(--signal-400) 14%,transparent) var(--check-mark-white) center/14px no-repeat;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--signal-400) 55%,transparent)}
+/* how joining works (the join form's "What happens next" steps): numbered progress rules on the canvas */
+.mship-page .mship-how{margin-top:clamp(64px,2rem + 4vw,112px)}
+.mship-page .mship-how-head{margin-bottom:clamp(32px,1.5rem + 1.5vw,48px)}
+.mship-page .mship-how h2{margin:0}
+.mship-page .mship-how .num-list p{font-size:.9375rem;line-height:1.6}
+.mship-page .mship-how-help{margin:0}
+/* compare (white band): square table, tracked-caps head, the recommended column in Harbor + a signal tint, round yes marks */
+.mship-page .mship-compare-sec{background:var(--white);border-top:1px solid var(--line)}
+.mship-page .mship-note{margin:var(--sp-3) 0 0;max-width:72ch}
+.mship-page .mship-compare th:not(:first-child),.mship-page .mship-compare td{text-align:center}
+.mship-page .mship-compare{table-layout:fixed;min-width:720px}
+.mship-page .mship-compare col:first-child{width:30%}
+.mship-page .mship-compare td,.mship-page .mship-compare thead th{white-space:nowrap}
+.mship-page .mship-compare thead th{padding:18px;background:var(--mist);color:var(--ink-3);font-size:.75rem;letter-spacing:.12em}
+.mship-page .mship-compare thead th:first-child{color:var(--ink-3)}
+.mship-page .mship-compare thead th:nth-child(3){background:var(--harbor-800);color:var(--white)}
+.mship-page .mship-compare thead th:nth-child(3)::before{content:"";display:inline-block;width:6px;height:6px;margin-right:9px;border-radius:50%;background:var(--signal-400);vertical-align:2px}
+.mship-page .mship-compare tbody th{padding-block:17px;font-weight:500;color:var(--ink);background:var(--white);font-size:.9375rem}
+.mship-page .mship-compare td{color:var(--ink-2);font-size:.9375rem}
+.mship-page .mship-compare col.is-feat{background:var(--signal-50)}
+.mship-page .mc-y{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--signal-50);box-shadow:inset 0 0 0 1px var(--line-teal);color:var(--teal-800);font-weight:700;font-size:.75rem;line-height:1}
+.mship-page .mship-compare td:nth-child(3) .mc-y{background:var(--harbor-800);box-shadow:none;color:var(--signal-400)}
+.mship-page .mc-n{color:var(--ink-4)}
+@media(min-width:900px){.mship-page .mship-compare tbody th{white-space:nowrap}}
+@media(max-width:1100px){.mship-page .mship-compare thead th{white-space:normal;line-height:1.35;vertical-align:bottom;padding-inline:10px;letter-spacing:.08em}.mship-page .mship-compare thead th:nth-child(3){white-space:nowrap}}
+/* sticky header only where the table fits without horizontal scrolling (EN and FR) */
+@media(min-width:1181px){
+ .mship-page .table-wrap:has(>.mship-compare){overflow:visible}
+ .mship-page .mship-compare thead th{position:sticky;top:var(--header-h);z-index:2}
+}
+@media(max-width:640px){.mship-page .mship-compare th:first-child{position:sticky;left:0;z-index:1;box-shadow:1px 0 0 var(--line)}}
+/* phones: one disclosure per tier (Professional first and open) */
+.mship-page .mship-compare-m{display:none}
+@media(max-width:640px){
+ .mship-page .table-wrap:has(>.mship-compare){display:none}
+ .mship-page .mship-compare-m{display:grid;gap:var(--sp-3)}
+ .mship-page .mship-compare-m>.mship-tier-feat{order:-1}
+ .mship-page details.mship-tier-m{padding:0;margin:0;background:var(--white);border:1px solid var(--line)}
+ .mship-page details.mship-tier-m[open]{border-color:var(--line-strong)}
+ .mship-page details.mship-tier-m.mship-tier-feat{border-top:3px solid var(--harbor-800)}
+ .mship-page details.mship-tier-m>summary{display:flex;align-items:center;min-height:60px;padding:var(--sp-3) 52px var(--sp-3) var(--sp-5)}
+ .mship-page details.mship-tier-m>summary::after{right:var(--sp-5)}
+ .mship-page details.mship-tier-m>summary h3{margin:0;font:300 1.5rem/1.15 var(--font-display);letter-spacing:-.015em;color:var(--hd)}
+ .mship-page details.mship-tier-m>dl{margin:0;padding:0 var(--sp-5) var(--sp-3)}
+ .mship-page .mship-tier-m dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:var(--sp-4);padding:12px 0;border-top:1px solid var(--line);font-size:var(--fs-sm)}
+ .mship-page .mship-tier-m dt{color:var(--ink)}.mship-page .mship-tier-m dd{margin:0;flex:none;max-width:45%;text-align:right;font-weight:600;color:var(--harbor-800)}
+ .mship-page .mship-yes{color:var(--teal-800)}.mship-page .mship-tier-m .mship-no{font-weight:400;color:var(--ink-3)}
+ .mship-page .grid.mship-tiers>.tier.featured{order:-1}
+}
+/* enterprise (glass band): sticky intro + 2×2 benefits · numbered use cases · numbered "how it works" steps + a Harbor talk-to-us card */
+.mship-page .mship-ent-sec{background:var(--glass)}
+.mship-page .mship-ent-sec .card:not(.mship-talk){background:var(--white);border-color:var(--line)}
+.mship-page .mship-ent-head .lead{margin:0}
+.mship-page .ent-benefits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-4)}
+.mship-page .ent-benefits .card{padding:var(--sp-6);gap:var(--sp-2)}
+.mship-page .ent-benefits .icon-tile{margin-bottom:var(--sp-3);background:var(--glass);box-shadow:none}
+.mship-page .ent-benefits .icon-tile svg{stroke-width:1.6}
+.mship-page .ent-benefits .card>.status{margin-top:auto}.mship-page .ent-benefits .card>p+.status{margin-top:var(--sp-3)}
+.mship-page .ent-benefits .card>p{flex:1 0 auto}
+.mship-page .mship-uses{margin-top:clamp(64px,2rem + 4vw,112px);padding-top:0;border-top:0}
+.mship-page .mship-uses-head{max-width:720px;margin-bottom:var(--sp-6)}
+.mship-page :is(.mship-uses-head,.mship-ent-how) h3{font:500 var(--fs-h2-compact)/1.15 var(--font-body);letter-spacing:-.022em;margin:0 0 var(--sp-3);color:var(--hd)}
+.mship-page .mship-uses-head p{margin:0}
+.mship-page .mship-uses .grid{counter-reset:uc}
+.mship-page .mship-uses .card{counter-increment:uc;padding:var(--sp-6);gap:var(--sp-3)}
+.mship-page .mship-uses .card>h3::before{content:counter(uc,decimal-leading-zero);display:block;margin-bottom:var(--sp-5);padding-bottom:14px;font:500 var(--fs-sm)/1 var(--font-body);letter-spacing:.02em;color:var(--ink-3);font-variant-numeric:tabular-nums;
+ background:linear-gradient(var(--harbor-800),var(--harbor-800)) 0 100%/30% 3px no-repeat,linear-gradient(var(--line-strong),var(--line-strong)) 0 calc(100% - 1px)/100% 1px no-repeat}
+.mship-page .mship-uses .card-foot{border-top:1px solid var(--line);padding-top:var(--sp-4);flex-wrap:nowrap}
+.mship-page .mship-uses .card-foot .small{min-width:0}.mship-page .mship-uses .card-foot .status{flex:none}
+.mship-page .mship-ent{margin-top:clamp(64px,2rem + 4vw,112px);padding-top:0;border-top:0;align-items:stretch}
+.mship-page .mship-ent-how{align-self:start}
+.mship-page .ent-list{counter-reset:el;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-6) clamp(24px,1rem + 2vw,48px);margin:var(--sp-6) 0 0;padding:0;border:0}
+.mship-page .ent-list li{counter-increment:el;display:grid;gap:var(--sp-3);align-content:start;justify-items:start;padding:0;border:0;font-size:1rem;line-height:1.5;font-weight:500;color:var(--ink)}
+.mship-page .ent-list li::before{content:counter(el,decimal-leading-zero);position:static;width:100%;height:auto;border-radius:0;box-shadow:none;padding-bottom:14px;margin-bottom:var(--sp-1);
+ font:500 var(--fs-sm)/1 var(--font-body);letter-spacing:.02em;color:var(--ink-2);font-variant-numeric:tabular-nums;
+ background:linear-gradient(var(--harbor-800),var(--harbor-800)) 0 100%/30% 3px no-repeat,linear-gradient(var(--line-strong),var(--line-strong)) 0 calc(100% - 1px)/100% 1px no-repeat}
+.mship-page .ent-list li>.status{flex:none}
+.mship-page .mship-ent-sec .mship-talk{position:relative;isolation:isolate;overflow:hidden;padding:clamp(32px,1.5rem + 2vw,56px);gap:var(--sp-3)}
+.mship-page .mship-ent-sec .mship-talk::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;border-radius:0;background:linear-gradient(90deg,var(--signal-400) 0 30%,transparent 30%)}
+.mship-page .mship-ent-sec .mship-talk::after{content:"";position:absolute;z-index:-1;pointer-events:none;right:-150px;top:-150px;width:300px;aspect-ratio:1;background:var(--sig-ring) center/contain no-repeat;opacity:.45}
+.mship-page .mship-talk .icon-tile{color:var(--signal-400);background:var(--glass-dark);box-shadow:inset 0 0 0 1px var(--line-dark);margin-bottom:var(--sp-2)}
+.mship-page .mship-ent-sec .mship-talk h3{font:500 var(--fs-h2-compact)/1.15 var(--font-body);letter-spacing:-.022em;color:var(--white)}
+.mship-page .mship-talk p{color:var(--on-dark-2)}
+.mship-page .mship-talk .alert{margin:var(--sp-2) 0 0}
+.mship-page .mship-talk .alert-warning{background:var(--harbor-700);border-color:var(--line-dark);border-left-color:var(--amber-400);color:var(--on-dark)}
+.mship-page .mship-talk .alert-warning>svg,.mship-page .mship-talk .alert-warning b{color:var(--amber-300)}
+.mship-page .mship-talk .card-foot{justify-content:flex-start;padding-top:var(--sp-5)}
+.mship-page .mship-talk .btn-primary{background:var(--signal-400);color:var(--harbor-900);--btn-dot:var(--harbor-800);--btn-arrow:var(--arrow-signal)}
+.mship-page .mship-talk .btn-primary:hover{background:var(--signal-500);color:var(--harbor-950)}
+/* FAQ (white band): the head sticks on the left, hairline accordions on the right */
+.mship-page .mship-faq{background:var(--white)}
+.mship-page .mship-faq-head h2{margin:0}
+.mship-page .faq-list>details{background:transparent}
+@media(max-width:1100px){
+ .mship-page .tier.featured{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"ribbon list" "head list" "foot list"}
+ .mship-page .tier.featured::after{width:300px;right:-150px;top:-150px;translate:none;opacity:.4}
+}
+@media(max-width:960px) and (min-width:641px){.mship-page .mship-uses .g3>.card:last-child:nth-child(odd){grid-column:1 / -1}}
+@media(max-width:960px){
+ .mship-page .grid.mship-tiers{grid-template-columns:minmax(0,1fr)}
+ .mship-page .tier:not(.featured){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"head list" "foot list" "foot note";grid-template-rows:auto 1fr auto;column-gap:var(--sp-6)}
+ .mship-page .tier:not(.featured) .tier-head{grid-area:head;margin:0}
+ .mship-page .tier:not(.featured) .tier-head p{min-height:0}
+ .mship-page .tier:not(.featured) .checks{grid-area:list;padding:0;border:0;align-self:start;align-content:start}
+ .mship-page .tier:not(.featured) .tier-note{grid-area:note}
+ .mship-page .tier:not(.featured) .card-foot{grid-area:foot;align-self:end;padding-top:var(--sp-5)}
+}
+@media(max-width:760px){
+ .mship-page .ent-benefits,.mship-page .ent-list{grid-template-columns:minmax(0,1fr)}
+ .mship-page .tier.featured{grid-template-columns:minmax(0,1fr);grid-template-areas:"ribbon" "head" "list" "foot";padding:var(--sp-7) var(--sp-5) var(--sp-6)}
+ .mship-page .tier.featured .checks{margin-top:var(--sp-6)}
+ .mship-page .tier.featured .card-foot{padding-top:var(--sp-6)}
+ .mship-page .tier.featured .card-foot .btn{width:100%}
+ .mship-page .tier.featured::after{width:260px;right:-130px;top:-130px}
+}
+@media(max-width:640px){
+ .mship-page .tier:not(.featured){display:flex;padding:var(--sp-5)}
+ .mship-page .tier:not(.featured) .card-foot{align-self:stretch}
+ .mship-page .tier:not(.featured) .checks{padding-top:var(--sp-4);border-top:1px solid var(--line)}
+ .mship-page .tier:not(.featured) .tier-head{margin-bottom:var(--sp-4)}
+ .mship-page .mship-talk .btn{width:100%}
+ .mship-page .mship-uses .card-foot{flex-direction:column;align-items:flex-start;gap:var(--sp-2)}
+}
+
+/* ═══ 2. Join (/join) — a calm application: numbered sections in a white sheet beside a sticky Harbor "what happens next" ════ */
+.join-page .join-notice{margin-bottom:var(--sp-5)}
+.join-page .join-notice form{margin-top:var(--sp-3)}
+.join-page .join-layout{align-items:start;gap:clamp(32px,2rem + 2.5vw,72px)}
+.join-page .join-layout>.join-aside{align-self:stretch}
+/* progress: 01 Tier (done ✓) · 02 Details (current) · 03 Confirmation */
+.join-page .steps{flex-wrap:nowrap;gap:var(--sp-2);margin:0 0 var(--sp-5)}
+.join-page .steps li{display:flex;align-items:center;gap:10px;padding-top:14px;font-size:var(--fs-sm);font-weight:500;color:var(--ink-3)}
+.join-page .steps li.done{border-top-color:var(--teal-700);color:var(--ink-2)}
+.join-page .steps li.done::before{content:"";flex:none;width:18px;height:18px;border-radius:50%;background:var(--teal-700) var(--check-mark-white) center/12px no-repeat}
+.join-page .steps li[aria-current]{border-top-color:var(--harbor-800);color:var(--harbor-800);font-weight:600}
+/* the form sheet: each visible section is numbered (CSS counter — a hidden fieldset isn't counted) on a progress rule */
+.join-form{counter-reset:js;background:var(--white);border:1px solid var(--line);padding:clamp(28px,1rem + 3vw,64px)}
+.join-form>h2{font-size:var(--fs-h2-compact);margin:0 0 var(--sp-2)}
+.join-form .join-required{margin:0 0 var(--sp-5);font-size:var(--fs-sm)}
+.join-form>.alert{margin-bottom:var(--sp-5);scroll-margin-top:calc(var(--header-h) + 30px)}
+.join-form .join-sec{counter-increment:js;border-top:0;padding:var(--sp-6) 0 var(--sp-2)}
+.join-form .join-sec>legend{margin:0 0 var(--sp-5);font:600 1.25rem/1.3 var(--font-body);letter-spacing:-.012em;color:var(--hd)}
+.join-form .join-sec>legend::before{content:counter(js,decimal-leading-zero);display:block;margin-bottom:var(--sp-4);padding-bottom:14px;font:500 var(--fs-sm)/1 var(--font-body);letter-spacing:.02em;color:var(--ink-3);font-variant-numeric:tabular-nums;
+ background:linear-gradient(var(--harbor-800),var(--harbor-800)) 0 100%/30% 3px no-repeat,linear-gradient(var(--line),var(--line)) 0 calc(100% - 1px)/100% 1px no-repeat}
+.join-form .join-optional{font:400 var(--fs-sm) var(--font-body);color:var(--ink-3);letter-spacing:0}
+.join-form .join-sec-intro{margin:calc(-1 * var(--sp-2)) 0 var(--sp-5)}
+.join-form .join-checks{display:grid;gap:var(--sp-3);margin-bottom:var(--sp-4)}
+.join-form .join-check-hint{display:block;margin:var(--sp-2) 0 var(--sp-4) 32px}
+.join-form .check input{margin-left:0}
+.join-form .join-actions{margin-top:var(--sp-5);padding-top:var(--sp-6)}
+.join-form .join-actions .btn-accent{min-height:56px;padding-inline:32px;font-size:1rem}
+.join-form .join-nocharge{display:flex;gap:8px;align-items:flex-start;margin:var(--sp-4) 0 0}
+.join-form .join-nocharge svg{flex:none;margin-top:2px;color:var(--teal-700)}
+/* aside: what happens next — a Harbor panel with the chosen tier and three numbered steps */
+/* (position stays sticky from .sticky-side — sticky is already a containing block for the glow) */
+.join-next{isolation:isolate;overflow:hidden;padding:clamp(28px,1rem + 1.6vw,40px);gap:var(--sp-5)}
+.join-next::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(90% 50% at 100% 0,color-mix(in srgb,var(--signal-400) 14%,transparent),transparent 70%)}
+.join-next>h3{margin:0;font:500 var(--fs-h2-compact)/1.15 var(--font-body);letter-spacing:-.022em;color:var(--white)}
+.join-next .join-next-tier{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:14px 16px;background:var(--glass-dark);border:1px solid var(--line-dark)}
+.join-next .join-next-tier .muted{color:var(--on-dark-2)}
+.join-next .join-next-tier b{color:var(--signal-400);font-weight:600;text-align:right}
+:is(.join-next,.join-next-m) .join-next-steps{list-style:none;counter-reset:jn;padding:0;margin:0;display:grid}
+:is(.join-next,.join-next-m) .join-next-steps li{counter-increment:jn;display:grid;grid-template-columns:36px minmax(0,1fr);column-gap:var(--sp-3);row-gap:3px;padding:var(--sp-4) 0;border-top:1px solid var(--line-dark)}
+:is(.join-next,.join-next-m) .join-next-steps li::before{content:counter(jn,decimal-leading-zero);grid-row:span 2;font:300 1.375rem/1.05 var(--font-display);font-variation-settings:"opsz" 60;color:var(--signal-400);font-variant-numeric:lining-nums tabular-nums}
+:is(.join-next,.join-next-m) .join-next-steps b{font-size:.9375rem;line-height:1.4;color:var(--white);text-wrap:balance}
+:is(.join-next,.join-next-m) .join-next-steps span{font-size:var(--fs-sm);line-height:1.5;color:var(--on-dark-2)}
+.join-next .join-next-help,.join-next-m .join-next-help{margin:0;padding-top:var(--sp-4);border-top:1px solid var(--line-dark);color:var(--on-dark-2)}
+.join-next-m{display:none}
+@media(max-width:900px){
+ .join-page .join-aside,.join-page .steps{display:none}
+ .join-next-m{display:grid;gap:var(--sp-2);margin:0 0 var(--sp-5);padding:var(--sp-5) var(--sp-5) var(--sp-4);position:relative;isolation:isolate;overflow:hidden}
+ .join-next-m::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(80% 60% at 100% 0,color-mix(in srgb,var(--signal-400) 14%,transparent),transparent 70%)}
+ .join-next-m h2{margin:0 0 var(--sp-1);font:500 1.375rem/1.2 var(--font-body);letter-spacing:-.018em;color:var(--white)}
+ .join-next-m .join-next-steps span{display:none}.join-next-m .join-next-steps li{align-items:center;padding:var(--sp-3) 0}
+ .join-next-m .join-next-steps li::before{grid-row:auto;line-height:1.2;font-size:1.125rem}
+}
+@media(max-width:640px){
+ .join-form{padding:var(--sp-6) var(--sp-4) var(--sp-5)}
+ .join-form .join-actions .btn{width:100%}
+ /* the "Compare tiers" link in the tier hint gets a ≥44px tap area (P3-3) */
+ .join-form .hint a{display:inline-block;padding-block:14px;margin-block:-14px}
+}
+
+/* ═══ 3. Events (/events, /events/[slug], checkout) and the EventCard component ═════════════════════════════════════ */
+/* EventCard (also on the homepage): a Harbor strip with the seeded signal band, the date tile straddling its lower edge */
+.event-card.has-band{flex-direction:column;align-items:stretch;gap:0}
+.event-card.has-band>.card-band{height:96px;margin-bottom:0}
+.event-card .ev-card-main{display:flex;gap:var(--sp-4);align-items:flex-start;min-width:0}
+.event-card.has-band .ev-card-main{padding-top:var(--sp-5)}
+.event-card.has-band .date-block{margin-top:calc(-1 * var(--sp-5) - 30px)}
+.event-card .ev-card-body{display:grid;gap:10px;min-width:0;flex:1}
+.event-card .ev-card-body h3{font-size:var(--fs-card-h);line-height:1.35;letter-spacing:-.012em;margin:0}
+.event-card .ev-card-body .ev-meta{margin:0;font:500 var(--fs-sm)/1.55 var(--font-body);letter-spacing:0;color:var(--ink-3)}
+.event-card .tags{gap:6px}
+.event-card .badge.ev-type{background:var(--white);border-color:var(--line-strong);color:var(--ink-2)}
+.event-card.ev-past .card-band{background:var(--harbor-700)}
+.event-card.ev-past .card-band circle:not([fill=none]){fill:var(--on-dark-3);fill-opacity:.4}
+.event-card.ev-past .card-band circle[fill=none]{stroke:var(--on-dark-3);stroke-opacity:.5}
+.event-card.ev-past .date-block::before{background:var(--gray-300)}
+.event-card.ev-past .date-block{color:var(--ink-3)}.event-card.ev-past .date-block span{color:var(--ink-3)}
+.date-block .ev-year{display:block;font-size:.75rem;letter-spacing:.08em;opacity:.85;margin-top:2px}
+.date-block.ev-date-tbc{background:var(--white);color:var(--harbor-800);border:1px dashed var(--gray-400);padding:12px 9px 10px}
+.date-block.ev-date-tbc::before{background:linear-gradient(90deg,var(--amber-400) 0 50%,var(--gray-300) 50%)}
+.date-block.ev-date-tbc span{display:block;font-weight:600}.date-block.ev-date-tbc b{font-size:1.25rem;margin-top:4px}
+.event-card .ev-tbc{margin:0;font-size:var(--fs-sm);font-weight:600;color:var(--amber-800)}
+/* the whole card shows the keyboard ring (its title link is stretched over the card) */
+.event-card .card-link:focus-visible{outline-color:transparent}
+.event-card:has(.card-link:focus-visible){outline:2px solid var(--focus);outline-offset:3px}
+/* meta line (cards, event pages, member pages): wrap between items, never inside one; a separator never starts a line */
+.ev-meta{display:flex;flex-wrap:wrap;column-gap:1.1em;row-gap:2px;overflow:hidden}.ev-meta>span{position:relative;white-space:nowrap}.ev-meta>span+span::before{content:"·";position:absolute;left:-.72em}
+/* list: Kubrick's filters — a white pill search on the left, pill selects + apply on the right; results count in tracked caps */
+.events-page .ev-toolbar{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;padding:0;background:none;border:0}
+.events-page .ev-toolbar>div{flex:0 0 200px;min-width:0}
+.events-page .ev-toolbar>.ev-q{flex:0 1 520px;margin-right:auto}
+.events-page .ev-toolbar input,.events-page .ev-toolbar select{width:100%;min-height:52px;border-radius:var(--r-pill);border-color:var(--line-input);background-color:var(--white)}
+.events-page .ev-toolbar input[type=search]{padding-left:50px;background-position:20px center}
+.events-page .ev-toolbar select{padding-left:22px;padding-right:46px;background-position:right 18px center}
+.events-page .ev-toolbar :is(input,select):hover{border-color:var(--harbor-800)}
+.events-page .ev-toolbar :is(input,select):focus-visible{border-color:var(--teal-700)}
+.events-page .ev-toolbar .btn{min-height:52px;padding-inline:28px}
+.events-page .ev-results{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin:var(--sp-6) 0 var(--sp-6);padding-bottom:var(--sp-4);border-bottom:1px solid var(--line)}
+.events-page .ev-results:has(>.sr-only:only-child){border-bottom:0;padding-bottom:0}
+.events-page .ev-count{display:inline-flex;align-items:center;gap:10px;font:600 var(--fs-meta)/1.5 var(--font-body);letter-spacing:var(--track-meta);text-transform:uppercase;color:var(--ink-3)}
+.events-page .ev-count::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--teal-700)}
+.events-page .ev-results .chips{gap:6px}
+.events-page .ev-grid{row-gap:var(--sp-6)}
+.events-page .ev-past-head{margin:clamp(72px,2rem + 5vw,128px) 0 clamp(32px,1.5rem + 1.5vw,48px);padding:0;border:0}
+.events-page .ev-past-head h2{margin:0}
+.events-page .ev-empty{padding:var(--sp-7) var(--sp-5)}
+.events-page .ev-how .num-list>li::before{background:linear-gradient(var(--hd),var(--hd)) 0 100%/30% 3px no-repeat,linear-gradient(var(--line-strong),var(--line-strong)) 0 calc(100% - 1px)/100% 1px no-repeat}
+@media(min-width:760px){.events-page .ev-how .num-list{--cols:3}}
+@media(max-width:1100px) and (min-width:641px){.events-page .grid.g3.ev-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.events-page .grid.g3.ev-grid>:last-child:nth-child(odd){grid-column:1/-1}}
+@media(max-width:860px){.events-page .ev-toolbar>.ev-q{flex:1 1 100%;margin-right:0}.events-page .ev-toolbar>div{flex:1 1 180px}}
+@media(max-width:640px){
+ .events-page .ev-toolbar{gap:10px}
+ .events-page .ev-toolbar>div{flex:1 1 calc(50% - 5px)}.events-page .ev-toolbar>.ev-q,.events-page .ev-toolbar .btn{flex:1 1 100%}
+ .events-page .ev-toolbar select{padding-left:18px;padding-right:40px;background-position:right 14px center}
+ .events-page .ev-results .btn{width:100%}
+}
+/* phones: the date tile sits on the band; the body runs the full card width beneath it */
+@media(max-width:640px){
+ .event-card.has-band .ev-card-main{display:block;padding-top:var(--sp-5)}
+ .event-card.has-band .date-block{position:absolute;top:14px;left:20px;margin:0;min-width:62px}
+}
+/* detail: the hero carries type + status, the title and the lead; the facts card (Harbor) and the registration card (white,
+   sticky) rise over the hero's lower edge */
+.event-detail .ev-hero-tags{margin-bottom:var(--sp-5)}
+/* a past event: the hero's field is muted like the past cards' bands (grey dots, quieter glow) */
+.event-detail .page-hero:has(.ev-hero-tags .status-neutral)::after{filter:grayscale(1);opacity:.32}
+.event-detail .page-hero:has(.ev-hero-tags .status-neutral)::before{opacity:.35}
+.event-detail .page-hero h1{max-width:22ch}
+@media(max-width:1023px) and (min-width:641px){.event-detail .page-hero h1{max-width:min(22ch,60%)}}/* long titles keep clear of the field, like the lead */
+.event-detail .ev-when{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-5);margin:var(--sp-5) 0 0;padding:0;list-style:none}
+.event-detail .ev-when li{display:inline-flex;align-items:center;gap:8px;font-weight:600;color:var(--hd)}
+.event-detail .ev-when svg{flex:none;color:var(--acc)}
+.event-detail .ev-jump{display:none;margin-top:var(--sp-6)}
+.event-detail .page-hero:has(+.section>.layout-aside){padding-bottom:calc(clamp(56px,2rem + 5vw,128px) + var(--ev-rise))}
+.event-detail{--ev-rise:clamp(40px,1.5rem + 3vw,80px)}
+.event-detail .page-hero+.section:has(>.layout-aside){padding-top:0}
+.event-detail .page-hero+.section>.layout-aside{position:relative;z-index:1;margin-top:calc(-1 * var(--ev-rise))}
+.event-detail .layout-aside>div:first-child{display:flex;flex-direction:column}
+.event-detail .layout-aside>div:first-child>.ev-facts{order:-1}
+.event-detail .layout-aside .ev-facts{background:var(--harbor-700);border:1px solid var(--line-dark-strong)}
+.event-detail .ev-facts{position:relative;isolation:isolate;overflow:hidden;padding:clamp(24px,1rem + 2vw,40px) clamp(24px,1rem + 2vw,44px) clamp(28px,1rem + 2vw,44px)}
+.event-detail .ev-facts::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(70% 90% at 100% 0,color-mix(in srgb,var(--signal-400) 10%,transparent),transparent 70%)}
+.event-detail .ev-facts .ev-h2{display:flex;align-items:center;gap:10px;margin:0 0 var(--sp-5);font:600 var(--fs-meta)/1.4 var(--font-body);letter-spacing:var(--track-meta);text-transform:uppercase;color:var(--signal-400)}
+.event-detail .ev-facts .ev-h2::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:currentColor}
+.event-detail .ev-dl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 var(--sp-4);margin:0;background:none;border:0}
+.event-detail .ev-dl>div{display:grid;gap:6px;align-content:start;padding:var(--sp-4) 0 var(--sp-5);border-top:1px solid var(--line-dark-strong)}
+.event-detail .ev-dl>div:first-child{grid-column:1 / -1}
+@media(min-width:641px){
+ .event-detail .ev-dl{grid-template-columns:repeat(6,minmax(0,1fr));column-gap:var(--sp-5)}
+ .event-detail .ev-dl>div,.event-detail .ev-dl>div:first-child{grid-column:span 2}
+ .event-detail .ev-dl>div:nth-child(-n+2),.event-detail .ev-dl:has(>div:nth-child(6))>div{grid-column:span 3}
+}
+.event-detail .ev-dl dt{font:600 var(--fs-meta)/1.4 var(--font-body);letter-spacing:.12em;text-transform:uppercase;color:var(--on-dark-2)}
+.event-detail .ev-dl dd{margin:0;font:600 1.0625rem/1.4 var(--font-body);letter-spacing:-.01em;font-variation-settings:"opsz" 48;color:var(--white);font-variant-numeric:lining-nums;text-wrap:balance}
+@media(max-width:640px){
+ /* dated events: the facts card comes first in its column (no "not yet confirmed" notice before it) and row 2 is the time */
+ .event-detail .ev-facts:first-child .ev-dl>div:nth-child(2),
+ .event-detail .ev-facts:first-child .ev-dl>div:last-child:nth-child(odd),
+ .event-detail .ev-planned+.ev-facts .ev-dl>div:last-child:nth-child(even){grid-column:1 / -1}
+}
+.event-detail .ev-note{margin:var(--sp-4) 0 0;max-width:72ch}
+.event-detail .ev-planned{margin:var(--sp-5) 0 0}
+/* registration aside: white panel — serif title, price rows (the viewer's own price highlighted), one action */
+.event-detail .ev-reg{padding:clamp(24px,1rem + 1.6vw,40px);gap:var(--sp-4);border-color:var(--line)}
+.event-detail .ev-reg::before{content:"";position:absolute;left:-1px;right:-1px;top:-1px;height:3px;background:linear-gradient(90deg,var(--signal-400) 0 30%,var(--harbor-800) 30%)}
+.event-detail .ev-h3{margin:0;font:500 var(--fs-h2-compact)/1.15 var(--font-body);letter-spacing:-.022em;color:var(--hd)}
+.event-detail :is(.ev-reg,.ev-checkout) .label{display:block;margin:var(--sp-2) 0 0;font:600 var(--fs-meta)/1.5 var(--font-body);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.event-detail .ev-prices{list-style:none;padding:0;margin:0 0 var(--sp-2);display:grid;gap:0;border-top:1px solid var(--line)}
+.event-detail .ev-prices li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--line)}
+.event-detail .ev-prices li>span{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;color:var(--ink-2)}
+.event-detail .ev-prices li>b{white-space:nowrap;text-align:right;font:600 1.125rem/1.3 var(--font-body);letter-spacing:-.01em;color:var(--hd);font-variant-numeric:lining-nums tabular-nums}
+.event-detail .ev-prices li.is-mine{margin:-1px -10px 0;padding-inline:14px;background:var(--signal-50);border:1px solid var(--teal-700);box-shadow:inset 3px 0 0 var(--teal-700)}
+.event-detail .ev-prices li.is-mine>span{color:var(--ink);font-weight:600}
+.event-detail .ev-prices li.ev-total{margin-inline:-10px;background:var(--mist);border-bottom:0;padding-inline:14px}
+.event-detail .ev-reg .alert{margin:0}
+.event-detail .ev-reg .btn-block{min-height:52px}
+.event-detail .ev-hint{margin:0}
+/* event detail aside: "Apply to join" never splits (N5) */
+.event-detail .ev-reg .ev-hint a,.event-detail .ev-reg .alert a{white-space:nowrap}
+/* checkout: one focused panel */
+.event-detail .ev-checkout-wrap{padding-block:clamp(8px,1vw,24px)}
+.event-detail .ev-checkout{position:relative;padding:clamp(28px,1rem + 3vw,56px);gap:var(--sp-4)}
+.event-detail .ev-checkout::before{content:"";position:absolute;left:-1px;right:-1px;top:-1px;height:3px;background:linear-gradient(90deg,var(--signal-400) 0 30%,var(--harbor-800) 30%)}
+.event-detail .ev-checkout h1{margin:0;font-size:clamp(2rem,1.6rem + 1.2vw,2.75rem)}
+.event-detail .ev-checkout p{margin:0}
+.event-detail .ev-checkout .ev-prices li>div{min-width:0}
+.event-detail .ev-checkout .ev-prices li.ev-total>span{font-weight:600;color:var(--ink)}
+.event-detail .ev-back{margin:var(--sp-2) 0 0}
+/* joining details (confirmed registrants; also on My events) */
+.ev-access{margin-top:var(--sp-2);padding:var(--sp-4) var(--sp-5);border:1px solid var(--line-success);border-left:3px solid var(--teal-700);background:var(--signal-50);font-size:var(--fs-sm);color:var(--ink)}
+.ev-access p{margin:0 0 var(--sp-2)}.ev-access p:last-child{margin-bottom:0}
+.ev-access .ev-access-title{display:flex;align-items:center;gap:8px}
+.ev-access .ev-access-title::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--teal-700)}
+.ev-access-text{overflow-wrap:anywhere}.ev-access-text a{font-weight:600}
+.ev-access .ev-access-note{margin-top:var(--sp-3)}
+@media(max-width:900px){
+ .event-detail .ev-jump{display:inline-flex}
+ .event-detail .ev-reg{scroll-margin-top:calc(var(--header-h) + 16px)}
+ .event-detail .layout-aside .ev-reg{position:relative;top:auto}/* not sticky here: keep it the containing block of its top rule */
+ .event-detail .layout-aside{gap:var(--sp-6)}
+}
+@media(max-width:640px){
+ .event-detail .ev-reg,.event-detail .ev-checkout{padding:var(--sp-5)}
+}
+
+/* ═══ 4. Contact (/contact) — the form in a white sheet; routes and site details as a quiet column; FAQ band ═══════════ */
+.contact-page .contact-layout{align-items:start;gap:clamp(32px,2rem + 3vw,96px)}
+.contact-page .contact-card{padding:clamp(28px,1rem + 3vw,64px);gap:0}
+.contact-page .contact-card::before{content:"";position:absolute;left:-1px;right:-1px;top:-1px;height:3px;background:linear-gradient(90deg,var(--signal-400) 0 30%,var(--harbor-800) 30%)}
+.contact-page .contact-form h2,.contact-page .contact-sent h2{font-size:var(--fs-h2-compact);margin:0 0 var(--sp-2)}
+.contact-page .contact-form>p.muted{margin:0 0 var(--sp-6);font-size:1rem}
+.contact-page .contact-form>.alert{margin-bottom:var(--sp-5)}
+.contact-page textarea{min-height:180px}
+/* honeypot: off-screen, untabbable, hidden from assistive tech (C-21) */
+.contact-page .contact-hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.contact-page .contact-form .check{margin-top:var(--sp-1)}
+.contact-page .contact-form>.error-msg{margin:var(--sp-2) 0 0 32px}
+.contact-page .contact-actions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-3) var(--sp-5);margin-top:var(--sp-6);padding-top:var(--sp-6);border-top:1px solid var(--line)}
+.contact-page .contact-actions .btn{min-height:56px;padding-inline:32px;font-size:1rem}
+.contact-page .contact-actions .small{text-wrap:pretty}
+.contact-page .contact-sent{display:grid;justify-items:start;gap:var(--sp-3);padding:var(--sp-4) 0}
+.contact-page .contact-sent .sent-mark{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--signal-50);color:var(--teal-700);box-shadow:inset 0 0 0 1px var(--line-teal)}
+.contact-page .contact-sent p{margin:0;color:var(--ink-2);max-width:52ch}
+.contact-page .contact-side{display:grid;gap:var(--sp-6);padding-top:0}
+.contact-page .contact-routes{display:grid;gap:0;border-top:1px solid var(--line-strong)}
+.contact-page .contact-route{padding:var(--sp-6) 0;display:grid;grid-template-columns:56px minmax(0,1fr);column-gap:var(--sp-5);row-gap:var(--sp-2);align-content:start;
+ background:transparent;border:0;border-bottom:1px solid var(--line-strong)}
+.contact-page .contact-route .icon-tile{grid-row:span 3;background:var(--glass);box-shadow:none}
+.contact-page .contact-route h3{font-size:var(--fs-h3);letter-spacing:-.015em}
+.contact-page .contact-route p{font-size:.9375rem;color:var(--ink-2)}
+.contact-page .contact-route .card-foot{margin-top:0;padding-top:var(--sp-1)}
+.contact-page .site-contact-info{padding:var(--sp-6) 0 0;gap:var(--sp-4);background:transparent;border:0;border-top:1px solid var(--line-strong)}
+.contact-page .site-contact-info h2{font:600 var(--fs-meta)/1.4 var(--font-body);letter-spacing:var(--track-meta);text-transform:uppercase;color:var(--teal-700);margin:0}
+.contact-page .site-contact-info dl{margin:0;display:grid;gap:var(--sp-4)}
+.contact-page .site-contact-info dt{display:flex;align-items:center;gap:8px;font-weight:600;font-size:var(--fs-sm);color:var(--ink-3)}
+.contact-page .site-contact-info dt svg{color:var(--teal-700)}
+.contact-page .site-contact-info dd{margin:4px 0 0 26px;overflow-wrap:anywhere;font-size:1rem;color:var(--ink)}
+.contact-page .site-contact-info address{font-style:normal;white-space:pre-line}
+/* FAQ band: the content's head (eyebrow "Questions" + "FAQ" + art) on the left, hairline questions on the right */
+.contact-page .contact-faq-grid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);column-gap:clamp(32px,2rem + 3vw,96px);align-items:start}
+.contact-page .contact-faq-grid>*,.contact-page .contact-faq-grid details{grid-column:2}
+.contact-page .contact-faq-grid .contact-faq-head{grid-column:1;grid-row:1 / span 40}
+.contact-page .contact-faq-grid details{background:transparent}
+.contact-page .contact-faq-grid details>p{color:var(--ink-2);font-size:1rem}
+.contact-page .contact-faq-head h2{margin:0}
+.contact-page .contact-faq-head .contact-faq-art{display:none}
+.contact-page .contact-faq-grid>.contact-faq-h{grid-column:1;grid-row:1}/* older content without the head block */
+@media(max-width:960px){.contact-page .contact-faq-grid{grid-template-columns:minmax(0,1fr)}.contact-page .contact-faq-grid>*,.contact-page .contact-faq-grid details,.contact-page .contact-faq-grid .contact-faq-head{grid-column:1;grid-row:auto}.contact-page .contact-faq-head{margin-bottom:var(--sp-5)}}
+@media(max-width:640px){
+ .contact-page .contact-card{padding:var(--sp-6) var(--sp-4) var(--sp-5)}
+ .contact-page .contact-actions .btn{width:100%}
+ .contact-page .contact-route{grid-template-columns:48px minmax(0,1fr);column-gap:var(--sp-4)}
+ .contact-page .contact-route .icon-tile{width:48px;height:48px}
+}
+
+/* ═══ 5. Sign in / create account / password reset — a Harbor half (signal field, serif headline, checks) beside a white
+   half with the form, centred. The panel follows the form in the DOM (h1 first, QA-FA-13): order:-1 shows it first on wide
+   screens; below 861px it sits under the form, and phones leave it out (as before). ═══════════════════════════════════════ */
+.auth-wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;align-items:stretch;padding:0;
+ min-height:min(900px,calc(100svh - var(--header-h) - var(--util-h)))}
+.auth-side{order:-1;position:relative;isolation:isolate;overflow:hidden;background:var(--harbor-800);color:var(--on-dark);border-radius:0;clip-path:none;
+ display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
+ padding:clamp(56px,2rem + 5vw,128px) clamp(32px,2rem + 4vw,96px) clamp(56px,2rem + 5vw,128px) max(var(--gutter),calc((100vw - var(--container)) / 2 + var(--gutter)))}
+.auth-side::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60% 50% at 100% 0,color-mix(in srgb,var(--signal-400) 11%,transparent),transparent 72%);-webkit-mask-image:none;mask-image:none}
+.auth-side::after{content:"";position:absolute;z-index:-1;pointer-events:none;right:-260px;top:-260px;bottom:auto;width:520px;aspect-ratio:1;background:var(--sig-ring) center/contain no-repeat;opacity:.8}
+.auth-side-inner{width:100%;max-width:500px}
+.auth-side .auth-mark{width:44px;height:auto;margin-bottom:var(--sp-6)}
+.auth-side h2{margin:0 0 var(--sp-5);font:300 clamp(1.875rem,1.5rem + 1.2vw,2.5rem)/1.06 var(--font-display);letter-spacing:-.022em;font-variation-settings:"opsz" 72;color:var(--white)}
+.auth-side .auth-side-inner>h2{margin-top:0}
+.auth-side .auth-side-lead{margin:0 0 var(--sp-6);font-size:var(--fs-lead);line-height:1.55;color:var(--on-dark-2);max-width:40ch}
+.auth-side .checks{gap:0;margin:0;padding:0;border:0;font-size:1rem;color:var(--on-dark)}
+.auth-side .checks li{padding:14px 0 14px 38px;border-top:1px solid var(--line-dark)}
+.auth-side .checks li:last-child{border-bottom:1px solid var(--line-dark)}
+.auth-side .checks li::before{top:14px;width:22px;height:22px;background:color-mix(in srgb,var(--signal-400) 14%,transparent) var(--check-mark-white) center/12px no-repeat;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--signal-400) 55%,transparent)}
+.auth-form{display:grid;place-items:center;background:var(--white);padding:clamp(48px,2rem + 4vw,112px) max(var(--gutter),clamp(24px,1rem + 4vw,96px))}
+.auth-form>div{width:100%;max-width:440px}
+.auth-form .eyebrow{margin-bottom:var(--sp-4)}
+.auth-form h1{margin:0 0 var(--sp-3);font-size:clamp(2.5rem,2rem + 1.6vw,3.5rem)}
+.auth-wrap .auth-sub{margin:0 0 var(--sp-6)}
+.auth-wrap .auth-form .alert{margin-bottom:var(--sp-5)}
+.auth-wrap .auth-form .btn-block{min-height:52px;font-size:1rem}
+.auth-wrap .auth-forgot{margin:calc(-1 * var(--sp-2)) 0 var(--sp-5)}.auth-wrap .auth-forgot a{font-weight:600}
+.auth-wrap .auth-check{margin-bottom:var(--sp-5);font-size:var(--fs-sm)}
+.auth-wrap .auth-hp{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.auth-wrap .auth-join{position:relative;margin-top:var(--sp-7);padding:var(--sp-5);background:var(--mist);border:0;border-radius:0;font-size:var(--fs-sm)}
+.auth-wrap .auth-join::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--harbor-800) 0 30%,var(--line-strong) 30%)}
+.auth-wrap .auth-join b{display:block;color:var(--hd);font-size:1rem}
+.auth-wrap .auth-join p{margin:var(--sp-1) 0 var(--sp-3);color:var(--ink-2)}.auth-wrap .auth-join a{font-weight:600}
+.auth-wrap .auth-signed-actions{display:grid;gap:var(--sp-3)}
+.auth-wrap .auth-signed-actions .btn{min-height:52px}
+.auth-wrap .auth-switch{margin-top:var(--sp-3)}
+.auth-wrap .auth-switch .btn{width:100%;min-height:52px;padding-inline:20px;font-size:1rem;background:var(--white);color:var(--harbor-800);border-color:var(--line-strong)}
+.auth-wrap .auth-switch .btn:hover{border-color:var(--harbor-800);background:var(--white)}
+@media(max-width:1100px){.auth-side::after{width:380px;right:-190px;top:-190px}}
+@media(max-width:767px){
+ .auth-wrap{grid-template-columns:minmax(0,1fr);min-height:0;padding:0 0 var(--section-y);background:var(--canvas)}
+ .auth-form{padding:clamp(48px,2rem + 3vw,72px) var(--gutter);border-bottom:1px solid var(--line)}
+ .auth-side{order:2;margin:var(--section-y) var(--gutter) 0;padding:var(--sp-7) var(--sp-6)}
+ .auth-side::after{width:400px;right:-200px;top:-200px}
+ .auth-side h2{font-size:clamp(1.75rem,1.5rem + 1vw,2.25rem)}
+}
+@media(max-width:640px){
+ .auth-side{display:none}
+ .auth-wrap{padding-bottom:0}
+ .auth-form{padding:var(--sp-7) var(--gutter) var(--sp-8);border-bottom:0}
+ .auth-form>div{max-width:none}
+ .auth-wrap .auth-forgot a,.auth-wrap .auth-join a{display:inline-flex;padding-block:10px;margin-block:-10px}
+}

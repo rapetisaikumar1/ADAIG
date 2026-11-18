@@ -66,9 +66,9 @@ export default async function AdminMessages({ params, searchParams }: { params: 
                 <div className="inbox-actions">
                   <a className="btn btn-secondary btn-sm" href={mailto(m)}><Icon name="mail" size={16} />{t("reply")}</a>
                   {canEdit && <form action={setMessageStatus}>
-                    <input type="hidden" name="locale" value={locale} /><input type="hidden" name="id" value={m.id} /><input type="hidden" name="f" value={f} />
-                    <input type="hidden" name="to" value={m.status === "new" ? "handled" : "new"} />
-                    <button className={`btn btn-sm ${m.status === "new" ? "btn-accent" : "btn-ghost"}`}>{m.status === "new" ? <><Icon name="check" size={16} />{t("markHandled")}</> : t("reopen")}</button>
+                    <input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="id" value={m.id} /><input suppressHydrationWarning type="hidden" name="f" value={f} />
+                    <input suppressHydrationWarning type="hidden" name="to" value={m.status === "new" ? "handled" : "new"} />
+                    <button suppressHydrationWarning className={`btn btn-sm ${m.status === "new" ? "btn-accent" : "btn-ghost"}`}>{m.status === "new" ? <><Icon name="check" size={16} />{t("markHandled")}</> : t("reopen")}</button>
                   </form>}
                   {m.handledAt && <span className="small muted">{t("handledOn", { date: fmt(m.handledAt) })}</span>}
                 </div>

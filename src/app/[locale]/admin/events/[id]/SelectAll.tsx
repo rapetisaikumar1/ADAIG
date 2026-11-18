@@ -3,7 +3,7 @@
 export function SelectAll({ formId, label }: { formId: string; label: string }) {
   return (
     <label className="check adm-selall">
-      <input type="checkbox" onChange={(ev) => {
+      <input suppressHydrationWarning type="checkbox" onChange={(ev) => {
         document.querySelectorAll<HTMLInputElement>(`input[type=checkbox][name=ids][form="${formId}"]`).forEach((c) => { c.checked = ev.currentTarget.checked; });
       }} />
       <span>{label}</span>

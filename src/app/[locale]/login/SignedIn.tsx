@@ -16,10 +16,10 @@ export async function SignedIn({ locale, name, email, next, page, home }: { loca
       </div>
       {page === "signup" && <div className="auth-join"><b>{t("joinTitle")}</b><p>{t("signedInJoinBody")}</p><a className="link-arrow" href={`/${locale}/join`}>{t("joinLink")}</a></div>}
       <form action={signOutToSwitch} className="auth-switch">
-        <input type="hidden" name="locale" value={locale} /><input type="hidden" name="page" value={page} />
-        {next && <input type="hidden" name="next" value={next} />}
+        <input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="page" value={page} />
+        {next && <input suppressHydrationWarning type="hidden" name="next" value={next} />}
         <ClearAdminDrafts />{/* switching account signs out: drop admin form drafts like every other sign-out (FA3-1) */}
-        <button className="btn btn-ghost btn-sm">{t("switchAccount")}</button>
+        <button suppressHydrationWarning className="btn btn-ghost btn-sm">{t("switchAccount")}</button>
       </form>
     </>
   );

@@ -11,6 +11,7 @@ import { fmtDate, etDayNumber, hasEnded, rejectionReasonText } from "../_shared/
 import { memberMetadata } from "../_shared/meta";
 import { membershipState, membershipDates, statusTone } from "../_shared/membership";
 import { PageHead, Notice, SectionHead } from "../_shared/ui";
+import { TabBarFocus } from "../_shared/TabBarFocus";
 import { FocusOnLoad } from "@/components/ui/FocusOnLoad";
 import { Avatar, EmptyState, Status } from "@/components/ui/Facet";
 import { Icon } from "@/components/ui/Icon";
@@ -81,13 +82,13 @@ export default async function MyMembership({ params, searchParams }: { params: P
     lapsed && <Notice key="l" tone="warning" title={td("lapsedTitle")}>{td("lapsedBody", { tier: tierName(lapsed.tierId) })} <a href={L("/contact?topic=membership")}>{td("renewalContact")}</a></Notice>,
     pendingPay && <Notice key="pp" tone="info" title={tj("legacyOrderTitle", { tier: tierName(pendingPay.tierId) })}>{tj("legacyOrderBody")}
       <div className="mbr-alert-actions"><a className="btn btn-primary btn-sm" href={L(`/join?tier=${pendingPay.tierId}`)}>{tj("applyInstead")}</a>
-      <form action={cancelOrder}><input type="hidden" name="m" value={pendingPay.id} /><input type="hidden" name="locale" value={locale} /><button className="btn btn-secondary btn-sm">{tj("cancelOrder")}</button></form></div></Notice>,
+      <form action={cancelOrder}><input suppressHydrationWarning type="hidden" name="m" value={pendingPay.id} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><button suppressHydrationWarning className="btn btn-secondary btn-sm">{tj("cancelOrder")}</button></form></div></Notice>,
     unpaid.length > 0 && <Notice key="u" tone="info">{td("unpaidTickets", { n: unpaid.length })} <a href={L("/my/events")}>{td("completePaymentLink")} →</a></Notice>,
   ].filter(Boolean);
   return (
-    <div className="app"><MemberNav locale={locale} current="/my/billing" />
+    <div className="app"><MemberNav locale={locale} current="/my/billing" /><TabBarFocus />
       <main id="main" tabIndex={-1} className="app-main mbr mbr-home">
-        <PageHead title={t("title")} kicker={<>{tm(isNew ? "welcomeNew" : "welcome")} {u.name}</>} media={<Avatar name={u.name} />} />
+        <PageHead title={t("title")} kicker={<>{tm(isNew ? "welcomeNew" : "welcome")} {u.name}</>} media={<span className={`mbr-avatar ${status === "active" ? "is-active" : status === "pending_verification" ? "is-pending" : "is-quiet"}`}><Avatar name={u.name} /></span>} />
         {flash.length > 0 && <FocusOnLoad className="mbr-alerts-focus"><div className="mbr-alerts">{flash}</div></FocusOnLoad>}
         {required.length > 0 && <div className="mbr-alerts">{required}</div>}
 
@@ -163,7 +164,7 @@ export default async function MyMembership({ params, searchParams }: { params: P
         {paidTickets.length > 0 && (
           <section className="mbr-section" aria-labelledby="h-tix">
             <SectionHead id="h-tix" title={t("ticketsTitle")} count={paidTickets.length} />
-            <div className="table-wrap" tabIndex={0} role="region" aria-labelledby="h-tix"><table>
+            <div className="table-wrap mbr-table-stack" tabIndex={0} role="region" aria-labelledby="h-tix"><table>
               <thead><tr><th>{t("colEvent")}</th><th>{t("colDate")}</th><th className="num">{t("colAmount")}</th><th>{t("colStatus")}</th></tr></thead>
               <tbody>{paidTickets.map((r) => <tr key={r.id}>
                 <td><a href={L(`/events/${r.event.slug}`)}>{locale === "fr" && r.event.titleFr ? r.event.titleFr : r.event.title}</a></td>

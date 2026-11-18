@@ -51,12 +51,12 @@ export default async function AdminEvents({ params, searchParams }: { params: Pr
             <form action={createEvent} className="panel adm-new-form" aria-labelledby="new-event-h">
               <header><h2 id="new-event-h">{t("newEvent")}</h2><p>{t("newEventHint")}</p></header>
               {invalid && <div className="alert alert-danger" role="alert" id="new-event-err"><div>{t("ev_invalid")}</div></div>}
-              <input type="hidden" name="locale" value={locale} />
+              <input suppressHydrationWarning type="hidden" name="locale" value={locale} />
               <EventFields locale={locale} />
               <EventFormHelper storageKey="new-event" userId={me.id} restore={invalid} noticeId="new-event-err" msgs={fieldMsgs} />
               <div className="save-row">
-                <label className="check"><input type="checkbox" name="publish" /> <span>{t("publishNow")}</span></label>
-                <button className="btn btn-accent">{t("create")}</button>
+                <label className="check"><input suppressHydrationWarning type="checkbox" name="publish" /> <span>{t("publishNow")}</span></label>
+                <button suppressHydrationWarning className="btn btn-accent">{t("create")}</button>
               </div>
             </form>
           </details>
@@ -81,9 +81,9 @@ export default async function AdminEvents({ params, searchParams }: { params: Pr
               <td className="adm-col-actions"><div className="adm-actions"><a className="btn btn-sm btn-secondary" href={`/${locale}/admin/events/${e.id}`} aria-label={`${openLabel}: ${v.title}`}>{openLabel}</a>{canEdit && !e.cancelledAt && (e.published && e._count.registrations > 0
                 ? /* D10: a live event with registrants is unpublished only after a confirm (same action) */
                   <details className="confirm adm-confirm"><summary className="btn btn-sm btn-secondary" aria-label={`${t("unpublish")}: ${v.title}`}>{t("unpublish")}…</summary>
-                    <form action={togglePublish} className="confirm-box"><input type="hidden" name="id" value={e.id} /><input type="hidden" name="locale" value={locale} />{view !== "upcoming" && <input type="hidden" name="v" value={view} />}<p>{t("unpublishConfirm", { title: v.title, n: e._count.registrations })}</p><div className="confirm-actions"><button className="btn btn-danger-outline btn-sm">{t("unpublish")}</button></div></form>
+                    <form action={togglePublish} className="confirm-box"><input suppressHydrationWarning type="hidden" name="id" value={e.id} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} />{view !== "upcoming" && <input suppressHydrationWarning type="hidden" name="v" value={view} />}<p>{t("unpublishConfirm", { title: v.title, n: e._count.registrations })}</p><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-danger-outline btn-sm">{t("unpublish")}</button></div></form>
                   </details>
-                : <form action={togglePublish}><input type="hidden" name="id" value={e.id} /><input type="hidden" name="locale" value={locale} />{view !== "upcoming" && <input type="hidden" name="v" value={view} />}<button className={`btn btn-sm ${e.published ? "btn-secondary" : "btn-accent"}`} aria-label={`${e.published ? t("unpublish") : t("publish")}: ${v.title}`}>{e.published ? t("unpublish") : t("publish")}</button></form>)}</div></td>
+                : <form action={togglePublish}><input suppressHydrationWarning type="hidden" name="id" value={e.id} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} />{view !== "upcoming" && <input suppressHydrationWarning type="hidden" name="v" value={view} />}<button suppressHydrationWarning className={`btn btn-sm ${e.published ? "btn-secondary" : "btn-accent"}`} aria-label={`${e.published ? t("unpublish") : t("publish")}: ${v.title}`}>{e.published ? t("unpublish") : t("publish")}</button></form>)}</div></td>
             </tr>
           ); })}
         </tbody></table></div>)}

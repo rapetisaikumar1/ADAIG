@@ -28,10 +28,10 @@ export function ForgotForm({ locale, labels }: { locale: string; labels: ForgotL
     <>
       {state.error && <div className="alert alert-danger" role="alert" id="forgot-err" tabIndex={-1} ref={errRef}><Icon name="x-circle" /><div>{state.error}</div></div>}
       <form action={action} onSubmit={submit}>
-        <input type="hidden" name="locale" value={locale} />
-        <div className="auth-hp" aria-hidden="true"><label htmlFor="fp-web">Website</label><input id="fp-web" name="website" type="text" tabIndex={-1} autoComplete="off" /></div>
-        <div className={`field${bad ? " error" : ""}`}><label htmlFor="fe">{labels.email}</label><input id="fe" name="email" type="email" required maxLength={254} autoComplete="username" defaultValue={state.email} aria-invalid={bad || undefined} aria-describedby={state.error ? "forgot-err" : undefined} /></div>
-        <button className="btn btn-accent btn-block" disabled={pending} aria-busy={pending || undefined}>{pending ? labels.sending : labels.submit}</button>
+        <input suppressHydrationWarning type="hidden" name="locale" value={locale} />
+        <div className="auth-hp" aria-hidden="true"><label htmlFor="fp-web">Website</label><input suppressHydrationWarning id="fp-web" name="website" type="text" tabIndex={-1} autoComplete="off" /></div>
+        <div className={`field${bad ? " error" : ""}`}><label htmlFor="fe">{labels.email}</label><input suppressHydrationWarning id="fe" name="email" type="email" required maxLength={254} autoComplete="username" defaultValue={state.email} aria-invalid={bad || undefined} aria-describedby={state.error ? "forgot-err" : undefined} /></div>
+        <button suppressHydrationWarning className="btn btn-accent btn-block" disabled={pending} aria-busy={pending || undefined}>{pending ? labels.sending : labels.submit}</button>
       </form>
     </>
   );

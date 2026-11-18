@@ -52,10 +52,10 @@ export function AdminSearch({ id, name = "q", value, label, placeholder, placeho
 }) {
   return (
     <form className="search-bar adm-search" role="search" action={action}>
-      {Object.entries(hidden ?? {}).map(([k, v]) => v ? <input key={k} type="hidden" name={k} value={v} /> : null)}
+      {Object.entries(hidden ?? {}).map(([k, v]) => v ? <input suppressHydrationWarning key={k} type="hidden" name={k} value={v} /> : null)}
       <label htmlFor={id} className="sr-only">{label}</label>
-      <input id={id} name={name} type="search" defaultValue={value} maxLength={200} placeholder={placeholder} />
-      <button className="btn btn-secondary btn-sm">{button}</button>
+      <input suppressHydrationWarning id={id} name={name} type="search" defaultValue={value} maxLength={200} placeholder={placeholder} />
+      <button suppressHydrationWarning className="btn btn-secondary btn-sm">{button}</button>
       {placeholderShort && <PhonePlaceholder inputId={id} short={placeholderShort} />}
     </form>
   );

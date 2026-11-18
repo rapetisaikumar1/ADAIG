@@ -72,7 +72,7 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
   const stamp = (d: Date) => `${d.toLocaleString(dl, { dateStyle: "medium", timeStyle: "short", timeZone: eventTimeZone })} ${ta("et")}`;
   const L = (p: string) => `/${locale}${p}`;
   const notice = msg && /^(msg|err)_\w+$/.test(msg) && t.has(msg) ? { err: msg.startsWith("err_"), text: t(msg) } : null;
-  const hid = <><input type="hidden" name="locale" value={locale} /><input type="hidden" name="uid" value={u.id} /></>;
+  const hid = <><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="uid" value={u.id} /></>;
   const statusChip = <span className={`status ${u.active ? "status-available" : "status-neutral"}`}>{u.active ? t("active") : t("inactive")}</span>;
   const roleChip = u.adminRole
     ? <span className={`acc-role${targetSuper ? " is-super" : ""}`}>{targetSuper && <Icon name="shield" size={14} />}{u.adminRole.name}</span>
@@ -103,15 +103,15 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
               <header><h2 id="h-details">{t("detailsTitle")}</h2><p>{t("createdOn", { date: day(u.createdAt) })}</p></header>
               <div className="adm-fields">
                 <div className="adm-form-grid">
-                  <div className="field"><label htmlFor="d-name">{t("f_name")}</label><input id="d-name" name="name" type="text" autoComplete="off" required maxLength={100} defaultValue={u.name} /></div>
+                  <div className="field"><label htmlFor="d-name">{t("f_name")}</label><input suppressHydrationWarning id="d-name" name="name" type="text" autoComplete="off" required maxLength={100} defaultValue={u.name} /></div>
                   {/* S2: your own sign-in email is read-only here (the server refuses a forged change too); another admin changes it. */}
                   <div className="field"><label htmlFor="d-email">{t("f_email")}</label>
                     {self
-                      ? <span className="acc-ro"><input id="d-email" name="email" type="email" readOnly value={u.email} aria-describedby="d-email-h" /><Icon name="lock" size={16} /></span>
-                      : <input id="d-email" name="email" type="email" autoComplete="off" spellCheck={false} required maxLength={254} defaultValue={u.email} aria-describedby="d-email-h" />}
+                      ? <span className="acc-ro"><input suppressHydrationWarning id="d-email" name="email" type="email" readOnly value={u.email} aria-describedby="d-email-h" /><Icon name="lock" size={16} /></span>
+                      : <input suppressHydrationWarning id="d-email" name="email" type="email" autoComplete="off" spellCheck={false} required maxLength={254} defaultValue={u.email} aria-describedby="d-email-h" />}
                     <span className="hint" id="d-email-h">{self ? t("emailHintSelf") : t("emailHintOther")}</span></div>
                 </div>
-                <div className="save-row"><button className="btn btn-accent">{t("saveDetails")}</button></div>
+                <div className="save-row"><button suppressHydrationWarning className="btn btn-accent">{t("saveDetails")}</button></div>
               </div>
             </form>
           ) : (
@@ -131,11 +131,11 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
                 <form action={changeAdminUserRole} className="acc-inline-form">
                   {hid}
                   <div className="field"><label htmlFor="u-role-change">{t("f_role")}</label>
-                    <select id="u-role-change" name="roleId" required defaultValue={u.adminRoleId ?? ""} aria-describedby="u-role-change-h">
+                    <select suppressHydrationWarning id="u-role-change" name="roleId" required defaultValue={u.adminRoleId ?? ""} aria-describedby="u-role-change-h">
                       {!u.adminRoleId && <option value="" disabled>{t("chooseRole")}</option>}
                       {roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
                     </select></div>
-                  <button className="btn btn-accent">{t("changeRole")}</button>
+                  <button suppressHydrationWarning className="btn btn-accent">{t("changeRole")}</button>
                   <p className="hint acc-inline-hint" id="u-role-change-h">{t("roleChangeHint")}</p>
                 </form>
               ) : (
@@ -158,7 +158,7 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
                 <div className="acc-current">
                   <span className="status status-danger">{t("locked")}</span>
                   <span className="small">{t("lockedUntil", { time: stamp(lock!.lockedUntil!) })}</span>
-                  {editOthers && <form action={unlockAdminUser}>{hid}<button className="btn btn-secondary">{t("unlock")}</button></form>}
+                  {editOthers && <form action={unlockAdminUser}>{hid}<button suppressHydrationWarning className="btn btn-secondary">{t("unlock")}</button></form>}
                 </div>
               )}
               {editOthers && !lastSuper ? (
@@ -166,15 +166,15 @@ export default async function AdminUser({ params, searchParams }: { params: Prom
                   <details className="confirm adm-confirm acc-deactivate">
                     <summary className="btn btn-danger-outline">{t("deactivate")}…</summary>
                     <form action={setAdminUserActive} className="confirm-box">
-                      {hid}<input type="hidden" name="to" value="inactive" />
+                      {hid}<input suppressHydrationWarning type="hidden" name="to" value="inactive" />
                       <p>{t("deactivateConfirm", { name: u.name })}</p>
-                      <label className="check"><input type="checkbox" name="confirm" required /> <span>{t("deactivateCheck")}</span></label>
+                      <label className="check"><input suppressHydrationWarning type="checkbox" name="confirm" required /> <span>{t("deactivateCheck")}</span></label>
                       {/* DESIGN_R5 §10.5: outline until its own confirm box is ticked (CSS :has, admin-access.css) */}
-                      <div className="confirm-actions"><button className="btn btn-danger-outline">{t("deactivateYes")}</button></div>
+                      <div className="confirm-actions"><button suppressHydrationWarning className="btn btn-danger-outline">{t("deactivateYes")}</button></div>
                     </form>
                   </details>
                 ) : (
-                  <form action={setAdminUserActive}>{hid}<input type="hidden" name="to" value="active" /><button className="btn btn-accent"><Icon name="refresh" size={18} />{t("activate")}</button></form>
+                  <form action={setAdminUserActive}>{hid}<input suppressHydrationWarning type="hidden" name="to" value="active" /><button suppressHydrationWarning className="btn btn-accent"><Icon name="refresh" size={18} />{t("activate")}</button></form>
                 )
               ) : editOthers && lastSuper ? why(t("lastSuperNote")) : null}
             </div>

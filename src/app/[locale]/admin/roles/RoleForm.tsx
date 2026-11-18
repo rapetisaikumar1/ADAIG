@@ -51,8 +51,8 @@ export function RoleForm({ locale, action, role, initial, actor, cancelHref, sub
 
   const body = (
     <>
-      {locale && !readOnly && <input type="hidden" name="locale" value={locale} />}
-      {role && !readOnly && <><input type="hidden" name="id" value={role.id} /><input type="hidden" name="v" value={role.v} /></>}
+      {locale && !readOnly && <input suppressHydrationWarning type="hidden" name="locale" value={locale} />}
+      {role && !readOnly && <><input suppressHydrationWarning type="hidden" name="id" value={role.id} /><input suppressHydrationWarning type="hidden" name="v" value={role.v} /></>}
       {state.error && <div className="alert alert-danger adm-form-error" id="rl-err" role="alert" tabIndex={-1} ref={errRef}><div>{state.error}</div></div>}
 
       <section className="settings-section" aria-labelledby="h-rl-details">
@@ -67,12 +67,12 @@ export function RoleForm({ locale, action, role, initial, actor, cancelHref, sub
         ) : <div className="adm-fields">
           <div className={`field${fieldErr("name") ? " error" : ""}`}>
             <label htmlFor="r-name">{t("f_name")}</label>
-            <input id="r-name" name={readOnly ? undefined : "name"} type="text" required={!readOnly} readOnly={readOnly} minLength={2} maxLength={60} autoComplete="off"
+            <input suppressHydrationWarning id="r-name" name={readOnly ? undefined : "name"} type="text" required={!readOnly} readOnly={readOnly} minLength={2} maxLength={60} autoComplete="off"
               defaultValue={state.name ?? role?.name ?? ""} aria-invalid={fieldErr("name") || undefined} aria-describedby={fieldErr("name") ? "rl-err" : undefined} />
           </div>
           <div className={`field${fieldErr("description") ? " error" : ""}`}>
             <label htmlFor="r-desc">{t("f_description")} {!readOnly && <span className="optional">({t("descHint")})</span>}</label>
-            <textarea id="r-desc" name={readOnly ? undefined : "description"} rows={3} maxLength={300} readOnly={readOnly}
+            <textarea suppressHydrationWarning id="r-desc" name={readOnly ? undefined : "description"} rows={3} maxLength={300} readOnly={readOnly}
               defaultValue={state.description ?? role?.description ?? ""} aria-invalid={fieldErr("description") || undefined} aria-describedby={fieldErr("description") ? "rl-err" : undefined} />
           </div>
         </div>}
@@ -110,7 +110,7 @@ export function RoleForm({ locale, action, role, initial, actor, cancelHref, sub
                         return (
                           <td key={a} className={`rl-cell${locked ? " is-locked" : ""}`}>
                             <label className="rl-check" htmlFor={id} title={locked ? t("notYours") : undefined}>
-                              <input type="checkbox" id={id} name={readOnly ? undefined : "perm"} value={key(m, a)}
+                              <input suppressHydrationWarning type="checkbox" id={id} name={readOnly ? undefined : "perm"} value={key(m, a)}
                                 checked={sel.has(key(m, a))} disabled={readOnly || locked}
                                 aria-describedby={locked ? "rl-locked-legend" : undefined}
                                 onChange={(e) => { const v = e.currentTarget.checked; setTouched(true); setSel((s) => toggle(s, m, a, v)); }} />
@@ -126,7 +126,7 @@ export function RoleForm({ locale, action, role, initial, actor, cancelHref, sub
                           ? <span className="status status-available rl-full-ro">{t("lvl_full")}</span>
                           : <span className="rl-full-ro is-off"><span aria-hidden="true">—</span><span className="sr-only">{t("cellLabel", { module: modName(m), action: t("full") })}: {t("lvl_none")}</span></span>
                         ) : <label className="switch rl-switch" htmlFor={`full-${m}`} title={!readOnly && !canFull ? t("notYours") : undefined}>
-                          <input type="checkbox" role="switch" id={`full-${m}`} checked={full} disabled={!canFull}
+                          <input suppressHydrationWarning type="checkbox" role="switch" id={`full-${m}`} checked={full} disabled={!canFull}
                             aria-describedby={!readOnly && !canFull ? "rl-locked-legend" : undefined}
                             onChange={(e) => { const v = e.currentTarget.checked; setTouched(true); setSel((s) => { const n = new Set(s); for (const a of acts) { if (v) n.add(key(m, a)); else n.delete(key(m, a)); } return n; }); }} />
                           <span className="sr-only">{t("cellLabel", { module: modName(m), action: t("full") })}</span>
@@ -147,7 +147,7 @@ export function RoleForm({ locale, action, role, initial, actor, cancelHref, sub
           {!readOnly && (
             <div className="save-row">
               <a className="btn btn-ghost" href={cancelHref}>{t("cancel")}</a>
-              <button className="btn btn-accent" disabled={pending} aria-busy={pending || undefined}>{pending ? t("working") : submitLabel}</button>
+              <button suppressHydrationWarning className="btn btn-accent" disabled={pending} aria-busy={pending || undefined}>{pending ? t("working") : submitLabel}</button>
             </div>
           )}
         </div>

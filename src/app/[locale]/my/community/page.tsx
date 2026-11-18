@@ -4,6 +4,7 @@ import { MemberNav } from "@/components/AppShell";
 import type { Locale } from "@/config/site";
 import { memberMetadata } from "../_shared/meta";
 import { PageHead, noArrow } from "../_shared/ui";
+import { TabBarFocus } from "../_shared/TabBarFocus";
 import { Status } from "@/components/ui/Facet";
 import { Icon, type IconName } from "@/components/ui/Icon";
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export default async function MyCommunity({ params }: { params: Promise<{ locale
   // The one status component: live features are "available"; planned and proposed items share the in-development tone.
   const tone = { available: "available", planned: "dev", proposed: "dev" } as const;
   return (
-    <div className="app"><MemberNav locale={locale} current="/my/community" />
+    <div className="app"><MemberNav locale={locale} current="/my/community" /><TabBarFocus />
       <main id="main" tabIndex={-1} className="app-main mbr mbr-community">
         <PageHead title={t("title")} lead={t("lead")} />
         <ul className="grid g3 mbr-com">

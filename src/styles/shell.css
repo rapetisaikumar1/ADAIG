@@ -1,216 +1,219 @@
-/* shell.css — DESIGN (round 5; spec SP/r5/DESIGN_R5.md §8). The app shell shared by the member portal (/my/*) and the admin
-   portal (/admin/*): cool canvas, white sidebar with the facet marker, page header anatomy, KPI tiles, panels, portal tables,
-   table toolbar + bulk bar, settings sections + save bar, membership card, admin header/footer, phone tab bar and admin menu.
-   Markup classes kept from round 4: .app .sidenav .app-main .app-head .kpi .adm-sidenav .adm-mnav .admin-header* .admin-footer*. */
+/* shell.css — round 9 "Signal" (spec reports/round9/DESIGN_R9.md §3). The app shell shared by the member portal (/my/*) and the
+   admin portal (/admin/*): ONE frame for both — Harbor sidebar (and Harbor admin header), canvas workspace, light-serif page titles,
+   square white panels, KPI tiles with serif numerals on a progress rule, portal tables, toolbar + bulk bar, settings sections + save
+   bar, the membership card, phone tab bar and admin menu.
+   Markup classes kept: .app .sidenav .app-main .app-head .kpi .adm-sidenav .adm-mnav .admin-header* .admin-footer*. */
 
 /* ── Portal scope: portal neutrals (hover, hairlines) for components inside the portals ───────────────────────────────── */
 .app,.admin-header,.admin-footer{--mist:var(--portal-hover);--line:var(--line-cool);--line-strong:var(--portal-line-strong);--c-border:var(--line-cool);--c-border-card:var(--line-cool);--c-border-strong:var(--portal-line-strong);--c-surface:var(--portal-hover)}
 body:has(.app){background:var(--canvas)}
+/* the sidebars and the admin menu are dark surfaces: on-dark text set, signal accent and focus ring */
+.sidenav,.adm-side,.adm-mnav{--tx:var(--on-dark);--tx-2:var(--on-dark-2);--tx-3:var(--on-dark-3);--hd:#fff;--acc:var(--signal-400);--acc-hover:var(--signal-300);--focus-c:var(--signal-400)}
 
-/* ── Grid: 248px white sidebar + canvas. The sidebar column (and its rule) runs the full height of the shell ──────────── */
-.app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:calc(100vh - var(--header-h));background:linear-gradient(90deg,#fff 0 247px,var(--line-cool) 247px 248px,var(--canvas) 248px)}
+/* ── Grid: 264px Harbor sidebar + canvas. The sidebar column runs the full height of the shell ─────────────────────────── */
+.app{display:grid;grid-template-columns:264px minmax(0,1fr);min-height:calc(100vh - var(--header-h));background:linear-gradient(90deg,var(--harbor-900) 0 264px,var(--canvas) 264px)}
 .app>*{min-width:0}
-.sidenav{background:#fff;border-right:1px solid var(--line-cool);padding:var(--sp-5) var(--sp-3);position:sticky;top:var(--header-h);align-self:start;height:auto;
- max-height:calc(100vh - var(--header-h));max-height:calc(100dvh - var(--header-h));overflow-y:auto}
-.sidenav h2{font:500 .6875rem/1.4 var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--slate-600);margin:var(--sp-5) 12px var(--sp-2)}
+.sidenav{background:var(--harbor-900);color:var(--on-dark);border-right:0;padding:var(--sp-6) var(--sp-3);position:sticky;top:var(--header-h);align-self:start;height:auto;
+ max-height:calc(100vh - var(--header-h));max-height:calc(100dvh - var(--header-h));overflow-y:auto;scrollbar-color:var(--harbor-600) transparent}
+.sidenav h2{font:600 .75rem/1.4 var(--font-body);text-transform:uppercase;letter-spacing:.16em;color:var(--on-dark-3);margin:var(--sp-6) 14px var(--sp-2)}
 .sidenav h2:first-child,.sidenav>div:first-child>h2:first-child{margin-top:var(--sp-1)}
-.sidenav a{position:relative;display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:var(--r-sm);color:var(--slate-700);text-decoration:none;font-weight:500;font-size:.9375rem;min-height:40px;
- transition:background-color var(--dur-1),color var(--dur-1)}
-.sidenav a svg{width:18px;height:18px;flex:none;color:var(--slate-500)}
-/* long labels (FR "Répertoire des membres", "Profil et confidentialité") wrap onto a second line with a tight leading,
-   the icon stays on the first line and the facet marker spans the item — never truncated */
-.sidenav a{line-height:1.3;padding-block:9px;text-wrap:balance;overflow-wrap:break-word;hyphens:manual}.sidenav a svg{align-self:flex-start;margin-top:1px}
-.sidenav a:hover{background:var(--portal-hover);color:var(--navy-800)}
-/* current item: teal tint + the facet marker (a 30°-cut bar, the cube's edge) on the left */
-.sidenav a[aria-current=page]{background:var(--teal-50);color:var(--teal-800);font-weight:600}
-.sidenav a[aria-current=page]::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;background:var(--teal-700);clip-path:polygon(0 2px,100% 0,100% 100%,0 calc(100% - 2px))}
-.sidenav a[aria-current=page] svg{color:var(--teal-700)}
-.sidenav .sidenav-ext{margin-left:auto;color:var(--slate-500);font-size:.9em;line-height:1}
+.sidenav a{position:relative;display:flex;align-items:center;gap:12px;padding:9px 14px;border-radius:0;color:var(--on-dark-2);text-decoration:none;font-weight:500;font-size:.9375rem;min-height:42px;
+ transition:background-color var(--dur-2),color var(--dur-2)}
+.sidenav a svg{width:18px;height:18px;flex:none;color:var(--on-dark-3);transition:color var(--dur-2)}
+/* long labels wrap onto a second line with a tight leading; the icon stays on the first line — never truncated */
+.sidenav a{line-height:1.3;text-wrap:balance;overflow-wrap:break-word;hyphens:manual}.sidenav a svg{align-self:flex-start;margin-top:1px}
+.sidenav a:hover{background:var(--glass-dark);color:#fff}.sidenav a:hover svg{color:#fff}
+/* current item: a raised Harbor row, white label, signal icon and the 3px signal bar on the left */
+.sidenav a[aria-current=page]{background:var(--harbor-700);color:#fff;font-weight:600}
+.sidenav a[aria-current=page]::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--signal-400)}
+.sidenav a[aria-current=page] svg{color:var(--signal-400)}
+.sidenav a:focus-visible{outline-offset:-2px}
+.sidenav .sidenav-ext{margin-left:auto;color:var(--on-dark-3);font-size:.9em;line-height:1}
 .sidenav .nav-tag{margin-left:auto}
-.sidenav .sidenav-signout{margin:var(--sp-4) 0 0;padding-top:var(--sp-3);border-top:1px solid var(--line-cool)}
-.sidenav .sidenav-signout button{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:10px 12px;border:0;border-radius:var(--r-sm);background:transparent;color:var(--slate-600);
- font:500 .9375rem var(--font-body);text-align:left;cursor:pointer;transition:background-color var(--dur-1),color var(--dur-1)}
-.sidenav .sidenav-signout button:hover{background:var(--portal-hover);color:var(--navy-800)}
-.sidenav .sidenav-signout button:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.sidenav .sidenav-signout{margin:var(--sp-5) 0 0;padding-top:var(--sp-3);border-top:1px solid var(--line-dark)}
+.sidenav .sidenav-signout button{display:flex;align-items:center;gap:12px;width:100%;min-height:42px;padding:10px 14px;border:0;border-radius:0;background:transparent;color:var(--on-dark-2);
+ font:500 .9375rem var(--font-body);text-align:left;cursor:pointer;transition:background-color var(--dur-2),color var(--dur-2)}
+.sidenav .sidenav-signout button svg{color:var(--on-dark-3)}
+.sidenav .sidenav-signout button:hover{background:var(--glass-dark);color:#fff}
+.sidenav .sidenav-signout button:focus-visible{outline:2px solid var(--signal-400);outline-offset:-2px}
 
-/* Member shell (public footer after it) — fix pass 3 (VPo-1, QA-PORTALS-2-2, 3-3, 3-4). A sticky sidebar cannot leave its grid
-   area: at the end of the page the public footer pushes it up. It is only fully visible there when
-   viewport height ≥ header (72) + sidebar (≤410 FR) + footer (≈550 at ≥1024px wide, ≈850 at 901–1023px).
-   So the member sidebar is sticky ONLY on viewports tall enough for that (with ~20px to spare); everywhere else it stays in normal
-   flow and scrolls with the page like any other content — never cut, never covered, never shrunk, same look as the admin sidebar
-   (no compact mode). No animation is involved, so motion settings make no difference. Measured in SP/r5/design/fix3/. */
+/* Member shell (public footer after it): the sidebar is sticky on desktop windows tall enough to show the whole nav; at the very end
+   of the page the footer pushes it up with the content (standard sticky behaviour). Shorter windows: it scrolls with the page. */
 @media(min-width:901px){
  .app>.mbr-sidenav{position:static;max-height:none;overflow:visible}
 }
-@media(min-width:1024px) and (min-height:1100px),(min-width:901px) and (max-width:1023.98px) and (min-height:1360px){
- .app>.mbr-sidenav{position:sticky;top:var(--header-h);max-height:calc(100vh - var(--header-h));overflow-y:auto}
+/* round 9: the nav (~440px) stays in view on any desktop window that fits it — otherwise the dark column below it reads as an empty strip */
+@media(min-width:901px) and (min-height:620px){
+ .app>.mbr-sidenav{position:sticky;top:var(--header-h);max-height:calc(100vh - var(--header-h));max-height:calc(100dvh - var(--header-h));overflow-y:auto}
 }
 
-/* ── Main column + page header anatomy: [eyebrow] · title · one-line description | ≤1 primary action ─────────────────── */
-.app-main{padding:var(--sp-6) clamp(16px,3vw,48px) var(--sp-8);min-width:0;background:var(--canvas);font-size:var(--fs-ui);line-height:1.55}
-.app-main>*{max-width:1200px}
+/* ── Main column + page header anatomy: [eyebrow] · light-serif title · one-line description | ≤1 primary action ───────── */
+.app-main{padding:clamp(28px,1rem + 2vw,48px) clamp(16px,3vw,56px) var(--sp-9);min-width:0;background:var(--canvas);font-size:var(--fs-ui);line-height:1.55}
+.app-main>*{max-width:1240px}
 .app-main .lead{font-size:var(--fs-ui)}
 .app-head{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--sp-4) var(--sp-5);flex-wrap:wrap;margin-bottom:var(--sp-6);padding-bottom:var(--sp-5);border-bottom:1px solid var(--line-cool)}
-.app-head h1{font:500 clamp(1.625rem,1.4rem + .8vw,2rem)/1.15 var(--font-display);letter-spacing:-.02em;color:var(--navy-800);margin:0}
-.app-head .lead,.app-head .page-desc{font-size:var(--fs-ui);color:var(--slate-600);margin:6px 0 0;max-width:70ch}
+.app-head h1{font:300 clamp(2rem,1.6rem + 1.4vw,2.875rem)/1.08 var(--font-display);letter-spacing:-.022em;color:var(--harbor-800);margin:0;font-variation-settings:"opsz" 72}
+.app-head .lead,.app-head .page-desc{font-size:var(--fs-ui);color:var(--ink-3);margin:8px 0 0;max-width:70ch}
 .app-head .page-actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center}
-/* portals: the eyebrow is a quiet context label (no marker, no teal) — some carry information, e.g. the content editor's language */
-.app-main .app-head .eyebrow{color:var(--slate-600);margin-bottom:6px}.app-main .app-head .eyebrow::before{display:none}
+/* portals: the eyebrow is a quiet context label in tracked caps (no dot) */
+.app-main .app-head .eyebrow{color:var(--ink-3);margin-bottom:8px}.app-main .app-head .eyebrow::before{display:none}
 .app-head+.page-tabs,.app-head:has(+.tabs){margin-bottom:0;border-bottom:0}
 .page-tabs{margin:0 0 var(--sp-5)}
 
-/* ── Panels & headings: flat white, r12, 1px hairline, Inter section titles ──────────────────────────────────────────── */
-.app .card,.app .panel{border-radius:var(--r-panel);box-shadow:none}
-.panel{background:#fff;border:1px solid var(--line-cool);border-radius:var(--r-panel);padding:var(--sp-5);display:grid;gap:var(--sp-3);align-content:start}
+/* ── Panels & headings: flat white square sheets, 1px hairline, Figtree section titles ─────────────────────────────── */
+.app .card,.app .panel{border-radius:0;box-shadow:none}
+.panel{background:#fff;border:1px solid var(--line-cool);border-radius:0;padding:var(--sp-6);display:grid;gap:var(--sp-3);align-content:start}
 .panel-head{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);flex-wrap:wrap}.panel-head h2{margin:0}
-.app-main h2{font:600 1.0625rem/1.3 var(--font-body);letter-spacing:-.005em;color:var(--navy-800)}
-/* portal section titles are navy, except a danger zone's title (components.css .danger-zone) — same specificity as the rule above */
+.app-main h2{font:600 1.125rem/1.3 var(--font-body);letter-spacing:-.012em;color:var(--harbor-800)}
 .app-main .danger-zone>h2,.app-main .danger-zone>header h2{color:var(--red-700)}
 .app h3{font-size:1rem}
 .app .card p{font-size:var(--fs-ui)}
 
-/* ── KPI tiles: real counts only, no decorative icons; a 2px top rule in the face colour of the category ────────────── */
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-4);margin-bottom:var(--sp-5)}
-.kpi{position:relative;display:flex;flex-direction:column;gap:2px;min-width:0;background:#fff;border:1px solid var(--line-cool);border-radius:var(--r-panel);padding:18px 20px 16px;box-shadow:none;overflow:hidden;
- color:inherit;text-decoration:none;transition:transform var(--dur-2) var(--ease-out),box-shadow var(--dur-2),border-color var(--dur-2)}
-.kpi::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--kpi-rule,var(--face-top))}
-.kpi.is-blue{--kpi-rule:var(--face-right)}.kpi.is-navy{--kpi-rule:var(--face-left)}.kpi.kpi-attn,.kpi.is-amber{--kpi-rule:var(--amber-400)}
-.kpi .k{font-size:.8125rem;font-weight:500;color:var(--slate-600)}
-.kpi .v{font:600 1.75rem/1.2 var(--font-body);letter-spacing:-.02em;color:var(--navy-800);font-variant-numeric:lining-nums tabular-nums}
-.kpi .d{font-size:.8125rem;color:var(--slate-600)}
+/* ── KPI tiles: real counts only; a progress rule on top (segment in the category colour) and a light-serif numeral ─────── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-4);margin-bottom:var(--sp-6)}
+.kpi{position:relative;display:flex;flex-direction:column;gap:4px;min-width:0;background:#fff;border:1px solid var(--line-cool);border-radius:0;padding:22px 22px 18px;box-shadow:none;overflow:hidden;
+ color:inherit;text-decoration:none;transition:transform var(--dur-3) var(--ease-out),box-shadow var(--dur-3),border-color var(--dur-2)}
+.kpi::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--kpi-rule,var(--harbor-800)) 0 30%,transparent 30%);transition:background-size var(--dur-4) var(--ease-out)}
+.kpi.is-blue,.kpi.is-navy{--kpi-rule:var(--harbor-800)}.kpi.kpi-attn,.kpi.is-amber{--kpi-rule:var(--amber-400)}
+.kpi .k{font:600 .75rem/1.4 var(--font-body);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.kpi .v{font:300 2.5rem/1.05 var(--font-display);letter-spacing:-.02em;color:var(--harbor-800);font-variant-numeric:lining-nums tabular-nums;font-variation-settings:"opsz" 72;margin-top:6px}
+.kpi .d{font-size:.8125rem;color:var(--ink-3)}
 
-/* ── Portal tables: 52px rows, sentence-case 12.5px headers, numbers right-aligned, status = the status component ────── */
-.app .table-wrap{border-radius:var(--r-panel);border-color:var(--line-cool);box-shadow:none}
-.app :is(thead th,th[scope=col]){background:var(--portal-head);font-size:.78125rem;font-weight:600;letter-spacing:0;text-transform:none;color:var(--slate-600);padding-top:11px;padding-bottom:11px}
-.app td{color:var(--slate-700);font-size:.90625rem;padding-top:14px;padding-bottom:14px}
+/* ── Portal tables: tracked-caps headers, 15px rows, numbers right-aligned, status = the status component ─────────────── */
+.app .table-wrap{border-radius:0;border-color:var(--line-cool);box-shadow:none}
+.app :is(thead th,th[scope=col]){background:var(--portal-head);font-size:.75rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);padding-top:13px;padding-bottom:13px}
+.app td{color:var(--ink-2);font-size:.90625rem;padding-top:16px;padding-bottom:16px}
 .app tbody tr:hover>td,.app tbody tr:hover>th[scope=row]{background:var(--portal-head)}
-/* the row's name link (first column) reads as the row title: navy 600, underline on hover */
-.app tbody :is(td:first-child>a:not(.btn):first-child,th[scope=row]>a:not(.btn),.adm-person>a:first-child,.adm-person>b>a){color:var(--navy-800);font-weight:600;text-decoration:none}
+/* the row's name link (first column) reads as the row title */
+.app tbody :is(td:first-child>a:not(.btn):first-child,th[scope=row]>a:not(.btn),.adm-person>a:first-child,.adm-person>b>a){color:var(--harbor-800);font-weight:600;text-decoration:none}
 .app tbody :is(td:first-child>a:not(.btn):first-child,th[scope=row]>a:not(.btn),.adm-person>a:first-child,.adm-person>b>a):hover{color:var(--teal-700);text-decoration:underline}
 /* toolbar above a table: tabs/chips left, search + actions right; bulk bar replaces it while rows are selected */
 .table-toolbar{display:flex;flex-wrap:wrap;gap:var(--sp-3);align-items:center;justify-content:space-between;margin-bottom:var(--sp-4)}
-.table-toolbar .search-bar{flex:1;min-width:240px;max-width:440px}
+.table-toolbar .search-bar{flex:1;min-width:240px;max-width:460px}
 .table-toolbar .toolbar-actions{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;margin-left:auto}
-.bulk-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 16px;border-radius:var(--r-panel);background:var(--navy-900);color:#fff;margin-bottom:var(--sp-3)}
-.bulk-bar .btn-secondary{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}.bulk-bar .btn-secondary:hover{background:rgba(255,255,255,.1);border-color:#fff;color:#fff}
-.table-foot{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);flex-wrap:wrap;margin-top:var(--sp-3);font-size:var(--fs-sm);color:var(--slate-600)}
+.bulk-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 18px;border-radius:0;background:var(--harbor-800);color:#fff;margin-bottom:var(--sp-3)}
+.bulk-bar .btn-secondary{background:var(--glass-dark-2);color:#fff;border-color:transparent}.bulk-bar .btn-secondary:hover{background:rgba(255,255,255,.22);color:#fff}
+.table-foot{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3);flex-wrap:wrap;margin-top:var(--sp-3);font-size:var(--fs-sm);color:var(--ink-3)}
 
 /* ── Settings-style forms: section title + description left (4/12), fields right (8/12); sticky save bar ─────────────── */
-.settings-section{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:var(--sp-5) var(--sp-7);padding:var(--sp-6) 0;border-top:1px solid var(--line-cool)}
+.settings-section{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:var(--sp-5) var(--sp-7);padding:var(--sp-7) 0;border-top:1px solid var(--line-cool)}
 .settings-section:first-of-type{border-top:0;padding-top:0}
-.settings-section>header h2{margin:0 0 6px}.settings-section>header p:not(.danger-zone-label){margin:0;color:var(--slate-600);font-size:var(--fs-sm)}/* the danger label keeps its own red mono look */
-.savebar{position:sticky;bottom:0;z-index:5;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--sp-2);align-items:center;margin-top:var(--sp-5);padding:12px var(--sp-5);
- background:#fff;border:1px solid var(--line-cool);border-radius:var(--r-panel);box-shadow:var(--shadow-pop)}/* solid: no blurred text behind it (QA-PORTALS-22) */
-.savebar .savebar-note{margin-right:auto;font-size:var(--fs-sm);color:var(--slate-600)}
+.settings-section>header h2{margin:0 0 8px}.settings-section>header p:not(.danger-zone-label){margin:0;color:var(--ink-3);font-size:var(--fs-sm)}
+.savebar{position:sticky;bottom:0;z-index:5;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--sp-2);align-items:center;margin-top:var(--sp-5);padding:14px var(--sp-5);
+ background:#fff;border:1px solid var(--line-cool);border-radius:0;box-shadow:var(--shadow-pop)}
+.savebar .savebar-note{margin-right:auto;font-size:var(--fs-sm);color:var(--ink-3)}
 @media(max-width:900px){.settings-section{grid-template-columns:minmax(0,1fr);gap:var(--sp-4)}}
 
-/* ── Membership card (member home): the one navy panel of the portal, facet cut, cube emblem ─────────────────────────── */
-.mcard{position:relative;isolation:isolate;overflow:hidden;display:grid;gap:var(--sp-4);padding:var(--sp-6);border-radius:var(--r-lg);color:var(--on-dark);
- background:var(--lattice-dark) 0 0/var(--lattice-size),linear-gradient(150deg,var(--navy-800),var(--navy-950));
- clip-path:polygon(0 0,100% 0,100% calc(100% - 28px),calc(100% - 48px) 100%,0 100%)}
-.mcard::after{content:"";position:absolute;z-index:-1;right:-30px;top:-24px;width:200px;aspect-ratio:280/220;background:url("/assets/illustrations/corner-dark.svg") center/contain no-repeat;opacity:.85}
-.mcard .mcard-tier{font:500 clamp(1.625rem,1.4rem + .8vw,2rem)/1.15 var(--font-display);color:#fff;letter-spacing:-.015em;margin:0}
-.mcard .eyebrow{color:var(--teal-300)}
-.mcard dl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--sp-3) var(--sp-5);padding-top:var(--sp-4);border-top:1px solid rgba(255,255,255,.14)}
-.mcard dt{font:500 .6875rem/1.4 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--on-dark-muted)}
-.mcard dd{margin:2px 0 0;font-weight:600;color:#fff;font-variant-numeric:tabular-nums}
-.mcard :is(.badge,.status){background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.3);color:#fff}
-.mcard a:not(.btn){color:var(--teal-300)}
+/* ── Membership card (member home): a Harbor card with the signal field and a light-serif tier name ─────────────────── */
+.mcard{position:relative;isolation:isolate;overflow:hidden;display:grid;gap:var(--sp-4);padding:var(--sp-7) var(--sp-6) var(--sp-6);border-radius:0;color:var(--on-dark);
+ background:radial-gradient(70% 90% at 100% 0,rgba(43,238,173,.12),transparent 70%),var(--harbor-800);clip-path:none}
+.mcard::after{content:"";position:absolute;z-index:-1;pointer-events:none;top:0;right:0;bottom:0;width:62%;background:var(--sig-edge) right center/auto 100% no-repeat;opacity:.55;
+ -webkit-mask-image:linear-gradient(90deg,transparent,#000 60%);mask-image:linear-gradient(90deg,transparent,#000 60%)}
+.mcard .mcard-tier{font:300 clamp(2.25rem,1.8rem + 1.6vw,3.25rem)/1.02 var(--font-display);color:#fff;letter-spacing:-.022em;margin:0;font-variation-settings:"opsz" 72}
+.mcard .eyebrow{color:var(--signal-400)}
+.mcard dl{margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--sp-3) var(--sp-5);padding-top:var(--sp-5);border-top:1px solid var(--line-dark)}
+.mcard dt{font:600 .75rem/1.4 var(--font-body);letter-spacing:.14em;text-transform:uppercase;color:var(--on-dark-3)}
+.mcard dd{margin:4px 0 0;font-weight:600;color:#fff;font-variant-numeric:tabular-nums}
+.mcard :is(.badge,.status){background:var(--glass-dark);border-color:var(--line-dark-strong);color:#fff}
+.mcard a:not(.btn){color:var(--signal-400)}
 
-/* ── Phones/tablets (≤900px): the member sidebar becomes a horizontally scrolling tab bar ─────────────────────────────── */
+/* ── Phones/tablets (≤900px): the member sidebar becomes a horizontally scrolling Harbor tab bar ─────────────────────── */
 @media(max-width:900px){
  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr;background:var(--canvas)}
- .sidenav{position:relative;top:auto;height:auto;max-height:none;border-right:0;border-bottom:1px solid var(--line-cool);display:flex;align-items:stretch;overflow-x:auto;gap:2px;padding:0 32px 0 var(--sp-2);max-width:100vw;
+ .sidenav{position:relative;top:auto;height:auto;max-height:none;border-right:0;border-bottom:0;display:flex;align-items:stretch;overflow-x:auto;gap:2px;padding:0 32px 0 var(--sp-2);max-width:100vw;
   -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);scrollbar-width:none}
  .sidenav::-webkit-scrollbar{display:none}.sidenav h2{display:none}
- .sidenav a{white-space:nowrap;min-height:48px;flex:none;border-radius:0;padding:8px 12px}.sidenav a:hover{background:transparent;color:var(--navy-800)}
- .sidenav a[aria-current=page]{background:transparent;color:var(--teal-800);box-shadow:inset 0 -2px 0 var(--teal-700)}.sidenav a[aria-current=page]::before{display:none}
+ .sidenav a{white-space:nowrap;min-height:52px;flex:none;border-radius:0;padding:8px 14px}.sidenav a:hover{background:transparent;color:#fff}
+ .sidenav a[aria-current=page]{background:transparent;color:#fff;box-shadow:inset 0 -3px 0 var(--signal-400)}.sidenav a[aria-current=page]::before{display:none}
  .sidenav form{margin-top:0!important;flex:none;align-self:center}
  .sidenav .sidenav-ext{margin-left:4px}
- .sidenav .sidenav-signout{margin:0 0 0 4px;padding:0 0 0 8px;border-top:0;border-left:1px solid var(--line-cool)}
+ .sidenav .sidenav-signout{margin:0 0 0 4px;padding:0 0 0 8px;border-top:0;border-left:1px solid var(--line-dark)}
  .sidenav .sidenav-signout button{white-space:nowrap;min-height:44px;width:auto}
- .app-main{padding:var(--sp-5) var(--sp-4) var(--sp-7)}
+ .app-main{padding:var(--sp-6) var(--gutter) var(--sp-8)}
+ .admin-header__inner{padding-inline:var(--gutter)}
 }
-@media(max-width:640px){.app-head{align-items:flex-start}.app-head .page-actions,.app-head .page-actions .btn{width:100%}.mcard{padding:var(--sp-5)}}
+@media(max-width:640px){.app-head{align-items:flex-start}.app-head .page-actions,.app-head .page-actions .btn{width:100%}.mcard{padding:var(--sp-6) var(--sp-5) var(--sp-5)}}
 
-/* ── Admin portal header (64px, full-bleed white): logo → admin home, "Admin" tag (profile menu: sidebar) ─────────────────────── */
-.admin-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);-webkit-backdrop-filter:saturate(1.6) blur(12px);backdrop-filter:saturate(1.6) blur(12px);border-bottom:1px solid var(--line-cool)}
+/* ── Admin portal header (64px, full-bleed Harbor): logo → admin home, "Admin" tag (profile menu: sidebar) ───────────────── */
+.admin-header{position:sticky;top:0;z-index:50;background:var(--harbor-800);border-bottom:1px solid var(--line-dark)}
 .admin-header__inner{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4);min-height:64px;padding:0 var(--sp-5)}
-.admin-header__brand{display:flex;align-items:center;gap:14px;text-decoration:none}.admin-header .admin-header__brand img{height:40px;width:auto}
-.admin-header__tag{font:500 .6875rem/1 var(--font-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--navy-800);background:var(--navy-50);border:1px solid var(--line-navy);border-radius:var(--r-pill);padding:5px 10px}
-@media(max-width:640px){.admin-header__inner{padding:0 var(--sp-4);min-height:60px}.admin-header__brand{gap:10px}.admin-header .admin-header__brand img{height:36px}}
+.admin-header__brand{display:flex;align-items:center;gap:16px;text-decoration:none}.admin-header .admin-header__brand img{height:38px;width:auto}
+.admin-header__tag{font:600 .75rem/1 var(--font-body);text-transform:uppercase;letter-spacing:.16em;color:var(--signal-400);background:transparent;border:1px solid rgba(43,238,173,.45);border-radius:var(--r-pill);padding:6px 11px}
+@media(max-width:640px){.admin-header__inner{padding:0 var(--gutter);min-height:60px}.admin-header__brand{gap:10px}.admin-header .admin-header__brand img{height:34px}}
 
-/* ── Admin sidebar column (≥901px): a classic app sidebar ─────────────────────────────────────────────────────────────────
-   Fixed to the left edge, from under the 64px admin bar to the bottom of the window, on every page and at every scroll position:
-   navigation on top (it scrolls inside the column when the window is very short), the admin's profile menu pinned to the very
-   bottom. Being out of flow, the main column is placed in grid column 2 explicitly and the slim admin footer starts after the
-   sidebar (never under it). The .app gradient still paints the same white column + rule behind it. ≤900px: hidden (Admin menu). */
-.adm-side{display:flex;flex-direction:column;background:#fff;border-right:1px solid var(--line-cool)}
+/* ── Admin sidebar column (≥901px): fixed to the left edge, from under the 64px admin bar to the bottom of the window;
+   navigation on top, the admin's profile menu pinned to the very bottom. ≤900px: hidden (Admin menu). ─────────────────── */
+.adm-side{display:flex;flex-direction:column;background:var(--harbor-900);border-right:0}
 @media(min-width:901px){
- .app.adm>.adm-side{position:fixed;z-index:30;top:var(--header-h);bottom:0;left:0;width:248px}
+ .app.adm>.adm-side{position:fixed;z-index:30;top:var(--header-h);bottom:0;left:0;width:264px}
  .app.adm>:not(.adm-side){grid-column:2}
- body:has(.app.adm) .admin-footer{margin-left:248px}
+ body:has(.app.adm) .admin-footer{margin-left:264px}
 }
 .adm-side>.adm-sidenav{position:static;align-self:stretch;flex:1 1 auto;min-height:0;max-height:none;height:auto;border-right:0;background:none;overflow-y:auto}
-.adm-side-foot{flex:none;padding:10px var(--sp-3);border-top:1px solid var(--line-cool);background:#fff}
-/* the profile row (58px): avatar · name (bold) over the e-mail (muted), both cut with an ellipsis · chevron (up = the menu opens
-   upwards; it turns down while open) */
+.adm-side-foot{flex:none;padding:12px var(--sp-3);border-top:1px solid var(--line-dark);background:var(--harbor-950)}
+/* the profile row: avatar · name over the e-mail (both cut with an ellipsis) · chevron (up = the menu opens upwards) */
 details.adm-profile{position:relative;border:0;padding:0;background:none;margin:0}
-.adm-profile>summary{display:flex;align-items:center;gap:12px;min-height:58px;padding:8px 34px 8px 10px;border-radius:var(--r-sm);border:1px solid transparent;color:var(--navy-800);cursor:pointer;transition:background-color var(--dur-1),border-color var(--dur-1)}
-.adm-profile>summary:hover,.adm-profile[open]>summary{background:var(--portal-hover);border-color:var(--line-cool);color:var(--navy-800)}
-details.adm-profile>summary:not(.btn)::after{right:14px;width:7px;height:7px;margin-top:-2px;border-color:var(--slate-500);transform:rotate(-135deg)}
+.adm-profile>summary{display:flex;align-items:center;gap:12px;min-height:58px;padding:8px 36px 8px 10px;border-radius:0;border:1px solid transparent;color:#fff;cursor:pointer;transition:background-color var(--dur-2),border-color var(--dur-2)}
+.adm-profile>summary:hover,.adm-profile[open]>summary{background:var(--glass-dark);border-color:var(--line-dark);color:#fff}
+/* the chevron (overrides the +/− disclosure marker): points up, turns down while open */
+details.adm-profile>summary:not(.btn)::after{right:14px;width:7px;height:7px;margin-top:-2px;background:none;border-right:1.5px solid var(--on-dark-2);border-bottom:1.5px solid var(--on-dark-2);transform:rotate(-135deg)}
 details.adm-profile[open]>summary:not(.btn)::after{transform:translateY(-4px) rotate(45deg)}
-details.adm-profile>summary:not(.btn):hover::after{border-color:var(--navy-800)}
-.adm-profile>summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+details.adm-profile>summary:not(.btn):hover::after{border-color:#fff}
+.adm-profile>summary:focus-visible{outline:2px solid var(--signal-400);outline-offset:-2px}
 .adm-profile .avatar,.adm-mnav-me .avatar{--av:36px;flex:none}
 .adm-profile-name{font-weight:600;font-size:var(--fs-sm);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .adm-profile-id{display:grid;flex:1 1 auto;min-width:0;gap:1px;line-height:1.3}
-.adm-profile .adm-profile-name{color:var(--navy-800)}
-.adm-profile-email{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8125rem;font-weight:400;color:var(--slate-600)}
-/* the menu opens upwards, over the navigation, across the sidebar (inside its 12px gutters); never taller than the window allows */
-.adm-profile-menu{position:absolute;left:0;right:0;bottom:calc(100% + 8px);z-index:60;display:grid;gap:2px;padding:6px;background:#fff;border-radius:var(--r-panel);box-shadow:var(--shadow-pop);
+.adm-profile .adm-profile-name{color:#fff}
+.adm-profile-email{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8125rem;font-weight:400;color:var(--on-dark-3)}
+/* the menu opens upwards over the navigation — a white popover (light set) */
+.adm-profile-menu{--tx:var(--ink);--tx-2:var(--ink-2);--tx-3:var(--ink-3);--hd:var(--harbor-800);--acc:var(--teal-700);--focus-c:var(--focus);
+ position:absolute;left:0;right:0;bottom:calc(100% + 8px);z-index:60;display:grid;gap:2px;padding:6px;background:#fff;color:var(--ink);border-radius:0;box-shadow:var(--shadow-pop);
  max-height:calc(100vh - var(--header-h) - 96px);max-height:calc(100dvh - var(--header-h) - 96px);overflow-y:auto}
-.adm-profile-menu a,.adm-profile-menu .sidenav-signout button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 12px;border:0;border-radius:8px;background:transparent;color:var(--slate-700);
- font:500 .9375rem var(--font-body);text-decoration:none;text-align:left;cursor:pointer;transition:background-color var(--dur-1),color var(--dur-1)}
-.adm-profile-menu a svg,.adm-profile-menu .sidenav-signout button svg{color:var(--slate-500);flex:none}
-.adm-profile-menu a:hover,.adm-profile-menu .sidenav-signout button:hover{background:var(--portal-hover);color:var(--navy-800)}
+.adm-profile-menu a,.adm-profile-menu .sidenav-signout button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 12px;border:0;border-radius:0;background:transparent;color:var(--ink-2);
+ font:500 .9375rem var(--font-body);text-decoration:none;text-align:left;cursor:pointer;transition:background-color var(--dur-2),color var(--dur-2)}
+.adm-profile-menu a svg,.adm-profile-menu .sidenav-signout button svg{color:var(--ink-3);flex:none}
+.adm-profile-menu a:hover,.adm-profile-menu .sidenav-signout button:hover{background:var(--portal-hover);color:var(--harbor-800)}
 .adm-profile-menu a:focus-visible,.adm-profile-menu .sidenav-signout button:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
 .adm-profile-menu .sidenav-signout{margin:4px 0 0;padding-top:4px;border-top:1px solid var(--line-cool)}
 /* phones/tablets: the profile sits at the bottom of the "Admin menu" panel (only shown there) */
 .adm-mnav-profile{display:none}
-/* the admin shell sits under the 64px admin bar (not the 72px public header) */
+/* the admin shell sits under the 64px admin bar (not the 84px public header) */
 body:has(.admin-header){--header-h:64px}
 @media(max-width:640px){body:has(.admin-header){--header-h:60px}}
-.admin-footer{border-top:1px solid var(--line-cool);background:var(--canvas);color:var(--slate-600);font-size:.8125rem}
-.admin-footer__inner{display:flex;align-items:center;min-height:44px;padding:var(--sp-2) var(--sp-5)}
+.admin-footer{border-top:1px solid var(--line-cool);background:var(--canvas);color:var(--ink-3);font-size:.8125rem}
+.admin-footer__inner{display:flex;align-items:center;min-height:48px;padding:var(--sp-2) clamp(16px,3vw,56px)}
+@media(max-width:900px){.admin-footer__inner{padding-inline:var(--gutter)}}/* lines up with the main column */
 
-/* ── Admin menu on phones/tablets (≤900px): one "Admin menu" disclosure under the header ──────────────────────────────── */
+/* ── Admin menu on phones/tablets (≤900px): one Harbor "Admin menu" disclosure under the header ─────────────────────── */
 .adm .adm-mnav-wrap{display:none}
 @media(max-width:900px){
  .adm .adm-sidenav,.adm .adm-side{display:none}
- .adm .adm-mnav .adm-mnav-profile{display:grid;gap:2px;margin:0 12px 12px;padding-top:8px;border-top:1px solid var(--line-cool)}
+ .adm .adm-mnav .adm-mnav-profile{display:grid;gap:2px;margin:0 12px 12px;padding-top:8px;border-top:1px solid var(--line-dark)}
  .adm .adm-mnav .adm-mnav-profile .sidenav-signout{margin:0;padding:0;border-top:0}
- .adm .adm-mnav .adm-mnav-me{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 12px;color:var(--navy-800);min-width:0}
+ .adm .adm-mnav .adm-mnav-me{display:flex;align-items:center;gap:10px;min-height:52px;padding:6px 12px;color:#fff;min-width:0}
  .adm .adm-mnav-wrap{display:block}
- .adm .adm-mnav{display:block;background:#fff;border:0;border-bottom:1px solid var(--line-cool);border-radius:0;padding:0;margin:0}
- .adm .adm-mnav>summary{display:flex;align-items:center;gap:8px;min-height:52px;padding:8px 44px 8px 16px;font-weight:600;color:var(--navy-800)}
- .adm .adm-mnav .adm-mnav-here{font-weight:500;color:var(--slate-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .adm .adm-mnav{display:block;background:var(--harbor-900);color:var(--on-dark);border:0;border-bottom:1px solid var(--line-dark);border-radius:0;padding:0;margin:0}
+ .adm .adm-mnav>summary{display:flex;align-items:center;gap:10px;min-height:54px;padding:8px 48px 8px 16px;font-weight:600;color:#fff}
+ .adm .adm-mnav>summary svg{color:var(--signal-400)}
+ .adm .adm-mnav .adm-mnav-here{font-weight:500;color:var(--on-dark-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
  .adm .adm-mnav .adm-mnav-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;padding:0 12px 12px}
  .adm .adm-mnav-group{display:grid;gap:2px;align-content:start}
- .adm .adm-mnav-group h2{font:500 var(--fs-xs) var(--font-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--slate-600);margin:8px 12px 4px}
- .adm .adm-mnav a{position:relative;display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border-radius:8px;color:var(--ink);text-decoration:none;font-weight:500}
- .adm .adm-mnav a svg{width:18px;height:18px;flex:none;color:var(--slate-500)}
- .adm .adm-mnav a:hover{background:var(--portal-hover);color:var(--navy-800)}
- /* current item: identical to the desktop sidebar — teal tint + the facet marker */
- .adm .adm-mnav a[aria-current=page]{background:var(--teal-50);color:var(--teal-800);font-weight:600;box-shadow:none}
- .adm .adm-mnav a[aria-current=page]::before{content:"";position:absolute;left:0;top:11px;bottom:11px;width:3px;background:var(--teal-700);clip-path:polygon(0 2px,100% 0,100% 100%,0 calc(100% - 2px))}
- .adm .adm-mnav a[aria-current=page] svg{color:var(--teal-700)}
+ .adm .adm-mnav-group h2{font:600 var(--fs-xs) var(--font-body);text-transform:uppercase;letter-spacing:.16em;color:var(--on-dark-3);margin:8px 12px 4px}
+ .adm .adm-mnav a{position:relative;display:flex;align-items:center;gap:10px;min-height:46px;padding:8px 12px;border-radius:0;color:var(--on-dark-2);text-decoration:none;font-weight:500}
+ .adm .adm-mnav a svg{width:18px;height:18px;flex:none;color:var(--on-dark-3)}
+ .adm .adm-mnav a:hover{background:var(--glass-dark);color:#fff}
+ /* current item: identical to the desktop sidebar — raised row + the signal bar */
+ .adm .adm-mnav a[aria-current=page]{background:var(--harbor-700);color:#fff;font-weight:600;box-shadow:none}
+ .adm .adm-mnav a[aria-current=page]::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--signal-400)}
+ .adm .adm-mnav a[aria-current=page] svg{color:var(--signal-400)}
  .adm .adm-mnav .nav-tag{margin-left:auto;padding:1px 8px;font-size:.7rem}
- .adm .adm-mnav .sidenav-signout{grid-column:1/-1;margin:4px 0 0;padding-top:8px;border-top:1px solid var(--line-cool)}
- .adm .adm-mnav .sidenav-signout button{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 12px;border:0;background:transparent;color:var(--slate-600);font:500 .9375rem var(--font-body);cursor:pointer}
- /* the panel's profile block: "Profile & privacy" and "Sign out" are matching full-width rows — same size, colour, icon and hover */
- .adm .adm-mnav .adm-mnav-profile :is(a,.sidenav-signout button){width:100%;gap:10px;min-height:44px;padding:8px 12px;border-radius:8px;font:500 .9375rem/1.3 var(--font-body);color:var(--slate-700);text-align:left}
- .adm .adm-mnav .adm-mnav-profile :is(a,.sidenav-signout button):hover{background:var(--portal-hover);color:var(--navy-800)}
- .adm .adm-mnav .adm-mnav-profile :is(a,.sidenav-signout button) svg{width:18px;height:18px;flex:none;color:var(--slate-500)}
+ .adm .adm-mnav .sidenav-signout{grid-column:1/-1;margin:4px 0 0;padding-top:8px;border-top:1px solid var(--line-dark)}
+ .adm .adm-mnav .sidenav-signout button{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 12px;border:0;background:transparent;color:var(--on-dark-2);font:500 .9375rem var(--font-body);cursor:pointer}
+ .adm .adm-mnav .adm-mnav-profile :is(a,.sidenav-signout button){width:100%;gap:10px;min-height:44px;padding:8px 12px;border-radius:0;font:500 .9375rem/1.3 var(--font-body);color:var(--on-dark-2);text-align:left}
+ .adm .adm-mnav .adm-mnav-profile :is(a,.sidenav-signout button):hover{background:var(--glass-dark);color:#fff}
+ .adm .adm-mnav .adm-mnav-profile :is(a,.sidenav-signout button) svg{width:18px;height:18px;flex:none;color:var(--on-dark-3)}
+ /* the disclosure's own marker (+/−) in signal */
+ .adm .adm-mnav>summary:not(.btn)::after{right:20px;width:8px;height:8px;margin-top:-6px;background:none;border-right:1.5px solid var(--on-dark-2);border-bottom:1.5px solid var(--on-dark-2);transform:rotate(45deg);transition:transform var(--dur-3) var(--ease-out)}
+ .adm .adm-mnav[open]>summary:not(.btn)::after{transform:translateY(4px) rotate(-135deg)}
 }
 @media(max-width:420px){.adm .adm-mnav .adm-mnav-links{grid-template-columns:minmax(0,1fr)}}

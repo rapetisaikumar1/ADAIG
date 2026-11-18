@@ -5,6 +5,7 @@ import { AdminNav, MemberNav } from "@/components/AppShell";
 import { saveProfile, changePassword, deleteAccount } from "./actions";
 import { memberMetadata } from "../_shared/meta";
 import { PageHead, Notice } from "../_shared/ui";
+import { TabBarFocus } from "../_shared/TabBarFocus";
 import { membershipState, membershipDates, statusTone } from "../_shared/membership";
 import { tierLookup } from "@/lib/settings";
 import { Status } from "@/components/ui/Facet";
@@ -53,7 +54,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const L = (p: string) => `/${locale}${p}`;
   const msFacts = ms?.m ? membershipDates(ms.m, (k) => tb(k), locale) : [];
   return (
-    <div className={isAdmin ? "app adm" : "app"}>{isAdmin ? <AdminNav locale={locale} current="/my/profile" /> : <MemberNav locale={locale} current="/my/profile" />}
+    <div className={isAdmin ? "app adm" : "app"}>{isAdmin ? <AdminNav locale={locale} current="/my/profile" /> : <MemberNav locale={locale} current="/my/profile" />}<TabBarFocus />
       <main id="main" tabIndex={-1} className="app-main mbr mbr-profile">
         <PageHead title={t("title")} lead={t("lead")} />
         {/* Results of the member's own submit take focus (D7 / FA-5), so they are announced and scrolled into view. */}
@@ -88,14 +89,14 @@ export default async function Profile({ params, searchParams }: { params: Promis
         {/* Settings sheet: section title + description on the left, fields on the right (DESIGN_R5 §10.4); stacks ≤900px. */}
         <div className="mbr-sheet">
           <form action={saveProfile} className="mbr-settings-form">
-            <input type="hidden" name="locale" value={locale} />
+            <input suppressHydrationWarning type="hidden" name="locale" value={locale} />
             <section className="settings-section" aria-labelledby="h-details">
               <header><h2 id="h-details">{t("details")}</h2><p>{t("detailsDesc")}</p></header>
               <div className="form-grid mbr-fields">
-                <div className={fcls("name")}><label htmlFor="n">{ta("name")}</label><input type="text" id="n" name="name" defaultValue={u.name} autoComplete="name" required maxLength={limits.name} aria-invalid={!!errs.name || undefined} aria-describedby={errs.name?.id} />{fieldErr("name")}</div>
-                <div className="field"><label htmlFor="e">{ta("email")}</label><input type="email" id="e" value={u.email} readOnly aria-describedby="e-hint" /><span id="e-hint" className="hint">{t.rich("emailHint", { link: (c) => <a href={L("/contact")}>{c}</a> })}</span></div>
-                <div className={fcls("organisation")}><label htmlFor="o">{tj("org")}</label><input type="text" id="o" name="organisation" defaultValue={u.organisation ?? ""} autoComplete="organization" maxLength={limits.organisation} aria-invalid={!!errs.organisation || undefined} aria-describedby={errs.organisation?.id} />{fieldErr("organisation")}</div>
-                <div className={fcls("jobTitle")}><label htmlFor="j">{t("jobTitle")}</label><input type="text" id="j" name="jobTitle" defaultValue={u.jobTitle ?? ""} autoComplete="organization-title" maxLength={limits.jobTitle} aria-invalid={!!errs.jobTitle || undefined} aria-describedby={errs.jobTitle?.id} />{fieldErr("jobTitle")}</div>
+                <div className={fcls("name")}><label htmlFor="n">{ta("name")}</label><input suppressHydrationWarning type="text" id="n" name="name" defaultValue={u.name} autoComplete="name" required maxLength={limits.name} aria-invalid={!!errs.name || undefined} aria-describedby={errs.name?.id} />{fieldErr("name")}</div>
+                <div className="field"><label htmlFor="e">{ta("email")}</label><input suppressHydrationWarning type="email" id="e" value={u.email} readOnly aria-describedby="e-hint" /><span id="e-hint" className="hint">{t.rich("emailHint", { link: (c) => <a href={L("/contact")}>{c}</a> })}</span></div>
+                <div className={fcls("organisation")}><label htmlFor="o">{tj("org")}</label><input suppressHydrationWarning type="text" id="o" name="organisation" defaultValue={u.organisation ?? ""} autoComplete="organization" maxLength={limits.organisation} aria-invalid={!!errs.organisation || undefined} aria-describedby={errs.organisation?.id} />{fieldErr("organisation")}</div>
+                <div className={fcls("jobTitle")}><label htmlFor="j">{t("jobTitle")}</label><input suppressHydrationWarning type="text" id="j" name="jobTitle" defaultValue={u.jobTitle ?? ""} autoComplete="organization-title" maxLength={limits.jobTitle} aria-invalid={!!errs.jobTitle || undefined} aria-describedby={errs.jobTitle?.id} />{fieldErr("jobTitle")}</div>
                 <LocationFields locale={locale} country={u.country} province={u.province ?? ""} countryErr={errs.country ?? null} provinceErr={errs.province ?? null}
                   labels={{ country: tj("country"), state: tj("state"), province: tj("province"), blank: t("provinceBlank") }} />
               </div>
@@ -105,19 +106,19 @@ export default async function Profile({ params, searchParams }: { params: Promis
               <div className="mbr-pref">
                 {/* No "Preferred language" choice (client, round 6b: French is not offered). saveProfile still stores prefLocale,
                     so the member's current value is re-submitted unchanged (a missing field would reset it to the page locale). */}
-                <input type="hidden" name="prefLocale" value={u.locale} />
+                <input suppressHydrationWarning type="hidden" name="prefLocale" value={u.locale} />
                 <fieldset className="mbr-checks" style={{ borderTop: 0, paddingTop: 0 }}>{/* first item now: no divider above it (it separated the removed language field) */}<legend className="sr-only">{t("privacy")}</legend>
                   <div className="mbr-check-row">
-                    <label className="check"><input type="checkbox" name="directoryOptIn" defaultChecked={u.directoryOptIn} aria-describedby="dir-hint" /> <span>{t("dirLabel")}</span></label>
+                    <label className="check mbr-switch"><input suppressHydrationWarning type="checkbox" name="directoryOptIn" defaultChecked={u.directoryOptIn} aria-describedby="dir-hint" /> <span>{t("dirLabel")}</span></label>
                     <p id="dir-hint" className="hint">{t("dirHint")}{!isActive && <> {t("dirHintNonMember")}</>}</p>
                   </div>
                   <div className="mbr-check-row">
-                    <label className="check"><input type="checkbox" name="marketingOptIn" defaultChecked={u.marketingOptIn} aria-describedby="mkt-hint" /> <span>{t("mktLabel")}</span></label>
+                    <label className="check mbr-switch"><input suppressHydrationWarning type="checkbox" name="marketingOptIn" defaultChecked={u.marketingOptIn} aria-describedby="mkt-hint" /> <span>{t("mktLabel")}</span></label>
                     <p id="mkt-hint" className="hint">{t("mktHint")}</p>
                   </div>
                 </fieldset>
                 {/* Every save row on this page sits at the end of its section's fields column (one variant, QA-PORTALS-2-6). */}
-                <div className="save-row"><button className="btn btn-accent">{t("save")}</button></div>
+                <div className="save-row"><button suppressHydrationWarning className="btn btn-accent">{t("save")}</button></div>
               </div>
             </section>
           </form>
@@ -125,19 +126,19 @@ export default async function Profile({ params, searchParams }: { params: Promis
 
         <div className="mbr-sheet">
           <form action={changePassword} className="settings-section" aria-labelledby="h-pw">
-            <input type="hidden" name="locale" value={locale} />
+            <input suppressHydrationWarning type="hidden" name="locale" value={locale} />
             {/* Lets password managers attach the new password to the right account. */}
-            <input type="text" name="username" value={u.email} autoComplete="username" readOnly hidden />
+            <input suppressHydrationWarning type="text" name="username" value={u.email} autoComplete="username" readOnly hidden />
             <header><h2 id="h-pw">{t("pwTitle")}</h2><p>{t("pwIntro")}</p></header>
             <div className="mbr-section-body">
               {pwErr && <FocusOnLoad><Notice tone="danger" role="alert" id="pw-err">{t(`pwErr_${pwErr}`)}</Notice></FocusOnLoad>}
               {/* Current password sits alone in the first cell of the same two-column grid, so every input has the same width. */}
               <div className="form-grid mbr-fields">
-                <div className="field"><label htmlFor="pc">{t("pwCurrent")}</label><input id="pc" name="currentPassword" type="password" autoComplete="current-password" required aria-invalid={pwErr === "wrong" || undefined} aria-describedby={pwErr === "wrong" || pwErr === "locked" ? "pw-err" : undefined} /></div>
-                <div className="field" style={{ gridColumnStart: 1 }}><label htmlFor="pn">{t("pwNew")}</label><input id="pn" name="newPassword" type="password" autoComplete="new-password" required minLength={limits.passwordMin} aria-describedby={pwNewErr ? "pn-hint pw-err" : "pn-hint"} aria-invalid={pwNewErr || undefined} /><span id="pn-hint" className="hint">{t("pwHint")}</span></div>
-                <div className="field"><label htmlFor="pr">{t("pwConfirm")}</label><input id="pr" name="confirmPassword" type="password" autoComplete="new-password" required minLength={limits.passwordMin} aria-invalid={pwErr === "mismatch" || undefined} aria-describedby={pwErr === "mismatch" ? "pw-err" : undefined} /></div>
+                <div className="field"><label htmlFor="pc">{t("pwCurrent")}</label><input suppressHydrationWarning id="pc" name="currentPassword" type="password" autoComplete="current-password" required aria-invalid={pwErr === "wrong" || undefined} aria-describedby={pwErr === "wrong" || pwErr === "locked" ? "pw-err" : undefined} /></div>
+                <div className="field" style={{ gridColumnStart: 1 }}><label htmlFor="pn">{t("pwNew")}</label><input suppressHydrationWarning id="pn" name="newPassword" type="password" autoComplete="new-password" required minLength={limits.passwordMin} aria-describedby={pwNewErr ? "pn-hint pw-err" : "pn-hint"} aria-invalid={pwNewErr || undefined} /><span id="pn-hint" className="hint">{t("pwHint")}</span></div>
+                <div className="field"><label htmlFor="pr">{t("pwConfirm")}</label><input suppressHydrationWarning id="pr" name="confirmPassword" type="password" autoComplete="new-password" required minLength={limits.passwordMin} aria-invalid={pwErr === "mismatch" || undefined} aria-describedby={pwErr === "mismatch" ? "pw-err" : undefined} /></div>
               </div>
-              <div className="save-row"><button className="btn btn-accent">{t("pwSave")}</button></div>
+              <div className="save-row"><button suppressHydrationWarning className="btn btn-accent">{t("pwSave")}</button></div>
             </div>
           </form>
           <section className="settings-section" aria-labelledby="h-data">
@@ -164,7 +165,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
         /* Danger zone (DESIGN_R5 §10.5) on the same settings grid as the cards above: label + title + description left, text,
             fields and save row right; outline destructive button that turns solid once the box is ticked. `mbr-danger` is an E2E hook. */
         <form action={deleteAccount} className="panel danger-zone mbr-danger" aria-labelledby="del-h">
-          <input type="hidden" name="locale" value={locale} />
+          <input suppressHydrationWarning type="hidden" name="locale" value={locale} />
           <section className="settings-section">
             <header>
               <p className="danger-zone-label"><Icon name="alert" size={16} />{t("dangerLabel")}</p>
@@ -175,10 +176,10 @@ export default async function Profile({ params, searchParams }: { params: Promis
               {/* The error takes focus, which also scrolls the danger zone into view (the action redirects without an anchor). */}
               {delErr && <FocusOnLoad><Notice tone="danger" role="alert" id="del-err">{t(delErr)}</Notice></FocusOnLoad>}
               <p className="mbr-dz-body">{t("deleteBody")}</p>
-              <div className="form-grid mbr-fields"><div className="field"><label htmlFor="dp">{t("deletePassword")}</label><input id="dp" name="password" type="password" autoComplete="current-password" required aria-invalid={delErr === "deleteWrong" || undefined} aria-describedby={delErr ? "del-err" : undefined} /></div></div>
+              <div className="form-grid mbr-fields"><div className="field"><label htmlFor="dp">{t("deletePassword")}</label><input suppressHydrationWarning id="dp" name="password" type="password" autoComplete="current-password" required aria-invalid={delErr === "deleteWrong" || undefined} aria-describedby={delErr ? "del-err" : undefined} /></div></div>
               <div className="save-row">
-                <label className="check"><input type="checkbox" name="confirm" required /> <span>{t("deleteConfirm")}</span></label>
-                <button className="btn btn-danger-outline"><Icon name="trash" size={18} />{t("deleteBtn")}</button>
+                <label className="check"><input suppressHydrationWarning type="checkbox" name="confirm" required /> <span>{t("deleteConfirm")}</span></label>
+                <button suppressHydrationWarning className="btn btn-danger-outline"><Icon name="trash" size={18} />{t("deleteBtn")}</button>
               </div>
             </div>
           </section>

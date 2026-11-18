@@ -2,8 +2,10 @@
 @layer theme, base, components, utilities;
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
-/* Round-5 CSS architecture — cascade order matters. DESIGN: tokens → base → components → shell.
-   Areas (scoped selectors + tokens only): chrome + home (PUBLIC-HOME), pages (PUBLIC-PAGES), member (MEMBER), admin (ADMIN). */
+/* CSS architecture (round 9 "Signal", reports/round9/DESIGN_R9.md) — cascade order matters. Core: tokens → base → components → shell.
+   Areas (scoped selectors + tokens only): chrome + home (public home), pages (content pages), flows (membership, join, events,
+   contact, sign-in), member (member portal), admin + admin-access (admin portal).
+   Adding a new @import here? Edit this file's content too: Turbopack caches the CSS transform by content. */
 @import "../styles/tokens.css";
 @import "../styles/base.css";
 @import "../styles/components.css";
@@ -11,6 +13,7 @@
 @import "../styles/chrome.css";
 @import "../styles/home.css";
 @import "../styles/pages.css";
+@import "../styles/flows.css";
 @import "../styles/member.css";
 @import "../styles/admin.css";
 @import "../styles/admin-access.css";

@@ -130,7 +130,7 @@ export async function AdminHeader({ locale }: { locale: string }) {
       <header className="admin-header"><div className="admin-header__inner">
         <a className="brand admin-header__brand" href={L(home)} aria-label={t("homeAria")}>
           {/* eslint-disable-next-line @next/next/no-img-element -- static SVG logo; next/image adds nothing for SVG */}
-          <img src="/assets/logo.svg" alt="" width={220} height={52} />
+          <img src="/assets/logo-reverse.svg" alt="" width={220} height={52} />
           <span className="admin-header__tag" aria-hidden="true">{tc("admin")}</span>
         </a>
       </div></header>
@@ -148,7 +148,7 @@ export async function AdminFooter() {
 function SignOutButton({ label, locale }: { label: string; locale: string }) {
   return (
     <form className="sidenav-signout" action={async () => { "use server"; await signOut({ redirectTo: `/${locale}` }); }}>
-      <button type="submit">
+      <button suppressHydrationWarning type="submit">
         <Icon name="log-out" size={18} />
         {label}
       </button>

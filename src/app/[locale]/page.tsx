@@ -4,12 +4,13 @@ import { Html } from "@/components/SiteChrome";
 import { db } from "@/lib/db";
 import { EventCard, type EventCardLabels } from "@/components/EventCard";
 import { EmptyState } from "@/components/ui/Facet";
-import { FACET_ART } from "@/components/ui/facetArt.generated";
+import { SIGNAL_HERO } from "@/components/ui/signalArt.generated";
 export const dynamic = "force-dynamic";
 
-/** The hero's "governance stack" (DESIGN_R5 §8), inlined at the <!--HOME_HERO_ART--> marker so its cubes can assemble once
- *  (CSS only: components.css .facet-art.is-assembling; static under prefers-reduced-motion). Same markup as <FacetArt />. */
-const HERO_ART = `<span class="facet-art is-assembling home-stack">${FACET_ART["hero-stack"]}</span>`;
+/** The hero's signal cube (round 9, reports/round9/DESIGN_R9.md §1.4): the ADAIG mark as an isometric halftone around the amber
+ *  core, inlined at the <!--HOME_HERO_ART--> marker so its rings can assemble once and pulse outward (CSS only: home.css
+ *  .signal-cube; static under prefers-reduced-motion). Decorative (aria-hidden). */
+const HERO_ART = `<span class="home-stack">${SIGNAL_HERO}</span>`;
 
 /** Homepage: static content from src/content/<locale>/home.html; the "Upcoming events" section is rendered live
  *  from the database at the <!--HOME_EVENTS--> marker so it never shows past, stale or unpublished events. */

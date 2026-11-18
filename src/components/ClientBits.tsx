@@ -26,7 +26,7 @@ export function LangSwitch({ label, group = false }: { label: string; group?: bo
   return (
     <Tag className="lang" role={group ? "group" : undefined} aria-label={label}>
       {(["en", "fr"] as const).map((l) => (
-        <button type="button" key={l} aria-pressed={locale === l} onClick={() => router.replace(pathname + searchWithoutFlash(window.location.search) + window.location.hash, { locale: l })}>
+        <button suppressHydrationWarning type="button" key={l} aria-pressed={locale === l} onClick={() => router.replace(pathname + searchWithoutFlash(window.location.search) + window.location.hash, { locale: l })}>
           {l.toUpperCase()}<span className="sr-only"> – <span lang={l}>{LANG_NAMES[l]}</span></span>
         </button>
       ))}
@@ -106,7 +106,7 @@ export function HeaderNav({ items, label, menuLabel, closeLabel, children }: { i
 
   return (
     <>
-      <button ref={toggleRef} type="button" className="nav-toggle" aria-expanded={open} aria-controls="primary-nav"
+      <button suppressHydrationWarning ref={toggleRef} type="button" className="nav-toggle" aria-expanded={open} aria-controls="primary-nav"
         onClick={() => { focusFirst.current = !open; setOpen(!open); }}>
         <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           {open ? <path d="M5 5l10 10M15 5L5 15" /> : <path d="M3 5.5h14M3 10h14M3 14.5h14" />}

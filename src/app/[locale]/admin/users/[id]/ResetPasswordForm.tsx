@@ -2,7 +2,7 @@
 import { useActionState, useEffect, useRef, startTransition, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { resetAdminUserPassword, type PasswordResetState } from "../actions";
-import { PasswordField } from "../PasswordField";
+import { PasswordField, PwRules } from "../PasswordField";
 
 /**
  * Reset another admin's password (SPEC_R7 §5.2): new + confirm, policy-checked on the server; the user's sessions end. The
@@ -26,7 +26,7 @@ export function ResetPasswordForm({ locale, uid }: { locale: string; uid: string
   const err = (f: PasswordResetState["field"]) => (state.field === f ? state.error : undefined);
   return (
     <form action={action} onSubmit={submit} className="acc-reset" aria-labelledby="h-password" noValidate data-testid="reset-password-form">
-      <input type="hidden" name="locale" value={locale} /><input type="hidden" name="uid" value={uid} />
+      <input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="uid" value={uid} />
       {state.ok && <div className="alert alert-success" role="status" tabIndex={-1} ref={noteRef}><div>{t("msg_pwReset")}</div></div>}
       {/* A field error is shown once, under its field (role=alert there); only an error with no field is shown here. */}
       {state.error && !state.field && <div className="alert alert-danger" role="alert" tabIndex={-1} ref={noteRef}><div>{state.error}</div></div>}
@@ -34,9 +34,9 @@ export function ResetPasswordForm({ locale, uid }: { locale: string; uid: string
         <PasswordField id="rp-pw" name="password" label={t("pwNew")} error={err("password")} describedBy="rp-pw-h" />
         <PasswordField id="rp-pw2" name="confirm" label={t("pwConfirm")} error={err("confirm")} />
       </div>
-      <p className="hint acc-pw-rules" id="rp-pw-h">{t("pwHint")}</p>
+      <p className="hint acc-pw-rules" id="rp-pw-h"><PwRules text={t("pwHint")} /></p>
       <div className="save-row">
-        <button className="btn btn-accent" disabled={pending} aria-busy={pending || undefined}>{pending ? t("working") : t("pwButton")}</button>
+        <button suppressHydrationWarning className="btn btn-accent" disabled={pending} aria-busy={pending || undefined}>{pending ? t("working") : t("pwButton")}</button>
       </div>
     </form>
   );

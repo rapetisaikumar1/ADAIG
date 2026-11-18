@@ -20,11 +20,11 @@ export function CountryProvince({ idp, locale, country: initialCountry, province
   return (
     <div className="adm-form-grid">
       <div className="field"><label htmlFor={`${idp}-country`}>{labels.country}</label>
-        <select id={`${idp}-country`} name="country" value={country} onChange={(e) => { setCountry(e.target.value); setProvince(""); }}>
+        <select suppressHydrationWarning id={`${idp}-country`} name="country" value={country} onChange={(e) => { setCountry(e.target.value); setProvince(""); }}>
           {list.map((c) => <option key={c} value={c}>{countryLabel(c, locale)}</option>)}
         </select></div>
       <div className="field"><label htmlFor={`${idp}-prov`}>{labels.province}</label>
-        <select id={`${idp}-prov`} name="province" value={value} onChange={(e) => setProvince(e.target.value)} disabled={!subs} aria-describedby={`${idp}-prov-h`}>
+        <select suppressHydrationWarning id={`${idp}-prov`} name="province" value={value} onChange={(e) => setProvince(e.target.value)} disabled={!subs} aria-describedby={`${idp}-prov-h`}>
           <option value="">{subs ? "—" : labels.provinceNone}</option>
           {subs?.map((p) => <option key={p.code} value={p.code}>{locale === "fr" ? p.nameFr : p.name} ({p.code})</option>)}
         </select>

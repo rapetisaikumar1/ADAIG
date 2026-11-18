@@ -92,13 +92,13 @@ export default async function AdminMembers({ params, searchParams }: { params: P
   const showReview = rows.some(needsReview);
   // The actions column only exists when there is something this role may do in it (today: unlock a locked account).
   const showActions = canEdit && rows.some((r) => locks.has(r.u.email));
-  const hid = (id: string) => <><input type="hidden" name="id" value={id} /><input type="hidden" name="locale" value={locale} /><input type="hidden" name="f" value={filter} /><input type="hidden" name="q" value={needle} />{page > 1 && <input type="hidden" name="p" value={page} />}</>;
+  const hid = (id: string) => <><input suppressHydrationWarning type="hidden" name="id" value={id} /><input suppressHydrationWarning type="hidden" name="locale" value={locale} /><input suppressHydrationWarning type="hidden" name="f" value={filter} /><input suppressHydrationWarning type="hidden" name="q" value={needle} />{page > 1 && <input suppressHydrationWarning type="hidden" name="p" value={page} />}</>;
   const qs = (k: MemberFilter, p = 1) => { const s = new URLSearchParams(); if (k !== "all") s.set("f", k); if (needle) s.set("q", needle); if (p > 1) s.set("p", String(p)); return s.toString(); };
   const href = (k: MemberFilter, p = 1) => { const s = qs(k, p); return `/${locale}/admin/members${s ? `?${s}` : ""}`; };
   const csv = `/api/admin/members.csv${qs(filter) ? `?${qs(filter)}` : ""}`;
   const refund = (m: ListMembership, u: ListUser) => !canEdit ? null : (
     <details className="confirm adm-confirm"><summary className="btn btn-secondary btn-sm" aria-label={`${t("markRefunded")}: ${u.name}`}>{t("markRefunded")}…</summary>
-      <form action={markRefunded} className="confirm-box">{hid(m.id)}<p>{t("markRefundedConfirm", { name: u.name })}</p><div className="confirm-actions"><button className="btn btn-primary btn-sm">{t("markRefundedYes")}</button></div></form>
+      <form action={markRefunded} className="confirm-box">{hid(m.id)}<p>{t("markRefundedConfirm", { name: u.name })}</p><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-primary btn-sm">{t("markRefundedYes")}</button></div></form>
     </details>
   );
   const first = total ? start + 1 : 0, last = Math.min(end, total);
@@ -132,9 +132,9 @@ export default async function AdminMembers({ params, searchParams }: { params: P
                 <div className="adm-review">
                   <span className="small">{t("appliedOn", { date: day(m.createdAt) })}{note(m) ? <><br /><span className="muted">{note(m)}</span></> : null}</span>
                   {canEdit && <div className="adm-actions">
-                    <form action={reviewEligibility}>{hid(m.id)}<input type="hidden" name="decision" value="approve" /><button className="btn btn-accent btn-sm" aria-label={`${t("approve")}: ${u.name}`}><Icon name="check" size={16} />{t("approve")}</button></form>
+                    <form action={reviewEligibility}>{hid(m.id)}<input suppressHydrationWarning type="hidden" name="decision" value="approve" /><button suppressHydrationWarning className="btn btn-accent btn-sm" aria-label={`${t("approve")}: ${u.name}`}><Icon name="check" size={16} />{t("approve")}</button></form>
                     <details className="confirm adm-confirm"><summary className="btn btn-secondary btn-sm" aria-label={`${t("reject")}: ${u.name}`}>{t("reject")}…</summary>
-                      <form action={reviewEligibility} className="confirm-box">{hid(m.id)}<input type="hidden" name="decision" value="reject" /><div className="field"><label htmlFor={`rr-${m.id}`}>{t("reasonLabel")}</label><input id={`rr-${m.id}`} name="reason" type="text" placeholder={t("reasonPh")} maxLength={300} /></div><div className="confirm-actions"><button className="btn btn-danger btn-sm">{t("confirmReject")}</button></div></form>
+                      <form action={reviewEligibility} className="confirm-box">{hid(m.id)}<input suppressHydrationWarning type="hidden" name="decision" value="reject" /><div className="field"><label htmlFor={`rr-${m.id}`}>{t("reasonLabel")}</label><input suppressHydrationWarning id={`rr-${m.id}`} name="reason" type="text" placeholder={t("reasonPh")} maxLength={300} /></div><div className="confirm-actions"><button suppressHydrationWarning className="btn btn-danger btn-sm">{t("confirmReject")}</button></div></form>
                     </details>
                   </div>}
                 </div>
@@ -143,7 +143,7 @@ export default async function AdminMembers({ params, searchParams }: { params: P
               ) : m?.refundStatus === "refund_due" ? <div className="adm-person"><span><span className="status status-pending">{t("refundDue")}</span></span>{refund(m, u)}</div>
                 : <span className="muted" aria-hidden="true">—</span>}</td>}
               {showActions && <td data-label={t("account")} className={isLocked ? "adm-col-actions" : "adm-col-actions adm-cell-empty"}>{isLocked
-                ? <div className="adm-actions"><form action={unlockAccount}>{hid(u.id)}<button className="btn btn-secondary btn-sm" aria-label={`${t("unlock")}: ${u.name}`}>{t("unlock")}</button></form></div>
+                ? <div className="adm-actions"><form action={unlockAccount}>{hid(u.id)}<button suppressHydrationWarning className="btn btn-secondary btn-sm" aria-label={`${t("unlock")}: ${u.name}`}>{t("unlock")}</button></form></div>
                 : null}</td>}
             </tr>
           ); })}

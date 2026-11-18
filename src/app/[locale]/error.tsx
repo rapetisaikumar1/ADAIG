@@ -20,7 +20,7 @@ export default function ErrorPage({ error, retry }: { error: unknown; retry: () 
         <h1>{t("errorTitle")}</h1>
         <p className="lead">{t("errorBody")}</p>
         <div className="btn-row">
-          <button type="button" className="btn btn-primary" onClick={() => retry()}>{t("retry")}</button>
+          <button suppressHydrationWarning type="button" className="btn btn-primary" onClick={() => retry()}>{t("retry")}</button>
           <a className="btn btn-secondary" href={`/${locale}`}>{t("home")}</a>
           <a className="btn btn-secondary" href={`/${locale}/contact`}>{t("contact")}</a>
         </div>
