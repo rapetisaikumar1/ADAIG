@@ -255,7 +255,15 @@
 .ab-gov .ab-person .avatar.lg{--av:clamp(72px,3.5rem + 2.4vw,104px)}
 .ab-gov .ab-person h4{margin:0 0 6px;font:500 clamp(1.375rem,1.2rem + .7vw,1.875rem)/1.2 var(--font-body);letter-spacing:-.024em}
 .ab-gov .ab-person p{margin:0;color:var(--ink-2);font-weight:500;font-size:1rem}
-.ab-gov .ab-person>div:last-child{min-width:0;overflow-wrap:anywhere}
+.ab-gov .ab-person>div:not(.avatar){min-width:0;overflow-wrap:anywhere}
+/* LinkedIn profile: a 44px round icon link at the card's right edge (narrow cards: under the role, so the name keeps its width) */
+.ab-gov .ab-person>a.ab-linkedin{flex:none;display:grid;place-items:center;width:44px;height:44px;margin-left:auto;border-radius:50%;color:var(--harbor-800);background:var(--white);box-shadow:inset 0 0 0 1px var(--line-strong);text-decoration:none;transition:background-color var(--dur-2),color var(--dur-2),box-shadow var(--dur-2)}
+.ab-gov .ab-person>a.ab-linkedin:is(:hover,:focus-visible){color:var(--signal-400);background:var(--harbor-800);box-shadow:none}
+@media(max-width:640px),(min-width:961px) and (max-width:1160px){
+ .ab-gov .ab-person:has(>.ab-linkedin){display:grid;grid-template-columns:auto minmax(0,1fr);row-gap:var(--sp-3);align-content:center}
+ .ab-gov .ab-person:has(>.ab-linkedin)>.avatar{grid-row:1/span 2;align-self:center}
+ .ab-gov .ab-person>a.ab-linkedin{grid-column:2;margin-left:0}
+}
 /* open positions: a white sheet on the progress rule; each open seat is an empty chair (a dashed avatar ring) */
 .ab-open{position:relative;margin-top:clamp(40px,2rem + 2vw,72px);padding:clamp(24px,1rem + 2.4vw,48px);background:var(--white);border:1px solid var(--line)}
 .ab-open::before{content:"";position:absolute;left:-1px;right:-1px;top:-1px;height:3px;background:linear-gradient(90deg,var(--harbor-800) 0 30%,transparent 30%)}
